@@ -1,0 +1,86 @@
+/* Priority-based styling */
+.priority-low {
+  @apply border-l-4 border-l-green-400;
+}
+
+.priority-medium {
+  @apply border-l-4 border-l-yellow-400;
+}
+
+.priority-high {
+  @apply border-l-4 border-l-red-400;
+}
+
+/* Priority badges */
+.priority-badge.priority-low {
+  @apply text-green-800 bg-green-100;
+}
+
+.priority-badge.priority-medium {
+  @apply text-yellow-800 bg-yellow-100;
+}
+
+.priority-badge.priority-high {
+  @apply text-red-800 bg-red-100;
+}
+
+/* Completed state */
+.completed {
+  @apply opacity-75 bg-gray-50;
+}
+
+/* Focus states for accessibility */
+:host:focus-visible {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2 rounded-lg;
+}
+
+/* Hover effects */
+:host:hover .priority-low {
+  @apply border-l-green-500;
+}
+
+:host:hover .priority-medium {
+  @apply border-l-yellow-500;
+}
+
+:host:hover .priority-high {
+  @apply border-l-red-500;
+}
+
+/* Animation for completion toggle */
+.transition-colors {
+  transition-property: color, background-color, border-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Screen reader only text */
+.sr-only {
+  @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+  clip: rect(0, 0, 0, 0);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :host {
+    .bg-white {
+      @apply bg-gray-800;
+    }
+
+    .text-gray-900 {
+      @apply text-gray-100;
+    }
+
+    .text-gray-600 {
+      @apply text-gray-300;
+    }
+
+    .border-gray-200 {
+      @apply border-gray-700;
+    }
+
+    .completed {
+      @apply bg-gray-900;
+    }
+  }
+}
