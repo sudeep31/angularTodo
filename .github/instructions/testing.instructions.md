@@ -124,3 +124,74 @@ beforeEach(async () => {
 - Mock external dependencies and services
 - Test signal state changes and computed values
 - Use descriptive test names that explain the behavior being tested
+
+## Error Prevention in Tests
+
+### Component Property Visibility
+
+- Use `public` for properties that tests need to read directly
+- Add a `public` getter for properties that must stay `protected` in the component
+- Never access internals with `(component as any).x` — it bypasses type safety and breaks on refactor
+- Do not expose internal `WritableSignal` state outside the class — test through public methods
+
+### HTTP Call Mocking with HttpTestingController
+
+```typescript
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+
+let httpMock: HttpTestingController;
+
+beforeEach(() => {
+  TestBed.configureTestingModule({
+    providers: [provideHttpClient(), provideHttpClientTesting(), MyService],
+  });
+  httpMock = TestBed.inject(HttpTestingController);
+});
+
+afterEach(() => {
+  httpMock.verify(); // Fails the test if there are unmatched requests
+});
+
+it('should load todos from API', () => {
+  service.getAll();
+  const req = httpMock.expectOne('/api/todos');
+  expect(req.request.method).toBe('GET');
+  req.flush([{ id: 1, title: 'Test', completed: false }]);
+  expect(service.todos()).toHaveLength(1);
+});
+
+it('should set error signal when API fails', () => {
+  service.getAll();
+  const req = httpMock.expectOne('/api/todos');
+  req.flush('Server error', { status: 500, statusText: 'Internal Server Error' });
+  expect(service.error()).toBeTruthy();
+});
+```
+
+### Event Object Mocking
+
+Do not cast `{}` directly to `Event` — use `as unknown as Event` to avoid TypeScript conversion errors:
+
+```typescript
+// ❌ Type error: '{}' cannot be converted to type 'Event'
+const event = {} as Event;
+
+// ✅ Correct pattern
+const inputEvent = { target: { value: 'new text' } } as unknown as InputEvent;
+component.onInput(inputEvent);
+
+// ✅ For checkbox events
+const checkboxEvent = { target: { checked: true } } as unknown as Event;
+component.onToggle(checkboxEvent);
+```
+
+### Test Coverage Minimums
+
+- Every component must have a `.spec.ts` file — no exceptions
+- Test: initial signal values on component creation
+- Test: signal updates after user actions (`set`, `update`)
+- Test: `computed()` derivations produce correct values
+- Test: error state (what happens when an API call fails)
+- Test: at least one test per `public` method on services
+- Test: `aria-label` or visible label present on interactive elements

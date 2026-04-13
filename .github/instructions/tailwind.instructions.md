@@ -336,3 +336,16 @@ mcp_tailwindcss -
 - **Accessibility First**: Consider dark mode and accessibility from the start
 - **No Position Classes**: Avoid positioning classes (absolute, relative, fixed, sticky) unless requested
 - **User-Requested Styling**: Only add visual styling when explicitly asked by the user
+
+## Strict CSS Boundaries (Non-Negotiable)
+
+These rules exist to prevent Copilot from adding unrequested styling that breaks the UI or wastes review time.
+
+- **NO debug colours**: Never add bright background colours (`bg-red-500`, `bg-yellow-300`, etc.) for troubleshooting purposes
+- **NO `!important`**: Never use `!important` in any class or inline style — it signals a specificity problem, not a fix
+- **NO inline styles**: Never add `style="..."` attributes unless the user explicitly asks
+- **NO debug borders/outlines**: Never add `border border-red-500` or `outline` classes to "see" layout — ask the user instead
+- **NO unrequested position changes**: Never add `absolute`, `relative`, `fixed`, `sticky`, or `z-index` classes unless asked
+- **Ask, don’t guess**: If a layout looks wrong, ask the user what they want — do not add speculative styling
+
+If any of the above are already present in edited code, flag them and remove them.

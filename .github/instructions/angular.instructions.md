@@ -6,113 +6,88 @@ applyTo: 'src/**/*.ts'
 
 # Angular 21 Code Generation Guidelines
 
-## Component Structure (Following Official Angular Best Practices)
+## Non-Negotiables (Every File, Every Request)
 
-```typescript
-import { Component, signal, computed, input, output, ChangeDetectionStrategy } from '@angular/core';
+- Standalone components — no NgModules
+- `ChangeDetectionStrategy.OnPush` on every component
+- `signal()` for state — `computed()` for derived state
+- `input()` / `output()` functions — **not** `@Input()` / `@Output()` decorators
+- `inject()` for DI — **not** constructor parameters
+- `@if` / `@for` / `@switch` — **not** `*ngIf` / `*ngFor`
+- `@for` always has a `track` — never `track $index` on mutable lists
+- Signal mutations use `.set()` or `.update()` — never direct mutation
+- Every component: 4 files (`.ts`, `.html`, `.css`, `.spec.ts`)
+- Files in correct folders: `components/`, `features/`, `services/`, `interfaces/`
 
-@Component({
-  selector: 'app-feature-name',
-  imports: [], // List standalone dependencies
-  templateUrl: './feature-name.component.html',
-  styleUrl: './feature-name.component.css',
-  changeDetection: ChangeDetectionStrategy.OnPush, // Required for all components
-})
-export class FeatureNameComponent {
-  // Use input() function instead of @Input() decorator
-  readonly initialItems = input<Item[]>([]);
+## Folder Structure — Always Follow This
 
-  // Use output() function instead of @Output() decorator
-  readonly itemSelected = output<Item>();
-
-  // Use signals for state
-  protected readonly items = signal<Item[]>([]);
-  protected readonly loading = signal(false);
-
-  // Use computed for derived state
-  protected readonly itemCount = computed(() => this.items().length);
-
-  // Use update() or set() instead of mutate()
-  addItem(item: Item): void {
-    this.items.update((items) => [...items, item]);
-  }
-}
 ```
+src/app/
+├── components/     ← Reusable UI components (todo-item/, modal/, shared/)
+├── features/       ← Feature-specific pages (todo-list/, settings/)
+├── services/       ← Business logic and HTTP services
+├── interfaces/     ← TypeScript interfaces and models
+├── guards/         ← Route guards
+├── pipes/          ← Custom pipes
+└── shared/         ← Utilities, constants, types
+```
+
+## File Creation Standard
+
+Every component **must** be created with exactly 4 files:
+
+```
+component-name.component.ts       ← Logic, signals, DI
+component-name.component.html     ← Template, Angular control flow
+component-name.component.css      ← TailwindCSS classes only
+component-name.component.spec.ts  ← Vitest unit tests
+```
+
+- **Components**: `src/app/components/[component-name]/`
+- **Features**: `src/app/features/[feature-name]/`
+- **Services**: `src/app/services/`
+- **Interfaces**: `src/app/interfaces/`
+- **Guards**: `src/app/guards/`
+- **Pipes**: `src/app/pipes/`
+
+## Compilation Error Resolution — File Structure Validation
+
+Before completing any task, validate:
+
+1. Every pipe, directive, and component used in the template is in the `imports[]` array
+2. Every interface imported matches its actual file location in `src/app/interfaces/`
+3. No circular imports — a component must not import itself or create a cycle
+4. `rootDir` is explicitly set in `tsconfig.app.json` — do not leave it implicit
+5. Spec files include `/// <reference types="vitest" />` or have `types: ["vitest"]` in `tsconfig.spec.json`
+6. Run `get_errors` — zero errors required before handing back any file
+
+## Component Structure
+
+> Call `mcp_angular-cli_get_best_practices` for the current canonical component scaffold example.
+
+Key rules:
+
+- `selector`, `imports[]`, `templateUrl`, `styleUrl`, `changeDetection: ChangeDetectionStrategy.OnPush`
+- `input()` / `output()` functions for API surface
+- `signal()` / `computed()` for all state
+- `protected readonly` for template-bound properties
+- `.set()` / `.update()` for all signal mutations — never direct mutation
 
 ## Modern Angular Patterns
 
-### Dependency Injection
+> Call `mcp_angular-cli_search_documentation` for live examples of DI, signals, and control flow.
 
-```typescript
-// Use inject() function
-constructor() {
-  private readonly httpClient = inject(HttpClient);
-  private readonly router = inject(Router);
-}
-```
-
-### Signals over Observables
-
-```typescript
-// Prefer signals for component state
-protected readonly todos = signal<Todo[]>([]);
-protected readonly filter = signal<'all' | 'active' | 'completed'>('all');
-
-// Use computed for derived state
-protected readonly filteredTodos = computed(() => {
-  const todos = this.todos();
-  const filter = this.filter();
-  return todos.filter(todo => {
-    if (filter === 'active') return !todo.completed;
-    if (filter === 'completed') return todo.completed;
-    return true;
-  });
-});
-```
-
-### Control Flow Syntax
-
-```html
-<!-- Use @if instead of *ngIf -->
-@if (loading()) {
-<div class="spinner">Loading...</div>
-}
-
-<!-- Use @for instead of *ngFor -->
-@for (todo of todos(); track todo.id) {
-<div class="todo-item">{{ todo.title }}</div>
-}
-
-<!-- Use @switch instead of *ngSwitch -->
-@switch (status()) { @case ('loading') {
-<div>Loading...</div>
-} @case ('error') {
-<div>Error occurred</div>
-} @default {
-<div>Content</div>
-} }
-```
+- **DI**: `inject()` function — never constructor parameters
+- **State**: `signal()` for mutable state, `computed()` for derived state
+- **Control flow**: `@if` / `@for` / `@switch` — never `*ngIf` / `*ngFor` / `*ngSwitch`
 
 ## Service Patterns
 
-```typescript
-import { Injectable, signal } from '@angular/core';
+> Call `mcp_angular-cli_get_best_practices` for the current canonical service scaffold example.
 
-@Injectable({
-  providedIn: 'root',
-})
-export class TodoService {
-  private readonly _todos = signal<Todo[]>([]);
-
-  // Expose readonly signal
-  public readonly todos = this._todos.asReadonly();
-
-  addTodo(todo: Omit<Todo, 'id'>): void {
-    const newTodo = { ...todo, id: crypto.randomUUID() };
-    this._todos.update((todos) => [...todos, newTodo]);
-  }
-}
-```
+- `@Injectable({ providedIn: 'root' })`
+- Private `signal()` exposed via `.asReadonly()` for external consumers
+- `inject()` for dependencies
 
 ## SSR Compatibility Rules
 
@@ -123,55 +98,13 @@ export class TodoService {
 
 ## Testing Patterns
 
-```typescript
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
-
-describe('FeatureComponent', () => {
-  let component: FeatureComponent;
-  let fixture: ComponentFixture<FeatureComponent>;
-
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [FeatureComponent], // Standalone component
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(FeatureComponent);
-    component = fixture.componentInstance;
-  });
-
-  it('should update signal when action is performed', () => {
-    component.performAction();
-    expect(component.items()).toHaveLength(1);
-  });
-});
-```
+> Testing rules and patterns are in `testing.instructions.md` (applied to `src/**/*.spec.ts`).
+> Call `mcp_angular-cli_get_best_practices` for Vitest + Angular testing examples.
 
 ## File Organization
 
-### Standard Folder Structure
-
-- **Components**: Place in `src/app/components/[component-name]/`
-- **Services**: Place in `src/app/services/`
-- **Interfaces/Models**: Place in `src/app/interfaces/`
-- **Guards**: Place in `src/app/guards/`
-- **Pipes**: Place in `src/app/pipes/`
-- **Features**: Place in `src/app/features/[feature-name]/`
-- **Shared utilities**: Place in `src/app/shared/`
-
-### Component File Requirements
-
-**ALWAYS create all 4 files for every component:**
-
-```
-src/app/components/component-name/
-├── component-name.component.ts    # Component logic with signals
-├── component-name.component.html  # Template with control flow
-├── component-name.component.css   # TailwindCSS styling
-└── component-name.component.spec.ts # Vitest tests
-```
-
-### File Naming Conventions
+> Folder structure and file creation standard are defined at the top of this file.
+> Use the tree diagram above as the single source of truth for placement.
 
 - Use kebab-case for files and folders (`todo-item.component.ts`)
 - Use PascalCase for classes (`TodoItemComponent`)
@@ -206,21 +139,88 @@ src/app/components/component-name/
 
 ## Angular Best Practices Enforcement
 
-**ALWAYS reference Angular MCP server before generating code to ensure:**
+Call `mcp_angular-cli_get_best_practices` before writing any component or service code.
 
-- Latest Angular patterns and APIs
-- Proper standalone component structure (standalone is default, don't set to true)
-- Correct signal usage patterns (use update/set, never mutate)
-- Accessibility compliance (AXE checks, WCAG AA)
-- Performance optimization techniques
-- Native control flow (@if, @for, @switch instead of *ngIf, *ngFor, \*ngSwitch)
-- Use input()/output() functions instead of @Input()/@Output() decorators
-- Host bindings inside component decorators, not @HostBinding/@HostListener
+Key checks: standalone default (don't set `standalone: true`), OnPush required, `input()`/`output()` not decorators, host bindings in decorator not `@HostBinding`/`@HostListener`.
 
-**ALWAYS reference Angular MCP server before generating code to ensure:**
+---
 
-- Latest Angular patterns and APIs
-- Proper standalone component structure
-- Correct signal usage patterns
-- Accessibility compliance
+## Error Prevention — Before and After Every Task
+
+### Pre-Development Checklist
+
+1. Call `mcp_angular-cli_get_best_practices` — load live Angular 21 guidelines first
+2. Read existing component patterns in the codebase before creating new files
+3. Verify all interface definitions exist for data types being used
+4. Check which pipes, directives, and components the template will need
+
+### Post-Development Checklist
+
+1. Run `get_errors` on **all modified files** — zero errors required before handing back
+2. Every pipe, directive, and component used in the template is in the `imports[]` array
+3. Signal mutations use `.set()` or `.update()` — never direct mutation (`this.todos().push(...)`)
+4. Every `@for` has a meaningful `track` expression — not `track $index` on mutable lists
+5. Template bindings match the component's `public` or `protected` scope
+6. All `aria-label` / `type="button"` / `for`-`id` pairs are present on interactive elements
+
+### Common Error Patterns and Fixes
+
+#### Missing Pipe or Directive Import
+
+**Error**: `No pipe found with name 'date'` / `Can't bind to 'ngClass'`
+**Fix**: Add to component `imports[]` — `DatePipe`, `TitleCasePipe` from `@angular/common`. Query `mcp_angular-cli_search_documentation` for current import paths.
+
+#### Null Safety Violation
+
+**Error**: `Object is possibly 'undefined'`
+**Fix**: Use `obj?.prop` and `value ?? 'default'`. Never use `obj && obj.prop`.
+
+#### Signal Direct Mutation
+
+**Error**: Change detection not firing after update
+**Fix**:
+
+```typescript
+// ❌ Never
+this.todos().push(newTodo);
+
+// ✅ Always
+this.todos.update((todos) => [...todos, newTodo]);
+```
+
+#### Class Binding Syntax
+
+**Error**: String concatenation in class bindings
+**Fix**: Use `[class.my-class]="condition()"` or object syntax `[ngClass]="{ 'class': condition() }"` — never string concatenation.
+
+#### Protected Property Access in Tests
+
+**Error**: `Property 'x' is protected and only accessible within class`
+**Fix**: Mark as `public` if tests need it, or add a `public` getter. Do not use `(component as any).x`.
+
+#### Event Type Mismatch in Tests
+
+**Error**: `Conversion of type may be a mistake`
+**Fix**: Use `as unknown as Event` cast: `{ target: { value: 'text' } } as unknown as Event`
+
+#### Incorrect TailwindCSS Class Name
+
+**Error**: `flex-shrink-0 can be written as shrink-0`
+**Fix**: Use `mcp_tailwindcss-s_get_tailwind_utilities` to find the current class — never guess.
+
+### TypeScript Strictness Rules
+
+- No `any` type — use proper interfaces or generics
+- No non-null assertion (`!`) unless unavoidable, with a comment explaining why
+- `readonly` on all properties that should not be reassigned
+- Explicit return types on all public methods
+- All interfaces in `src/app/interfaces/` — never inline in components
+- No circular imports — verify before importing a component into itself
+
+### Accessibility Requirements (Every Template)
+
+- All `<button>` elements have `type="button"` (prevents accidental form submit)
+- All interactive elements have `aria-label` or a visible `<label>` linked via `for`/`id`
+- Error messages linked to inputs via `aria-describedby`
+- No colour as the sole means of conveying information
 - Performance optimization techniques

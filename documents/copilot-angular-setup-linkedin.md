@@ -1,467 +1,421 @@
-# 🚀 How I Supercharged My Angular Workflow with GitHub Copilot — And You Can Too!
+# 🚀 Angular Workflow with GitHub Copilot
 
 _A practical guide for Angular developers who want AI that actually understands their codebase._
 
 ---
 
-Hey folks! 👋
+Hello all,
 
-After 17 years of architecting enterprise solutions, I've seen a LOT of tooling come and go. But GitHub Copilot — when set up _properly_ for Angular — is genuinely game-changing. Not the "out-of-the-box, generic autocomplete" version. I mean a fully configured, context-aware AI pair programmer that knows your Angular version, your coding standards, your test framework, and even _how to review pull requests_.
+After 17 years of IT Experience, I've seen a lot of tooling come and go. But GitHub Copilot — when configured _properly_ for Angular — is genuinely game-changing. Not the out-of-the-box, generic autocomplete version. I mean a fully context-aware AI pair programmer that knows your Angular version, your coding standards, your test framework, and even how to review pull requests like a senior architect.
 
-Let me walk you through exactly how I set this up on a real Angular 21 project. Grab a coffee ☕ — this is going to be fun.
+Everything I describe here is live and open source. You can browse the full setup in this Angular 21 Todo app:
+👉 **[github.com/sudeep31/angularTodo](https://github.com/sudeep31/angularTodo)**
+
+Let me walk you through exactly how it is structured — grab a coffee ☕, this is practical.
 
 ---
 
-## The Big Picture — What Are We Building?
+## The Full Setup — What's in the Repo
 
-Here's the full setup we're going to walk through:
+All files referenced in this article are live in this Angular 21 Todo project:
+👉 **[github.com/sudeep31/angularTodo](https://github.com/sudeep31/angularTodo)**
+
+Here is the exact `.github/` structure:
 
 ```
 .github/
-├── copilot-instructions.md        ← Global rules for every Copilot interaction
+├── copilot-instructions.md           ← Global rules, always loaded
 ├── instructions/
-│   ├── angular.instructions.md    ← Angular-specific coding patterns
-│   ├── tailwind.instructions.md   ← TailwindCSS styling rules
-│   └── testing.instructions.md    ← Vitest testing patterns
+│   ├── angular.instructions.md       ← Angular 21 patterns (applied to *.ts)
+│   ├── tailwind.instructions.md      ← TailwindCSS rules (applied to *.html, *.css)
+│   └── testing.instructions.md       ← Vitest patterns (applied to *.spec.ts)
 ├── skills/
 │   └── angular-expert/
-│       └── SKILL.md               ← Deep Angular architecture expertise
+│       └── SKILL.md                  ← Deep architecture expertise, on-demand
 └── agents/
-    ├── pr-review.agent.md         ← AI that reviews PRs like a senior dev
-    └── lint-fix.agent.md          ← AI that fixes linting issues automatically
-```
-
-And connecting it all to **MCP servers** — the secret ingredient that gives Copilot live access to Angular CLI, TailwindCSS docs, and your Nx workspace! 🎯
-
----
-
-## Flow: How Copilot Decides What To Do
-
-```
-Your Request
-     │
-     ▼
-┌─────────────────────────────────────┐
-│         GitHub Copilot              │
-│                                     │
-│  1. Read copilot-instructions.md    │  ◄── Always loaded, global context
-│  2. Check instructions/ folder      │  ◄── Loaded by applyTo pattern (e.g. *.ts)
-│  3. Check if a SKILL applies        │  ◄── Loaded on demand for complex tasks
-│  4. Check if an Agent applies       │  ◄── Specialized workflow agents
-│  5. Query MCP Servers (live data)   │  ◄── Angular CLI, Tailwind, Nx tools
-└─────────────────────────────────────┘
-     │
-     ▼
-High-quality, project-aware response ✅
+    └── code-reviewer.agent.md        ← PR & code review agent with 7 checklists
 ```
 
 ---
 
-## Part 1: The Foundation — `copilot-instructions.md`
+## How Copilot Uses All of This
 
-### 🤔 What is it?
-
-This is the **global brain** for Copilot in your project. Every single Copilot chat interaction reads this file first. Think of it as the onboarding doc you'd give a new senior developer joining your team.
-
-### 💡 Why use it?
-
-Without this, Copilot gives you generic Angular 14-style code with `ngModules`, `@Input()` decorators, and `ngIf` directives — outdated patterns! With it, Copilot _knows_ you're on Angular 21, uses signals, standalone components, and OnPush change detection. Every. Single. Time.
-
-### 🛠️ How to set it up
-
-Create `.github/copilot-instructions.md` in your repo root:
-
-```markdown
-# My Angular Project — AI Guidelines
-
-## Stack
-
-- Angular 21 (standalone components, signals, SSR)
-- TailwindCSS for styling
-- Vitest for testing
-- json-server for mock API
-
-## Non-Negotiables
-
-- Always use standalone components — no NgModules
-- Always use signals for state (signal, computed, effect)
-- Always use OnPush change detection
-- Always use input() and output() functions — NOT @Input()/@Output() decorators
-- Always use @if, @for, @switch — NOT *ngIf, *ngFor
-- Never add inline styles or debug CSS unless asked
-- Always create 4 files per component: .ts, .html, .css, .spec.ts
 ```
-
-**Pro tip** 💡: Be opinionated here! The more specific you are, the better Copilot performs.
-
----
-
-## Part 2: Instruction Files — Context That Turns On Automatically
-
-### 🤔 What are they?
-
-Instruction files live in `.github/instructions/` and are automatically activated based on file patterns. Writing a `.ts` file? The Angular instructions kick in. Working on styling? Tailwind rules apply. It's like having specialized colleagues who tap you on the shoulder at exactly the right moment.
-
-### 💡 Why use them?
-
-Instead of repeating yourself in every chat ("remember, use signals, use standalone components..."), you define it once and Copilot picks it up automatically based on what file you're working on.
-
-### 🛠️ How to set them up
-
-**`angular.instructions.md`** — for all TypeScript files:
-
-```markdown
----
-description: 'Angular 21 patterns for components, services, pipes, guards'
-applyTo: 'src/**/*.ts'
----
-
-# Angular 21 Rules
-
-## Component Template
-
-\`\`\`typescript
-@Component({
-selector: 'app-feature',
-standalone: true, // Always standalone
-imports: [],
-templateUrl: './feature.component.html',
-changeDetection: ChangeDetectionStrategy.OnPush, // Always OnPush
-})
-export class FeatureComponent {
-// Signals for state
-readonly items = signal<Item[]>([]);
-
-// Computed for derived state
-readonly itemCount = computed(() => this.items().length);
-
-// inject() for dependencies
-private readonly service = inject(MyService);
-}
-\`\`\`
-
-## Key Rules
-
-- Use inject() instead of constructor injection
-- Use input()/output() not @Input()/@Output()
-- Use update() or set() on signals, never mutate directly
-```
-
-**`testing.instructions.md`** — for spec files:
-
-```markdown
----
-description: 'Vitest testing patterns for Angular'
-applyTo: 'src/**/*.spec.ts'
----
-
-# Testing Rules
-
-- Use Vitest (describe, it, expect, vi)
-- Use TestBed.configureTestingModule with standalone components
-- Test signals by reading their value with ()
-- Mock services with vi.fn()
+Your chat message
+      │
+      ▼
+┌───────────────────────────────────────────┐
+│             GitHub Copilot                │
+│                                           │
+│  0. Call MCP servers (live data first!)   │  ◄── Angular CLI, TailwindCSS, Nx
+│  1. Read copilot-instructions.md          │  ◄── Always loaded, global context
+│  2. Match instructions/ by file pattern   │  ◄── Auto-applied based on applyTo
+│  3. Load a SKILL if the task is complex   │  ◄── On-demand specialist knowledge
+│  4. Delegate to an Agent if it fits       │  ◄── Reusable workflow agents
+└───────────────────────────────────────────┘
+      │
+      ▼
+Context-aware, version-specific response ✅
 ```
 
 ---
 
-## Part 3: Skills — Your AI's Deep Expertise Mode
+## Part 1 — MCP Servers: Give Copilot Live Access to Your Tools ⚡
 
-### 🤔 What are Skills?
+### What are they?
 
-Skills are like calling in a specialist consultant. While instructions are always-on background context, a Skill is a deep, targeted knowledge file that Copilot loads _on demand_ when you're tackling a complex task. You invoke it explicitly with `/angular-expert` in chat.
+MCP (Model Context Protocol) servers are tools Copilot can call in real-time during a conversation. Instead of relying on static training data, Copilot can _actually query_ the Angular CLI, _actually search_ TailwindCSS docs, or _actually explore_ your Nx workspace graph — all while responding to you.
 
-### 💡 Why use them?
+### Why set them up first?
 
-When you need help with something complex — like architecting a signal-based state store, optimizing SSR performance, or setting up NgRx — you want more than basic rules. You want a specialist. Skills give Copilot a deep knowledge dump for that specific domain.
+Because everything else (instructions, skills, agents) works better when Copilot can validate its answers against live data. For example, `mcp_angular-cli_get_best_practices` returns guidelines for the _exact_ Angular version in your `package.json` — not a generic version that may be out of date.
 
-### 🛠️ How to set them up
+### How to configure them
 
-Create `.github/skills/angular-expert/SKILL.md`:
-
-```markdown
----
-name: angular-expert
-description: 'Deep Angular architecture expertise — use for complex patterns,
-  state management, SSR, performance, and advanced testing'
----
-
-# Angular Expert Mode
-
-## When to invoke me
-
-- Designing component architecture for a feature
-- Setting up signal-based state management
-- Optimizing SSR and hydration
-- Writing comprehensive test suites
-- Performance profiling and OnPush optimization
-
-## Signal State Pattern I Always Follow
-
-\`\`\`typescript
-// Service with signal-based state
-@Injectable({ providedIn: 'root' })
-export class TodoStore {
-// State
-readonly #items = signal<Todo[]>([]);
-
-// Public read-only
-readonly items = this.#items.asReadonly();
-readonly count = computed(() => this.#items().length);
-
-// State mutations
-add(todo: Todo) { this.#items.update(items => [...items, todo]); }
-remove(id: string) { this.#items.update(items => items.filter(t => t.id !== id)); }
-}
-\`\`\`
-```
-
-**How to invoke**: In Copilot chat, type `/angular-expert` and describe your task.
-
----
-
-## Part 4: MCP Servers — Give Copilot Live Superpowers! ⚡
-
-### 🤔 What are MCP Servers?
-
-MCP (Model Context Protocol) servers are external tools that Copilot can call in real-time during a conversation. Instead of just knowing static patterns, Copilot can _actually run_ Angular CLI commands, _actually search_ TailwindCSS docs, or _actually explore_ your Nx workspace graph while responding to you.
-
-### 💡 Why use them?
-
-They bridge the gap between "Copilot knows Angular patterns" and "Copilot can run `ng generate component` and tell you the exact output in your project." Live context = dramatically better responses.
-
-### 🛠️ How to set them up
-
-In VS Code, open settings (`.vscode/mcp.json` or `settings.json`):
+Add `.vscode/mcp.json` to your project:
 
 ```json
 {
-  "mcp": {
-    "servers": {
-      "angular-cli": {
-        "command": "npx",
-        "args": ["-y", "@angular/mcp@latest"],
-        "description": "Angular CLI MCP — generate components, check best practices, search Angular docs"
-      },
-      "tailwindcss": {
-        "command": "npx",
-        "args": ["-y", "@tailwindcss/mcp@latest"],
-        "description": "TailwindCSS MCP — search docs, generate color palettes, convert CSS to Tailwind"
-      },
-      "nx": {
-        "command": "npx",
-        "args": ["-y", "@nx/mcp@latest"],
-        "description": "Nx MCP — explore workspace, view project graph, run generator discovery"
-      }
+  "servers": {
+    "angular-cli": {
+      "command": "npx",
+      "args": ["-y", "@angular/mcp@latest"]
+    },
+    "tailwindcss": {
+      "command": "npx",
+      "args": ["-y", "@tailwindcss/mcp@latest"]
+    },
+    "nx": {
+      "command": "npx",
+      "args": ["-y", "@nx/mcp@latest"]
     }
   }
 }
 ```
 
-### What each MCP Server gives you:
+### What each server unlocks
 
-| MCP Server      | What Copilot can now do                                                                   |
-| --------------- | ----------------------------------------------------------------------------------------- |
-| **Angular CLI** | Generate components with correct flags, validate best practices, search Angular docs live |
-| **TailwindCSS** | Search utility docs, convert CSS to Tailwind classes, generate palettes                   |
-| **Nx**          | Explore project graph, discover generators, understand workspace dependencies             |
+| MCP Server      | What Copilot gains                                                              |
+| --------------- | ------------------------------------------------------------------------------- |
+| **Angular CLI** | Live best practices for your Angular version, component generation, docs search |
+| **TailwindCSS** | Search utility docs, convert CSS to Tailwind classes, generate palettes         |
+| **Nx**          | Explore project graph, discover generators, understand workspace dependencies   |
+
+### Real example from the angularTodo project
+
+When the code-reviewer agent runs, its very first step is:
 
 ```
-Developer asks: "Generate a todo-item component with signals"
-         │
-         ▼
-Copilot calls Angular CLI MCP ──► Reads your angular.json
-         │                         Reads your tsconfig
-         │                         Checks existing folder structure
-         ▼
-Returns EXACT command + code for YOUR project ✅
+1. mcp_angular-cli_get_best_practices
+   → Returns current Angular 21 signal patterns, OnPush requirements,
+     standalone component rules — live, not from memory.
 ```
+
+This means the review adapts to your Angular version automatically. No stale advice.
 
 ---
 
-## Part 5: Agent MD Files — Specialized AI Teammates
+## Part 2 — Instruction Files: Boundaries That Actually Work
 
-### 🤔 What are Agent files?
+### What are they?
 
-Agent `.md` files define _specialized AI personas_ for specific, repeatable workflows. Instead of configuring Copilot from scratch every time you do a PR review or linting pass, you have a dedicated agent with all the context pre-loaded. Think of them as saved "specialist modes."
+Instruction files in `.github/instructions/` load automatically based on which file you are working on. The `applyTo` pattern controls when each file is active:
 
-### 💡 Why use them?
+```
+angular.instructions.md   → applyTo: src/**/*.ts
+tailwind.instructions.md  → applyTo: src/**/*.html, src/**/*.css
+testing.instructions.md   → applyTo: src/**/*.spec.ts
+```
 
-A PR review agent knows to check for Angular best practices, accessibility, security, and performance — not just code style. A linting agent knows your exact ESLint config and can fix issues while explaining why. Same task, done smarter, every time.
+No need to repeat yourself in every chat. Copilot picks up the right context based on context.
 
-### 🛠️ How to set them up
+### The key insight — instructions are not just for coding patterns
 
-**`.github/agents/pr-review.agent.md`**:
+Most developers only put Angular syntax rules in their instruction files. But the real power is using them to define **boundaries** — rules about what Copilot should _not_ do. In the `angularTodo` project, the TailwindCSS instruction file (`tailwind.instructions.md`) enforces these non-coding constraints:
 
 ```markdown
----
-name: PR Reviewer
-description: 'Senior Angular architect reviewing pull requests. Checks correctness,
-  performance, accessibility, security, and Angular 21 best practices.'
-tools:
-  - get_changed_files
-  - read_file
-  - get_errors
-  - semantic_search
----
+## CSS Policy — Strict Boundaries
 
-# PR Review Agent
-
-You are a senior Angular architect with 15+ years of experience doing code review.
-Your tone is constructive and educational — you explain _why_ something matters,
-not just flagging what's wrong.
-
-## Your Review Checklist
-
-### Angular Patterns
-
-- [ ] Components use standalone + OnPush
-- [ ] State managed with signals, not properties
-- [ ] input()/output() used, not decorators
-- [ ] Control flow uses @if/@for, not structural directives
-- [ ] No inline styles or debug code
-
-### Performance
-
-- [ ] No unnecessary computed() recalculations
-- [ ] Async pipe or toSignal() used for observables
-- [ ] Images use NgOptimizedImage
-
-### Security (OWASP Top 10)
-
-- [ ] No direct innerHTML binding (XSS risk)
-- [ ] No sensitive data in signals/logs
-- [ ] HTTP calls use typed responses
-
-### Accessibility
-
-- [ ] Interactive elements have aria-labels
-- [ ] Keyboard navigation works
-- [ ] Color contrast meets WCAG AA
-
-## Output Format
-
-For each issue found:
-**[SEVERITY]** `file.ts:line` — Issue description
-
-> 💡 Why it matters: ...
-> ✅ Fix: ...
+- **DO NOT add custom CSS, inline styles, or debug colors** unless explicitly
+  requested by the user
+- **DO NOT add positioning classes** (absolute, relative, fixed, sticky)
+  unless specifically asked
+- **DO NOT add debug borders, outlines, or bright background colors** for
+  troubleshooting — ask instead of guessing
+- When in doubt: use only existing TailwindCSS utilities already in the project
 ```
 
-**`.github/agents/lint-fix.agent.md`**:
+This eliminated an entire class of problems — Copilot was adding `!important` rules and neon debug backgrounds it thought were "helpful". One instruction file, problem gone permanently.
+
+### Folder structure belongs in instructions too
+
+One of the most impactful things you can do is tell Copilot exactly where things go. This single block, added to `angular.instructions.md`, made every generated file land in the right place:
 
 ```markdown
----
-name: Lint Fixer
-description: 'Automatically finds and fixes ESLint, TypeScript, and Angular
-  template errors across the codebase.'
-tools:
-  - get_errors
-  - read_file
-  - replace_string_in_file
-  - run_in_terminal
----
+## Folder Structure — Always Follow This
 
-# Lint Fix Agent
+src/app/
+├── components/ ← Reusable UI components (todo-item/, modal/, shared/)
+├── features/ ← Feature-specific pages (todo-list/, settings/)
+├── services/ ← Business logic and HTTP services
+├── interfaces/ ← TypeScript interfaces and models
+├── guards/ ← Route guards
+├── pipes/ ← Custom pipes
+└── shared/ ← Utilities, constants, types
 
-You are an expert at Angular and TypeScript code quality.
-When invoked, you:
+## Component Creation Rule
 
-1. Run get_errors on all modified files first
-2. Categorize issues: TypeScript errors, template errors, style violations
-3. Fix them file by file, explaining each change
-4. Re-run get_errors to confirm clean
+Every component MUST be created with exactly 4 files:
 
-## Rules
-
-- Fix the root cause, not just the symptom
-- If a fix could break something, warn the developer first
-- Always validate after fixing — never assume a fix worked
-- Group related fixes together in a single edit
-
-## Angular-Specific Checks
-
-- Standalone imports complete (no missing pipes/directives)
-- Signal types are explicit
-- Template variables match component public/protected scope
-- No deprecated APIs (@Input, @Output, ngIf, ngFor)
+- component-name.component.ts → Logic, signals, DI
+- component-name.component.html → Template, Angular control flow
+- component-name.component.css → TailwindCSS classes only
+- component-name.component.spec.ts → Vitest unit tests
 ```
+
+Before adding this, Copilot was dropping files in the root `app/` folder. After adding it, every component lands exactly where it belongs — services in `services/`, interfaces in `interfaces/`, features in `features/`. The structure becomes self-enforcing.
+
+### The Error Prevention Workflow
+
+The instructions also tell Copilot to validate its own output:
+
+```markdown
+## Before Completing Any Task
+
+1. Use get_errors to check for TypeScript and template compilation errors
+2. Verify all imported pipes and directives are in the component's imports array
+3. Confirm signal mutations use .set() or .update() — never direct mutation
+4. Validate all @for loops have a track expression
+```
+
+This turned Copilot from "generates code that sometimes compiles" into "generates and validates before handing back".
+
+---
+
+## Part 3 — Skills: On-Demand Deep Expertise
+
+### What are they?
+
+Skills are specialist knowledge files loaded only when a task genuinely needs deep expertise. Unlike instructions (always on), a Skill is invoked explicitly. You create the file at `.github/skills/angular-expert/SKILL.md` and invoke it with `/angular-expert` in chat.
+
+### When to use a Skill vs. an Instruction
+
+| Situation                                      | Use         |
+| ---------------------------------------------- | ----------- |
+| Every `.ts` file should follow OnPush          | Instruction |
+| Designing a signal store for a complex feature | Skill       |
+| Always check for missing imports               | Instruction |
+| Architecting SSR hydration for a full app      | Skill       |
+
+### The angular-expert skill in this project
+
+The skill in `angularTodo` covers:
+
+- Signal-based state management patterns with private `#state`
+- `takeUntilDestroyed` for automatic subscription cleanup
+- SSR-safe patterns using `isPlatformBrowser`
+- `@defer` blocks for lazy rendering
+- CDK virtual scroll for large lists
+- Comprehensive Vitest patterns for signal testing
+
+```typescript
+// Pattern the Skill always recommends for service state
+@Injectable({ providedIn: 'root' })
+export class TodoApiService {
+  readonly #state = signal<State>({ todos: [], loading: false, error: null });
+
+  readonly todos = computed(() => this.#state().todos);
+  readonly isLoading = computed(() => this.#state().loading);
+  readonly error = computed(() => this.#state().error);
+
+  // State mutations never expose WritableSignal externally
+  private setState(patch: Partial<State>) {
+    this.#state.update((s) => ({ ...s, ...patch }));
+  }
+}
+```
+
+This is the exact pattern used in `src/app/services/todo-api.service.ts` in the repo.
+
+### How to invoke
+
+In the VS Code Copilot chat panel, type:
+
+```
+/angular-expert  Design a signal store for a multi-step form with validation
+```
+
+Copilot loads the full SKILL.md and responds at architect level — not generic Angular advice.
+
+---
+
+## Part 4 — Agents: Reusable AI Teammates with Checklists
+
+### What are they?
+
+Agent `.md` files define specialized AI personas designed for repeatable workflows. They are not just prompts — they declare which tools Copilot is allowed to use, which skills to load, and what workflow to follow. The agent runs autonomously through a multi-step process.
+
+### The code-reviewer agent in angularTodo
+
+The project has `.github/agents/code-reviewer.agent.md` with **7 structured checklists**:
+
+| Checklist                     | What it checks                                                                          |
+| ----------------------------- | --------------------------------------------------------------------------------------- |
+| 1 — Angular 21 Best Practices | Signals, OnPush, standalone, `input()`/`output()`, SSR guards                           |
+| 2 — ES6+ & TypeScript         | Destructuring, spread/rest, `structuredClone`, no `.push()` on signals                  |
+| 3 — Security (OWASP Top 10)   | XSS via `[innerHTML]`, hardcoded secrets, injection via string concat                   |
+| 4 — Accessibility (WCAG AA)   | `aria-label`, `type="button"`, keyboard focus, colour contrast                          |
+| 5 — Performance               | `NgOptimizedImage`, `@defer`, `track item.id`, `takeUntilDestroyed`, CDK virtual scroll |
+| 6 — Common Developer Mistakes | Loop anti-patterns, 3+ if/else chains, magic numbers, signal mutation bugs              |
+| 7 — Test Coverage             | `.spec.ts` for every component, signal state tested, HTTP calls mocked                  |
+
+The agent's workflow starts with the MCP server — live Angular best practices are fetched before any file is read. Then it reads changed files, runs `get_errors`, and produces a structured report with severity levels:
+
+```
+🔴 CRITICAL  — Must fix before merge (SSR crash, XSS risk, type error)
+🟡 WARNING   — Should fix (pattern violation, accessibility gap)
+🔵 SUGGESTION — Consider improving (readability, performance hint)
+```
+
+### How to use it in normal chat — no special commands needed
+
+This is the part most people miss. You do not need a special slash command. Just open VS Code Copilot chat, switch to **Agent mode** (the dropdown at the top of the chat panel), and select **"Code & PR Reviewer"** from the list.
+
+Then write naturally:
+
+```
+Review the changes I made to todo-list.component.ts and todo-api.service.ts
+```
+
+The agent will:
+
+1. Call `mcp_angular-cli_get_best_practices` for live Angular 21 guidelines
+2. Use `get_changed_files` to discover what changed
+3. Use `read_file` on each changed file
+4. Run `get_errors` to catch compilation issues
+5. Walk through all 7 checklists
+6. Return a structured review with file paths, line numbers, and concrete fixes
+
+You can also ask it mid-review:
+
+```
+Is the way I structured the signal state in TodoApiService following best practices?
+```
+
+The agent responds in context — it already read the file, it already fetched live guidelines, so the answer is specific to your exact code.
 
 ---
 
 ## The Complete Setup Flow
 
 ```
-Step 1: Create .github/copilot-instructions.md
-         └─ Global rules, stack info, non-negotiables
+Step 1: Add .vscode/mcp.json
+         ├─ @angular/mcp  → Live Angular CLI + docs
+         ├─ @tailwindcss/mcp → Live Tailwind utilities
+         └─ @nx/mcp → Workspace graph (for monorepos)
 
-Step 2: Add .github/instructions/*.instructions.md
-         ├─ angular.instructions.md  (applyTo: src/**/*.ts)
-         ├─ tailwind.instructions.md (applyTo: src/**/*.html, *.css)
-         └─ testing.instructions.md  (applyTo: src/**/*.spec.ts)
+Step 2: Create .github/copilot-instructions.md
+         └─ Stack info, non-negotiables, component creation rules, boundries, co-piolet instructions
 
-Step 3: Create .github/skills/angular-expert/SKILL.md
-         └─ Deep expertise loaded on demand with /angular-expert
+Step 3: Add .github/instructions/*.instructions.md
+         ├─ angular.instructions.md  → Coding patterns + folder structure
+         ├─ tailwind.instructions.md → CSS boundaries (what NOT to add)
+         └─ testing.instructions.md  → Vitest patterns + signal testing
 
-Step 4: Configure MCP servers in .vscode/mcp.json
-         ├─ @angular/mcp (Angular CLI live access)
-         ├─ @tailwindcss/mcp (Tailwind docs live access)
-         └─ @nx/mcp (Nx workspace live access)
+Step 4: Create .github/skills/angular-expert/SKILL.md
+         └─ Deep patterns: signal stores, SSR, CDK, testing
 
-Step 5: Add .github/agents/*.agent.md
-         ├─ pr-review.agent.md (senior code review)
-         └─ lint-fix.agent.md (automated lint fixing)
+Step 5: Add .github/agents/code-reviewer.agent.md
+         └─ 7-checklist PR reviewer, invoked from Agent mode in chat
 
-Result: Copilot that feels like a senior Angular teammate 🎉
+Result: Copilot that behaves like a senior Angular architect 🎉
 ```
 
 ---
 
-## Real-World Impact — What This Actually Changed
+## Before vs After — Real Differences in This Project
 
-Before this setup, Copilot would give me:
-
-- ❌ `*ngIf` and `*ngFor` (Angular 14 syntax)
-- ❌ `@Input()` decorators instead of `input()`
-- ❌ Generic test setups without signal testing
-- ❌ No awareness of my folder structure
-
-After this setup:
-
-- ✅ Generates Angular 21 code with signals out of the box
-- ✅ Runs Angular CLI MCP to check my actual `angular.json`
-- ✅ PR review agent catches OWASP issues I'd have missed
-- ✅ Lint fixer resolves template errors in seconds
-- ✅ Every generated component has all 4 files automatically
-
-The setup took me about **2 hours**. The time savings are daily.
+| Without setup                           | With this setup                                          |
+| --------------------------------------- | -------------------------------------------------------- |
+| `*ngIf`, `*ngFor` (Angular 14 syntax)   | `@if`, `@for` every time                                 |
+| `@Input()` decorators                   | `input()` / `output()` functions                         |
+| Files dropped in `app/` root            | Correct folder every time (`components/`, `services/`)   |
+| No `.spec.ts` generated                 | All 4 files created automatically                        |
+| Debug borders and `!important` rules    | Clean TailwindCSS only                                   |
+| Generic patterns, wrong Angular version | Live, version-matched Angular 21 patterns from MCP       |
+| Manual PR review with missed issues     | Agent catches OWASP, accessibility, signal mutation bugs |
 
 ---
 
-## Getting Started in 5 Minutes
+## Token Budgeting — The Cost Angle Nobody Talks About
 
-1. **Clone or open** your Angular project in VS Code
-2. **Install GitHub Copilot** extension (needs Copilot subscription)
-3. **Create** `.github/copilot-instructions.md` with your stack rules
-4. **Add** one instruction file per concern in `.github/instructions/`
-5. **Configure** MCP servers in `.vscode/mcp.json`
-6. **Create** your agent files in `.github/agents/`
-7. **Test it** — ask Copilot to generate a component and see the difference!
+This is the part that matters most in a business context, and it is almost never mentioned in tutorials.
+
+Every time a developer interacts with GitHub Copilot, the AI model receives a **context window** — a fixed-size budget of tokens (words, roughly) that it can read before responding. That budget has to cover:
+
+- The `copilot-instructions.md` file — **loaded on every single request**
+- Any matching instruction files for the current file type
+- Skills, if invoked
+- The agent definition, if active
+- The actual code Copilot is looking at
+- The conversation history
+
+**If you do not manage this deliberately, you waste the budget — and quality drops.**
+
+### What happens without token budgeting
+
+Without a structured setup, developers often paste large chunks of context manually, repeat the same framework rules in every prompt, or write long unstructured `copilot-instructions.md` files that bloat every interaction. In a team of 20 developers doing this 50 times a day, you are burning thousands of tokens on redundant context that a properly configured instruction file would handle in 200 tokens once.
+
+The symptoms are subtle but real:
+
+- Copilot "forgets" the code it was shown earlier in a long conversation
+- Responses become more generic as the window fills up
+- Multi-file tasks lose context halfway through
+- Agents stop seeing full file contents and give partial reviews
+
+### The layered architecture solves this by design
+
+The setup in `angularTodo` is not just organised — it is deliberately token-efficient:
+
+| Layer                     | Token cost                | When loaded                   | What to keep here                                        |
+| ------------------------- | ------------------------- | ----------------------------- | -------------------------------------------------------- |
+| `copilot-instructions.md` | Paid on **every** request | Always                        | Stack facts, non-negotiables only — keep under 200 lines |
+| Instruction files         | Paid per matching file    | On file open/edit             | Targeted rules per file type — not global rules          |
+| Skills                    | Paid only when invoked    | On-demand (`/angular-expert`) | Deep patterns that are rarely needed                     |
+| Agents                    | Paid only in Agent mode   | On-demand (agent chat)        | Full workflows — checklists, tools, output format        |
+
+```
+copilot-instructions.md   → ~150 tokens  (loaded every time — keep lean)
+angular.instructions.md   → ~400 tokens  (loaded only for *.ts files)
+angular-expert SKILL.md   → ~800 tokens  (loaded only when invoked)
+code-reviewer.agent.md    → ~1200 tokens (loaded only in Agent mode)
+
+Unstructured prompt doing the same job:  ~3000+ tokens, every time, for every developer
+```
+
+### Practical rules for team leads and architects
+
+- **`copilot-instructions.md` is not a wiki.** Keep it to stack facts and non-negotiables. Anything that only applies to `.ts` files goes in an instruction file, not here.
+- **Use `applyTo` aggressively.** Each instruction file should target the narrowest possible file pattern so it is only loaded when relevant.
+- **Skills are not always-on documentation.** If a pattern appears in every file, it belongs in an instruction. Skills are for architecture-level guidance invoked deliberately.
+- **Agents are not chatbots.** Use them for repeatable, multi-step workflows (code review, refactoring passes, migration tasks) — not for one-off questions where a plain chat interaction is cheaper.
+- **Review your instruction files quarterly.** As the codebase matures, old rules stay resident in the token budget even when they are no longer relevant. Trim them.
+
+### The business case in one sentence
+
+> A team of 10 Angular developers with a properly configured Copilot setup uses the same token budget per developer per day as an unconfigured team — but gets responses that are more accurate, more consistent, and grounded in the actual codebase rather than generic AI training data.
+
+That is not a tooling improvement. That is a quality and velocity multiplier at scale.
 
 ---
 
 ## Resources
 
+- 📖 [Full source — github.com/sudeep31/angularTodo](https://github.com/sudeep31/angularTodo)
 - 📖 [GitHub Copilot Customization Docs](https://docs.github.com/en/copilot/customizing-copilot)
-- 📖 [Angular MCP Server](https://www.npmjs.com/package/@angular/mcp)
+- 📖 [Angular MCP Server — @angular/mcp](https://www.npmjs.com/package/@angular/mcp)
 - 📖 [MCP Protocol Spec](https://modelcontextprotocol.io/)
 - 📖 [VS Code Agent Mode Docs](https://code.visualstudio.com/docs/copilot/chat/chat-agent-mode)
-
----
-
-_I'm a Solution Architect with 17 years of experience, currently exploring new opportunities. If you're building modern Angular platforms and want someone who bridges architecture, developer experience, and AI tooling — let's connect! 🤝_
-
-_Drop a comment if you want me to share the actual files from this project — happy to open source the whole `.github/` setup!_
 
 ---
 
