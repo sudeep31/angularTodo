@@ -1,33 +1,25 @@
-<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-  <!-- Navigation header -->
-  <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between items-center h-16">
-        <div class="flex items-center">
-          <h1 class="text-xl font-bold text-gray-900">{{ title() }}</h1>
-        </div>
-
-        <div class="flex items-center space-x-4">
-          <span class="text-sm text-gray-500">Angular 21 • TailwindCSS • Vitest</span>
-        </div>
+<div class="min-h-screen bg-slate-50">
+  <!-- Navigation -->
+  <nav class="bg-white border-b border-gray-200 sticky top-0 z-10">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6">
+      <div class="flex justify-between items-center h-14">
+        <h1 class="text-base font-semibold text-gray-800">{{ title() }}</h1>
+        <span class="text-xs text-gray-400">Angular 21 · Signals · TailwindCSS</span>
       </div>
     </div>
   </nav>
 
   <!-- Main content -->
-  <main class="container mx-auto px-4 py-8">
-    <app-todo-list></app-todo-list>
+  <main class="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+    <app-todo-list />
   </main>
 
   <!-- Footer -->
-  <footer class="mt-auto py-6 bg-white border-t border-gray-200">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center text-sm text-gray-500">
-        <p>Built with ❤️ using Angular 21, Signals, and TailwindCSS</p>
-      </div>
+  <footer class="py-6 border-t border-gray-100">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6">
+      <p class="text-center text-xs text-gray-400">Built with Angular 21, Signals &amp; TailwindCSS</p>
     </div>
   </footer>
 
-  <!-- Router outlet for future routing -->
-  <router-outlet></router-outlet>
+  <router-outlet />
 </div>

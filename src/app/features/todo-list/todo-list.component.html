@@ -1,141 +1,158 @@
-<div class="p-6 space-y-6">
+<div class="space-y-6">
   <!-- Header -->
   <header class="text-center">
-    <h1 class="text-3xl font-bold text-gray-900 mb-2">Todo App</h1>
-    <p class="text-gray-600">Stay organized with your tasks</p>
+    <h2 class="text-2xl font-semibold text-gray-800">My Tasks</h2>
+    <p class="mt-1 text-sm text-gray-500">Stay organized and track your work</p>
   </header>
 
-  <!-- Add new todo form -->
-  <section class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-    <h2 class="text-lg font-semibold text-gray-900 mb-4">Add New Todo</h2>
+  <!-- Add new task form -->
+  <section class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+    <h3 class="text-sm font-semibold text-gray-700 mb-4">Add New Task</h3>
 
-    <div class="flex space-x-3">
-      <div class="flex-grow">
-        <label for="new-todo-input" class="sr-only">New todo title</label>
-        <input id="new-todo-input" type="text" [value]="newTodoTitle()" (input)="onNewTodoInput($event)"
-          (keydown)="onNewTodoKeydown($event)" placeholder="What needs to be done?"
-          class="w-full px-4 py-3 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-          [attr.aria-describedby]="'todo-count'">
+    <!-- Form with signal bindings and reactive validation -->
+    <div class="space-y-4">
+      <!-- Title -->
+      <div>
+        <label for="new-todo-input" class="block text-xs font-medium text-gray-600 mb-1">Title</label>
+        <input id="new-todo-input" type="text"
+          [value]="newTodoTitle()"
+          (input)="onTitleInput($event)"
+          (keydown)="onFormKeydown($event)"
+          placeholder="Task title"
+          [class]="'w-full px-3 py-2 text-sm text-gray-800 placeholder-gray-400 border rounded-lg focus:outline-none focus:ring-2 transition-colors ' +
+                   (formErrors().title ? 'border-red-400 focus:ring-red-100' : 'border-gray-200 focus:border-blue-400 focus:ring-blue-100')"
+          [attr.aria-describedby]="formErrors().title ? 'title-error' : 'todo-count'">
+        @if (formErrors().title) {
+          <p id="title-error" class="mt-1 text-xs text-red-500">{{ formErrors().title }}</p>
+        }
       </div>
 
-      <button type="button" (click)="onAddTodo()" [disabled]="!newTodoTitle().trim()"
-        class="px-6 py-3 bg-blue-500 text-white font-medium rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        aria-label="Add new todo">
-        Add
-      </button>
+      <!-- Description Field with Error Display -->
+      <div class="flex-1">
+        <label for="new-todo-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+        <input id="new-todo-description" type="text"
+          [value]="newTodoDescription()"
+          (input)="onDescriptionInput($event)"
+          (keydown)="onFormKeydown($event)"
+          placeholder="Enter description (letters, numbers, spaces only)"
+          [class]="'w-full px-4 py-3 text-gray-900 placeholder-gray-500 border rounded-md focus:outline-none focus:ring-2 transition-colors ' +
+                   (formErrors().description ? 'border-red-500 ring-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500')"
+          [attr.aria-describedby]="formErrors().description ? 'description-error' : 'todo-count'">
+        @if (formErrors().description) {
+          <p id="description-error" class="mt-1 text-sm text-red-600">{{ formErrors().description }}</p>
+        }
+      </div>
+
+      <!-- Priority and Due Date -->
+      <div class="flex gap-3">
+        <div class="flex-1">
+          <label for="priority-select" class="block text-xs font-medium text-gray-600 mb-1">Priority</label>
+          <select id="priority-select"
+            [value]="newTodoPriority()"
+            (change)="onPriorityChange($event)"
+            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 bg-white text-gray-800 transition-colors">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+
+        <div class="flex-1">
+          <label for="due-date-input" class="block text-xs font-medium text-gray-600 mb-1">Due Date</label>
+          <input id="due-date-input" type="date"
+            [value]="newTodoDueDate()"
+            (change)="onDueDateChange($event)"
+            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 bg-white text-gray-800 transition-colors">
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <div class="flex justify-end">
+        <button type="button"
+          (click)="onAddTodo()"
+          [disabled]="!isFormValid()"
+          [class]="'px-5 py-2 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ' +
+                   (isFormValid() ? 'bg-blue-500 hover:bg-blue-600 text-white focus:ring-blue-400' : 'bg-gray-100 text-gray-400 cursor-not-allowed')">
+          Add Task
+        </button>
+      </div>
     </div>
   </section>
 
-  <!-- Todo statistics -->
-  <div id="todo-count" class="text-sm text-gray-600 text-center">
-    {{ todoStats().total }} {{ todoStats().total === 1 ? 'item' : 'items' }} total,
-    {{ todoStats().active }} active,
-    {{ todoStats().completed }} completed
+  <!-- Stats -->
+  <div id="todo-count" class="flex justify-center gap-4 text-xs text-gray-400">
+    <span>{{ todoStats().total }} total</span>
+    <span class="text-blue-400">{{ todoStats().active }} active</span>
+    <span class="text-emerald-500">{{ todoStats().completed }} done</span>
   </div>
 
   <!-- Action buttons -->
   @if (todos().length > 0) {
-  <div class="flex flex-wrap justify-center gap-3">
-    <button type="button" (click)="onToggleAll()"
-      class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
-      [attr.aria-label]="todos().every(todo => todo.completed) ? 'Mark all as incomplete' : 'Mark all as complete'">
-      {{ todos().every(todo => todo.completed) ? 'Uncheck All' : 'Check All' }}
-    </button>
+    <div class="flex flex-wrap justify-center gap-2">
+      <button type="button" (click)="onToggleAll()"
+        class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-colors"
+        [attr.aria-label]="todos().every(todo => todo.completed) ? 'Mark all as incomplete' : 'Mark all as complete'">
+        {{ todos().every(todo => todo.completed) ? 'Uncheck All' : 'Check All' }}
+      </button>
 
-    @if (hasCompletedTodos()) {
-    <button type="button" (click)="onClearCompleted()"
-      class="px-4 py-2 text-sm font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors">
-      Clear Completed ({{ todoStats().completed }})
-    </button>
-    }
-  </div>
+      @if (hasCompletedTodos()) {
+        <button type="button" (click)="onClearCompleted()"
+          class="px-3 py-1.5 text-xs font-medium text-red-500 bg-white border border-red-200 rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200 transition-colors">
+          Clear Done ({{ todoStats().completed }})
+        </button>
+      }
+    </div>
   }
 
   <!-- Filter tabs -->
   @if (todos().length > 0) {
-  <nav class="flex justify-center" role="tablist" aria-label="Todo filters">
-    <div class="inline-flex bg-gray-100 rounded-lg p-1">
-      <button type="button" role="tab" [attr.aria-selected]="filter() === 'all'" [attr.aria-controls]="'todo-list'"
-        (click)="onFilterChanged('all')"
-        class="px-4 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        [class.bg-white]="filter() === 'all'" [class.text-blue-600]="filter() === 'all'"
-        [class.shadow-sm]="filter() === 'all'" [class.text-gray-600]="filter() !== 'all'"
-        [class.hover:text-gray-900]="filter() !== 'all'">
-        All ({{ todoStats().total }})
-      </button>
-
-      <button type="button" role="tab" [attr.aria-selected]="filter() === 'active'" [attr.aria-controls]="'todo-list'"
-        (click)="onFilterChanged('active')"
-        class="px-4 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        [class.bg-white]="filter() === 'active'" [class.text-blue-600]="filter() === 'active'"
-        [class.shadow-sm]="filter() === 'active'" [class.text-gray-600]="filter() !== 'active'"
-        [class.hover:text-gray-900]="filter() !== 'active'">
-        Active ({{ todoStats().active }})
-      </button>
-
-      <button type="button" role="tab" [attr.aria-selected]="filter() === 'completed'"
-        [attr.aria-controls]="'todo-list'" (click)="onFilterChanged('completed')"
-        class="px-4 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        [class.bg-white]="filter() === 'completed'" [class.text-blue-600]="filter() === 'completed'"
-        [class.shadow-sm]="filter() === 'completed'" [class.text-gray-600]="filter() !== 'completed'"
-        [class.hover:text-gray-900]="filter() !== 'completed'">
-        Completed ({{ todoStats().completed }})
-      </button>
+    <div class="flex justify-center" role="tablist" aria-label="Task filters">
+      <div class="inline-flex bg-gray-100 rounded-lg p-1 gap-0.5">
+        <button type="button" role="tab" [attr.aria-selected]="filter() === 'all'" [attr.aria-controls]="'todo-list'"
+          (click)="onFilterChanged('all')"
+          class="px-4 py-1.5 text-xs font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300"
+          [class.bg-white]="filter() === 'all'" [class.text-blue-600]="filter() === 'all'"
+          [class.shadow-sm]="filter() === 'all'" [class.text-gray-500]="filter() !== 'all'">
+          All ({{ todoStats().total }})
+        </button>
+        <button type="button" role="tab" [attr.aria-selected]="filter() === 'active'" [attr.aria-controls]="'todo-list'"
+          (click)="onFilterChanged('active')"
+          class="px-4 py-1.5 text-xs font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300"
+          [class.bg-white]="filter() === 'active'" [class.text-blue-600]="filter() === 'active'"
+          [class.shadow-sm]="filter() === 'active'" [class.text-gray-500]="filter() !== 'active'">
+          Active ({{ todoStats().active }})
+        </button>
+        <button type="button" role="tab" [attr.aria-selected]="filter() === 'completed'" [attr.aria-controls]="'todo-list'"
+          (click)="onFilterChanged('completed')"
+          class="px-4 py-1.5 text-xs font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300"
+          [class.bg-white]="filter() === 'completed'" [class.text-blue-600]="filter() === 'completed'"
+          [class.shadow-sm]="filter() === 'completed'" [class.text-gray-500]="filter() !== 'completed'">
+          Done ({{ todoStats().completed }})
+        </button>
+      </div>
     </div>
-  </nav>
   }
 
-  <!-- Todo list -->
-  <section id="todo-list" role="tabpanel"
-    [attr.aria-label]="'Showing ' + filteredTodos().length + ' ' + filter() + ' todos'">
-
-    @if (loading()) {
-    <div class="flex justify-center items-center py-12" role="status" aria-live="polite">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-      <span class="ml-3 text-gray-600">Loading todos...</span>
-    </div>
-    } @else if (filteredTodos().length === 0) {
-    <div class="text-center py-12">
-      @switch (filter()) {
-      @case ('active') {
-      <div class="text-gray-500">
-        <svg class="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <p class="text-lg font-medium">All caught up!</p>
-        <p class="text-sm">No active todos remaining</p>
-      </div>
-      }
-      @case ('completed') {
-      <div class="text-gray-500">
-        <svg class="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-        <p class="text-lg font-medium">No completed todos</p>
-        <p class="text-sm">Completed tasks will appear here</p>
-      </div>
-      }
-      @default {
-      <div class="text-gray-500">
-        <svg class="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
-        <p class="text-lg font-medium">No todos yet</p>
-        <p class="text-sm">Add your first todo to get started</p>
-      </div>
-      }
-      }
-    </div>
-    } @else {
-    <div class="space-y-3" [attr.aria-live]="'polite'">
+  <!-- Task list -->
+  @if (loading()) {
+    <div class="text-center py-10 text-sm text-gray-400">Loading tasks...</div>
+  } @else if (apiError()) {
+    <div class="p-4 bg-red-50 border border-red-100 rounded-lg text-sm text-red-500">{{ apiError() }}</div>
+  } @else if (filteredTodos().length === 0) {
+    <div class="text-center py-10 text-sm text-gray-400">No tasks to show.</div>
+  } @else {
+    <ul class="space-y-2" id="todo-list">
       @for (todo of filteredTodos(); track todo.id) {
-      <app-todo-item [todo]="todo" [disabled]="loading()" (todoToggled)="onTodoToggled($event)"
-        (todoDeleted)="onTodoDeleted($event)" (todoEdited)="onTodoEdited($event)">
-      </app-todo-item>
+        <li>
+          <app-todo-item
+            [todo]="todo"
+            [disabled]="loading()"
+            (todoToggled)="onTodoToggled($event)"
+            (todoDeleted)="onTodoDeleted($event)"
+            (todoEdited)="onTodoEdited($event)"
+          />
+        </li>
       }
-    </div>
-    }
-  </section>
+    </ul>
+  }
 </div>

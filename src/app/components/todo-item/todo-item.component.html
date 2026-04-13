@@ -1,91 +1,70 @@
-<div
-  class="flex items-center p-4 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
-  [ngClass]="[priorityClass(), completedClass()]">
-
-  <!-- Checkbox for completion toggle -->
-  <button
-    type="button"
-    [attr.aria-pressed]="todo().completed"
-    [attr.aria-label]="'Mark ' + todo().title + ' as ' + (todo().completed ? 'incomplete' : 'complete')"
-    (click)="onToggleComplete()"
+<div class="flex items-start gap-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+  <!-- Checkbox -->
+  <input
+    type="checkbox"
+    [id]="'todo-' + todo().id"
+    [checked]="todo().completed"
     [disabled]="disabled()"
-    class="shrink-0 mr-3 w-5 h-5 rounded border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors hover:border-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
-    [class.bg-blue-500]="todo().completed"
-    [class.border-blue-500]="todo().completed">
-
-    @if (todo().completed) {
-      <svg class="w-3 h-3 text-white m-auto" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-      </svg>
-    }
-  </button>
+    (change)="onToggleComplete()"
+    class="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-blue-500"
+    [attr.aria-label]="'Mark ' + todo().title + ' as ' + (todo().completed ? 'incomplete' : 'complete')"
+  />
 
   <!-- Content -->
-  <div class="grow min-w-0">
-    <h3
-      class="text-sm font-medium text-gray-900 truncate"
-      [class.line-through]="todo().completed"
-      [class.text-gray-500]="todo().completed">
+  <div class="flex-1 min-w-0">
+    <p class="font-medium text-gray-900" [class.line-through]="todo().completed" [class.text-gray-400]="todo().completed">
       {{ todo().title }}
-    </h3>
+    </p>
 
     @if (todo().description) {
-      <p
-        class="text-sm text-gray-600 mt-1"
-        [class.line-through]="todo().completed"
-        [class.text-gray-400]="todo().completed">
-        {{ todo().description }}
-      </p>
+      <p class="mt-1 text-sm text-gray-500">{{ todo().description }}</p>
     }
 
-    <!-- Priority and tags -->
-    <div class="flex items-center mt-2 space-x-2">
+    <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+      <!-- Priority badge -->
       <span
-        class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full"
-        [class]="'priority-badge priority-' + todo().priority">
-        {{ todo().priority | titlecase }}
+        class="px-2 py-0.5 rounded-full font-medium"
+        [class.bg-red-100]="todo().priority === 'high'"
+        [class.text-red-700]="todo().priority === 'high'"
+        [class.bg-yellow-100]="todo().priority === 'medium'"
+        [class.text-yellow-700]="todo().priority === 'medium'"
+        [class.bg-green-100]="todo().priority === 'low'"
+        [class.text-green-700]="todo().priority === 'low'">
+        {{ todo().priority | titlecase }} priority
       </span>
 
+      <!-- Due date -->
+      @if (todo().dueDate) {
+        <span class="text-gray-500">Due: {{ todo().dueDate | date:'mediumDate' }}</span>
+      }
+
+      <!-- Tags -->
       @if (todo().tags?.length) {
-        <div class="flex flex-wrap gap-1">
-          @for (tag of todo().tags; track tag) {
-            <span class="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-full">
-              {{ tag }}
-            </span>
-          }
-        </div>
+        @for (tag of todo().tags!; track tag) {
+          <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">{{ tag }}</span>
+        }
       }
     </div>
-
-    @if (todo().dueDate) {
-      <p class="text-xs text-gray-500 mt-1">
-        Due: {{ todo().dueDate | date:'short' }}
-      </p>
-    }
   </div>
 
-  <!-- Action buttons -->
-  <div class="flex items-center space-x-2 ml-4">
+  <!-- Actions -->
+  <div class="flex items-center gap-1 shrink-0">
     <button
       type="button"
       (click)="onEdit()"
       [disabled]="disabled()"
-      [attr.aria-label]="'Edit ' + todo().title"
-      class="p-2 text-gray-400 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-      </svg>
+      class="p-1.5 text-gray-400 hover:text-blue-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-40"
+      aria-label="Edit todo">
+      ✏️
     </button>
-
     <button
       type="button"
       (click)="onDelete()"
       [disabled]="disabled()"
-      [attr.aria-label]="'Delete ' + todo().title"
-      class="p-2 text-gray-400 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-      </svg>
+      class="p-1.5 text-gray-400 hover:text-red-600 rounded focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors disabled:opacity-40"
+      aria-label="Delete todo">
+      🗑️
     </button>
   </div>
 </div>
+

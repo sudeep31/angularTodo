@@ -1,10 +1,10 @@
-import { Component, input, output, computed, ChangeDetectionStrategy } from '@angular/core';
-import { DatePipe, TitleCasePipe, NgClass } from '@angular/common';
+import { Component, input, output, computed, effect, ChangeDetectionStrategy } from '@angular/core';
+import { TitleCasePipe, DatePipe } from '@angular/common';
 import { Todo } from '../../interfaces/todo.interface';
 
 @Component({
   selector: 'app-todo-item',
-  imports: [DatePipe, TitleCasePipe, NgClass],
+  imports: [TitleCasePipe, DatePipe],
   templateUrl: './todo-item.component.html',
   styleUrl: './todo-item.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -18,10 +18,21 @@ export class TodoItemComponent {
   readonly todo = input.required<Todo>();
   readonly disabled = input(false);
 
-  // Outputs using modern output() function  
+  // Outputs using modern output() function
   readonly todoToggled = output<string>();
   readonly todoDeleted = output<string>();
   readonly todoEdited = output<Todo>();
+
+  constructor() {
+    // Use effect to react to todo changes - runs when todo signal is available
+    effect(() => {
+      // Only log when todo is available
+      const currentTodo = this.todo();
+      if (currentTodo) {
+        console.log('Todo item rendered:', currentTodo);
+      }
+    });
+  }
 
   // Computed values for accessibility and display
   protected readonly ariaLabel = computed(() =>
@@ -55,4 +66,9 @@ export class TodoItemComponent {
       this.todoEdited.emit(this.todo());
     }
   }
+
+  // Public getters for testing
+  public get testAriaLabel() { return this.ariaLabel; }
+  public get testPriorityClass() { return this.priorityClass; }
+  public get testCompletedClass() { return this.completedClass; }
 }

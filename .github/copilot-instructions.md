@@ -12,6 +12,16 @@ This is an Angular 21 Todo application with SSR support, using modern Angular pa
 - **Templates**: Use Angular template syntax with separate `.html` files
 - **Styles**: Use separate `.css` files with TailwindCSS utility classes
 
+## Styling Guidelines
+
+- **CSS Policy**: **DO NOT add custom CSS, inline styles, or styling unless explicitly requested by the user**
+- **TailwindCSS Only**: Use only existing TailwindCSS utility classes from the project
+- **No Position Classes**: **DO NOT add TailwindCSS positioning classes (absolute, relative, fixed, sticky, static) unless explicitly requested by the user**
+- **No Debug Styling**: Avoid adding debug colors, borders, or positioning styles for troubleshooting
+- **User-Requested Styling**: Only add styling when the user specifically asks for visual changes
+- **Minimal Styling**: When styling is requested, use TailwindCSS classes first, custom CSS only if necessary
+- **Clean Templates**: Keep HTML templates clean without unnecessary styling attributes
+
 ## Architecture
 
 - **Standalone Components**: Always use standalone components (no NgModules)
@@ -342,6 +352,8 @@ src/app/components/todo-item/
 
 ### Code Generation Boundaries
 
+- **CRITICAL CSS Policy**: **DO NOT add custom CSS, inline styles, debug colors, borders, or any styling unless explicitly requested by the user**
+- **CRITICAL Position Policy**: **DO NOT add TailwindCSS positioning classes (absolute, relative, fixed, sticky, static) unless explicitly requested by the user**
 - **No Hallucination**: Only use documented Angular 21 APIs, TailwindCSS classes, and project patterns that actually exist
 - **Keep Components Small**: Create focused, single-responsibility components rather than large, complex ones
 - **Ask When Unclear**: If requirements are ambiguous or missing details, ask clarifying questions instead of making assumptions

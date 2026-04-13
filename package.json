@@ -7,7 +7,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "serve:ssr:angularTodo": "node dist/angularTodo/server/server.mjs"
+    "serve:ssr:angularTodo": "node dist/angularTodo/server/server.mjs",
+    "json-server": "json-server --watch db.json --port 3000"
   },
   "prettier": {
     "printWidth": 100,
@@ -43,7 +44,9 @@
     "@tailwindcss/postcss": "^4.1.12",
     "@types/express": "^5.0.1",
     "@types/node": "^20.17.19",
+    "@vitest/coverage-v8": "^4.1.4",
     "jsdom": "^27.1.0",
+    "json-server": "^0.17.4",
     "postcss": "^8.5.3",
     "tailwindcss": "^4.1.12",
     "typescript": "~5.9.2",

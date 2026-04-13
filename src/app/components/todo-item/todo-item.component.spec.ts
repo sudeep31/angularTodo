@@ -45,7 +45,7 @@ describe('TodoItemComponent', () => {
 
   describe('Computed Properties', () => {
     it('should compute aria label correctly', () => {
-      expect(component.ariaLabel()).toContain('Pending todo: Test Todo');
+      expect(component.testAriaLabel()).toContain('Pending todo: Test Todo');
     });
 
     it('should compute aria label for completed todo', () => {
@@ -53,21 +53,21 @@ describe('TodoItemComponent', () => {
       fixture.componentRef.setInput('todo', completedTodo);
       fixture.detectChanges();
 
-      expect(component.ariaLabel()).toContain('Completed todo: Test Todo');
+      expect(component.testAriaLabel()).toContain('Completed todo: Test Todo');
     });
 
     it('should compute priority class correctly', () => {
-      expect(component.priorityClass()).toBe('priority-medium');
+      expect(component.testPriorityClass()).toBe('priority-medium');
     });
 
     it('should compute completed class correctly', () => {
-      expect(component.completedClass()).toBe('');
+      expect(component.testCompletedClass()).toBe('');
 
       const completedTodo = { ...mockTodo, completed: true };
       fixture.componentRef.setInput('todo', completedTodo);
       fixture.detectChanges();
 
-      expect(component.completedClass()).toBe('completed');
+      expect(component.testCompletedClass()).toBe('completed');
     });
   });
 

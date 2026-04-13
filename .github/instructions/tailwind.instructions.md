@@ -6,6 +6,166 @@ applyTo: ['src/**/*.html', 'src/**/*.css']
 
 # TailwindCSS Styling Guidelines
 
+## MCP Server Usage (REQUIRED)
+
+**ALWAYS use the TailwindCSS MCP server tools before applying styling:**
+
+### 🛠️ Tool Activation (FIRST STEP)
+
+```typescript
+// Activate TailwindCSS MCP tools before use:
+activate_tailwindcss_utilities_and_documentation_tools(); // For utilities and docs
+activate_tailwindcss_configuration_tools(); // For installation/config
+activate_color_palette_generation_tools(); // For color management
+```
+
+### 📋 When to Use Which Tool
+
+| **Task**             | **MCP Tool**                                      | **Use Case**                               |
+| -------------------- | ------------------------------------------------- | ------------------------------------------ |
+| Find utility classes | `mcp_tailwindcss-s_get_tailwind_utilities()`      | When you need specific TailwindCSS classes |
+| Convert CSS to TW    | `mcp_tailwindcss-s_convert_css_to_tailwind()`     | When converting existing CSS               |
+| Generate components  | `mcp_tailwindcss-s_generate_component_template()` | For buttons, cards, forms, modals          |
+| Color information    | `mcp_tailwindcss-s_get_tailwind_colors()`         | When working with colors/themes            |
+| Documentation        | `mcp_tailwindcss-s_search_tailwind_docs()`        | When you need TailwindCSS guidance         |
+| Setup guides         | `mcp_tailwindcss-s_install_tailwind()`            | For installation instructions              |
+
+### � Example Workflow
+
+```typescript
+// 1. Activate tools first
+activate_tailwindcss_utilities_and_documentation_tools();
+
+// 2. Find appropriate classes
+const layoutClasses =
+  (await mcp_tailwindcss) -
+  s_get_tailwind_utilities({
+    category: 'layout',
+  });
+
+// 3. Get color information
+const colors =
+  (await mcp_tailwindcss) -
+  s_get_tailwind_colors({
+    colorName: 'blue',
+  });
+
+// 4. Generate a component template if needed
+const buttonTemplate =
+  (await mcp_tailwindcss) -
+  s_generate_component_template({
+    componentType: 'button',
+    style: 'modern',
+    responsive: true,
+  });
+
+// 5. Apply classes in HTML template
+// <button class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+```
+
+### �🔍 Finding TailwindCSS Classes
+
+```typescript
+// Use these MCP tools to get accurate TailwindCSS classes:
+
+// 1. Get utilities by category
+mcp_tailwindcss - s_get_tailwind_utilities({ category: 'layout' }); // flex, grid, etc.
+mcp_tailwindcss - s_get_tailwind_utilities({ category: 'spacing' }); // p-4, m-2, etc.
+mcp_tailwindcss - s_get_tailwind_utilities({ category: 'colors' }); // bg-blue-500, etc.
+
+// 2. Get utilities by CSS property
+mcp_tailwindcss - s_get_tailwind_utilities({ property: 'margin' }); // m-1, mx-auto, etc.
+mcp_tailwindcss - s_get_tailwind_utilities({ property: 'background' }); // bg-white, bg-opacity-50
+
+// 3. Search for specific utilities
+mcp_tailwindcss - s_get_tailwind_utilities({ search: 'rounded' }); // rounded-lg, rounded-full
+mcp_tailwindcss - s_get_tailwind_utilities({ search: 'shadow' }); // shadow-md, shadow-lg
+```
+
+### 🎨 Color Palette Tools
+
+```typescript
+// Get TailwindCSS color information
+mcp_tailwindcss - s_get_tailwind_colors({ colorName: 'blue' }); // All blue shades
+mcp_tailwindcss - s_get_tailwind_colors({ includeShades: true }); // All colors with shades
+
+// Generate custom color palettes
+mcp_tailwindcss -
+  s_generate_color_palette({
+    baseColor: '#3B82F6',
+    name: 'brand',
+  });
+```
+
+### 🔄 CSS Conversion Tools
+
+```typescript
+// Convert existing CSS to TailwindCSS utilities
+mcp_tailwindcss -
+  s_convert_css_to_tailwind({
+    css: `
+    .my-style {
+      padding: 16px;
+      background-color: #3B82F6;
+      border-radius: 8px;
+    }
+  `,
+    mode: 'classes', // Returns: 'p-4 bg-blue-500 rounded-lg'
+  });
+```
+
+### 🧩 Component Generation
+
+```typescript
+// Generate pre-styled component templates
+mcp_tailwindcss -
+  s_generate_component_template({
+    componentType: 'button', // 'card', 'form', 'navbar', 'modal', etc.
+    style: 'modern', // 'minimal', 'modern', 'playful'
+    responsive: true, // Include responsive classes
+    darkMode: false, // Include dark mode support
+  });
+```
+
+### 📚 Documentation Search
+
+```typescript
+// Search TailwindCSS documentation
+mcp_tailwindcss -
+  s_search_tailwind_docs({
+    query: 'flexbox utilities',
+    category: 'layout', // Optional filter
+    limit: 10, // Limit results
+  });
+```
+
+### 🚀 Installation & Configuration
+
+```typescript
+// Get framework-specific installation instructions
+mcp_tailwindcss -
+  s_install_tailwind({
+    framework: 'angular', // 'react', 'vue', 'nextjs', etc.
+    packageManager: 'npm', // 'yarn', 'pnpm', 'bun'
+    includeTypescript: true,
+  });
+
+// Get configuration guides
+mcp_tailwindcss -
+  s_get_tailwind_config_guide({
+    framework: 'angular',
+    topic: 'customization', // 'installation', 'customization'
+  });
+```
+
+## Styling Policy (CRITICAL)
+
+- **CSS Policy**: **DO NOT add custom CSS, inline styles, or styling unless explicitly requested by the user**
+- **Position Policy**: **DO NOT add TailwindCSS positioning classes (absolute, relative, fixed, sticky, static) unless explicitly requested by the user**
+- **MCP First**: **ALWAYS use MCP server tools to find correct TailwindCSS classes before applying them**
+- **User-Requested Only**: Only add styling when the user specifically asks for visual changes
+- **Clean Templates**: Keep HTML templates clean without unnecessary styling attributes
+
 ## Component Styling Patterns
 
 ```html
@@ -156,9 +316,23 @@ applyTo: ['src/**/*.html', 'src/**/*.css']
 
 ## Best Practices
 
-- Use semantic HTML with Tailwind classes for styling
-- Prefer utility classes over custom CSS when possible
-- Group related utilities logically in class attributes
-- Use consistent spacing scale (4, 8, 12, 16, 24, 32...)
-- Implement hover and focus states for interactive elements
-- Consider dark mode and accessibility from the start
+### MCP Server Workflow (MANDATORY)
+
+1. **Activate TailwindCSS tools**: Use `activate_tailwindcss_utilities_and_documentation_tools` or other relevant activation tools
+2. **Search for classes**: Use `mcp_tailwindcss-s_get_tailwind_utilities()` to find appropriate utility classes
+3. **Verify colors**: Use `mcp_tailwindcss-s_get_tailwind_colors()` for color palette information
+4. **Convert existing CSS**: Use `mcp_tailwindcss-s_convert_css_to_tailwind()` if converting legacy styles
+5. **Generate components**: Use `mcp_tailwindcss-s_generate_component_template()` for complex UI patterns
+6. **Check documentation**: Use `mcp_tailwindcss-s_search_tailwind_docs()` when in doubt
+
+### Development Guidelines
+
+- **MCP First Approach**: Always query MCP server tools before manually writing TailwindCSS classes
+- **Semantic HTML**: Use semantic HTML with Tailwind classes for styling
+- **Utility Over Custom**: Prefer utility classes over custom CSS when possible
+- **Logical Grouping**: Group related utilities logically in class attributes
+- **Consistent Spacing**: Use consistent spacing scale (4, 8, 12, 16, 24, 32...)
+- **Interactive States**: Implement hover and focus states for interactive elements
+- **Accessibility First**: Consider dark mode and accessibility from the start
+- **No Position Classes**: Avoid positioning classes (absolute, relative, fixed, sticky) unless requested
+- **User-Requested Styling**: Only add visual styling when explicitly asked by the user

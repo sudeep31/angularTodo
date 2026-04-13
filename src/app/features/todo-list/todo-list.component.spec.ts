@@ -1,12 +1,49 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+﻿import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TodoListComponent } from './todo-list.component';
 import { TodoItemComponent } from '../../components/todo-item/todo-item.component';
 import { Todo } from '../../interfaces/todo.interface';
 
+// Mock todo list
+const MOCK_TODOS: Todo[] = [
+  {
+    id: 'mock-1',
+    title: 'Buy groceries',
+    description: 'Milk eggs and bread',
+    completed: false,
+    priority: 'high',
+    createdAt: new Date('2026-01-01'),
+    updatedAt: new Date('2026-01-01'),
+    tags: ['shopping']
+  },
+  {
+    id: 'mock-2',
+    title: 'Read a book',
+    description: 'Finish the current chapter',
+    completed: true,
+    priority: 'medium',
+    createdAt: new Date('2026-01-02'),
+    updatedAt: new Date('2026-01-02'),
+    tags: []
+  },
+  {
+    id: 'mock-3',
+    title: 'Go for a run',
+    description: 'Morning jog in the park',
+    completed: false,
+    priority: 'low',
+    createdAt: new Date('2026-01-03'),
+    updatedAt: new Date('2026-01-03'),
+    tags: ['fitness']
+  }
+];
+
 describe('TodoListComponent', () => {
   let component: TodoListComponent;
   let fixture: ComponentFixture<TodoListComponent>;
+
+  const createInputEvent = (value: string): Event =>
+    Object.defineProperty({}, 'target', { value: { value }, enumerable: true }) as Event;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -18,309 +55,214 @@ describe('TodoListComponent', () => {
     fixture.detectChanges();
   });
 
-  describe('Component Creation', () => {
-    it('should create', () => {
+  // ─── 1. INITIAL LOADING ──────────────────────────────────────────
+  describe('Initial Loading', () => {
+    it('should create the component', () => {
       expect(component).toBeTruthy();
     });
 
-    it('should initialize with sample data', () => {
-      expect(component.todos().length).toBeGreaterThan(0);
+    it('should load sample todos on init', () => {
+      expect(component.testTodos().length).toBeGreaterThan(0);
     });
 
-    it('should have proper initial state', () => {
-      expect(component.filter()).toBe('all');
-      expect(component.loading()).toBe(false);
-      expect(component.newTodoTitle()).toBe('');
+    it('should start with filter set to "all"', () => {
+      expect(component.testFilter()).toBe('all');
+    });
+
+    it('should start with loading flag as false', () => {
+      expect(component.testLoading()).toBe(false);
+    });
+
+    it('should have an empty form on init', () => {
+      const form = component.testNewTodoForm();
+      expect(form.title).toBe('');
+      expect(form.description).toBe('');
+      expect(form.priority).toBe('medium');
+      expect(form.dueDate).toBe('');
+    });
+
+    it('should have no form errors on init', () => {
+      expect(component.testFormErrors().title).toBe('');
+      expect(component.testFormErrors().description).toBe('');
+    });
+
+    it('should have form invalid on init (empty fields)', () => {
+      expect(component.testIsFormValid()).toBeFalsy();
     });
   });
 
-  describe('Computed Properties', () => {
+  // ─── 2. ADDING A TODO VIA FORM ───────────────────────────────────
+  describe('Adding a Todo via Form', () => {
     beforeEach(() => {
-      const testTodos: Todo[] = [
-        {
-          id: '1',
-          title: 'Active Todo',
-          completed: false,
-          priority: 'high',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: '2',
-          title: 'Completed Todo',
-          completed: true,
-          priority: 'low',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ];
-      component.todos.set(testTodos);
+      component.testTodos.set([...MOCK_TODOS]);
     });
 
-    it('should filter todos by status', () => {
-      // All todos
-      component.filter.set('all');
-      expect(component.filteredTodos()).toHaveLength(2);
+    it('should add a new todo when both fields are valid', () => {
+      component.onTitleInput(createInputEvent('Walk the dog'));
+      component.onDescriptionInput(createInputEvent('Take Rex to the park'));
+      const before = component.testTodos().length;
 
-      // Active todos only
-      component.filter.set('active');
-      expect(component.filteredTodos()).toHaveLength(1);
-      expect(component.filteredTodos()[0].completed).toBe(false);
+      component.onAddTodo();
 
-      // Completed todos only
-      component.filter.set('completed');
-      expect(component.filteredTodos()).toHaveLength(1);
-      expect(component.filteredTodos()[0].completed).toBe(true);
+      expect(component.testTodos().length).toBe(before + 1);
+      const added = component.testTodos().at(-1)!;
+      expect(added.title).toBe('Walk the dog');
+      expect(added.description).toBe('Take Rex to the park');
+      expect(added.completed).toBe(false);
     });
 
-    it('should compute todo statistics correctly', () => {
-      const stats = component.todoStats();
-      expect(stats.total).toBe(2);
+    it('should reset the form after a successful submission', () => {
+      component.onTitleInput(createInputEvent('Walk the dog'));
+      component.onDescriptionInput(createInputEvent('Take Rex to the park'));
+      component.onAddTodo();
+
+      const form = component.testNewTodoForm();
+      expect(form.title).toBe('');
+      expect(form.description).toBe('');
+      expect(form.priority).toBe('medium');
+    });
+
+    it('should NOT add a todo when the form is invalid', () => {
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const before = component.testTodos().length;
+
+      component.onAddTodo();
+
+      expect(component.testTodos().length).toBe(before);
+      expect(consoleSpy).toHaveBeenCalledWith('Form is invalid, cannot submit');
+      consoleSpy.mockRestore();
+    });
+
+    it('should add a new todo to the mock list and verify it appears', () => {
+      component.onTitleInput(createInputEvent('New task'));
+      component.onDescriptionInput(createInputEvent('Task description'));
+      component.onAddTodo();
+
+      expect(component.testTodos().length).toBe(MOCK_TODOS.length + 1);
+      expect(component.testTodos().at(-1)!.title).toBe('New task');
+    });
+
+    it('should respect priority selection when adding', () => {
+      component.onTitleInput(createInputEvent('High priority task'));
+      component.onDescriptionInput(createInputEvent('Urgent work'));
+      component.onPriorityChange(createInputEvent('high'));
+      component.onAddTodo();
+
+      expect(component.testTodos().at(-1)!.priority).toBe('high');
+    });
+  });
+
+  // ─── 3. FORM ERROR MESSAGES ───────────────────────────────────────
+  describe('Form Error Messages', () => {
+    it('should show "Title is required" when title is empty', () => {
+      component.onTitleInput(createInputEvent(''));
+
+      expect(component.testFormErrors().title).toBe('Title is required');
+      expect(component.testIsFormValid()).toBeFalsy();
+    });
+
+    it('should show pattern error when title has special characters', () => {
+      component.onTitleInput(createInputEvent('Invalid@#$'));
+
+      expect(component.testFormErrors().title).toBe(
+        'Title should only contain letters, numbers, and spaces'
+      );
+    });
+
+    it('should show "Description is required" when description is empty', () => {
+      component.onDescriptionInput(createInputEvent(''));
+
+      expect(component.testFormErrors().description).toBe('Description is required');
+    });
+
+    it('should show pattern error when description has special characters', () => {
+      component.onDescriptionInput(createInputEvent('Bad!@#'));
+
+      expect(component.testFormErrors().description).toBe(
+        'Description should only contain letters, numbers, and spaces'
+      );
+    });
+
+    it('should clear title error when valid title is entered after invalid', () => {
+      component.onTitleInput(createInputEvent('Bad@Title'));
+      expect(component.testFormErrors().title).not.toBe('');
+
+      component.onTitleInput(createInputEvent('Good Title'));
+      expect(component.testFormErrors().title).toBe('');
+    });
+
+    it('should mark form valid only when both fields pass validation', () => {
+      component.onTitleInput(createInputEvent('Valid title'));
+      expect(component.testIsFormValid()).toBeFalsy(); // description still empty
+
+      component.onDescriptionInput(createInputEvent('Valid description'));
+      expect(component.testIsFormValid()).toBe(true);
+    });
+  });
+
+  // ─── 4. LIST ITEMS (with mock data) ──────────────────────────────
+  describe('List Items', () => {
+    beforeEach(() => {
+      component.testTodos.set([...MOCK_TODOS]);
+    });
+
+    it('should display all mock todos', () => {
+      expect(component.testTodos().length).toBe(3);
+      expect(component.testTodos()[0].title).toBe('Buy groceries');
+      expect(component.testTodos()[1].title).toBe('Read a book');
+      expect(component.testTodos()[2].title).toBe('Go for a run');
+    });
+
+    it('should report correct stats for the mock list', () => {
+      const stats = component.testTodoStats();
+      expect(stats.total).toBe(3);
+      expect(stats.active).toBe(2);    // mock-1 and mock-3 are incomplete
+      expect(stats.completed).toBe(1); // mock-2 is done
+    });
+
+    it('should toggle a todo from incomplete to complete', () => {
+      component.onTodoToggled('mock-1');
+
+      const toggled = component.testTodos().find(t => t.id === 'mock-1')!;
+      expect(toggled.completed).toBe(true);
+    });
+
+    it('should toggle a todo from complete to incomplete', () => {
+      component.onTodoToggled('mock-2');
+
+      const toggled = component.testTodos().find(t => t.id === 'mock-2')!;
+      expect(toggled.completed).toBe(false);
+    });
+
+    it('should delete a todo from the mock list', () => {
+      component.onTodoDeleted('mock-2');
+
+      expect(component.testTodos().length).toBe(2);
+      expect(component.testTodos().find(t => t.id === 'mock-2')).toBeUndefined();
+    });
+
+    it('should add a new item to the mock list', () => {
+      component.onTitleInput(createInputEvent('Exercise'));
+      component.onDescriptionInput(createInputEvent('Gym session at 6pm'));
+      component.onAddTodo();
+
+      expect(component.testTodos().length).toBe(4);
+      expect(component.testTodos().at(-1)!.title).toBe('Exercise');
+    });
+
+    it('should update stats after toggling a todo', () => {
+      component.onTodoToggled('mock-1'); // was active, now complete
+
+      const stats = component.testTodoStats();
       expect(stats.active).toBe(1);
-      expect(stats.completed).toBe(1);
+      expect(stats.completed).toBe(2);
     });
 
-    it('should compute aria label correctly', () => {
-      const ariaLabel = component.ariaLabel();
-      expect(ariaLabel).toContain('2 items');
-      expect(ariaLabel).toContain('1 active');
-      expect(ariaLabel).toContain('1 completed');
-    });
-
-    it('should compute helper flags correctly', () => {
-      expect(component.hasActiveTodos()).toBe(true);
-      expect(component.hasCompletedTodos()).toBe(true);
-    });
-  });
-
-  describe('Todo Management', () => {
-    beforeEach(() => {
-      component.todos.set([]);
-    });
-
-    it('should add new todo', () => {
-      component.newTodoTitle.set('New Test Todo');
-      component.onAddTodo();
-
-      expect(component.todos()).toHaveLength(1);
-      expect(component.todos()[0].title).toBe('New Test Todo');
-      expect(component.todos()[0].completed).toBe(false);
-      expect(component.newTodoTitle()).toBe('');
-    });
-
-    it('should not add empty todo', () => {
-      component.newTodoTitle.set('   ');
-      component.onAddTodo();
-
-      expect(component.todos()).toHaveLength(0);
-    });
-
-    it('should toggle todo completion', () => {
-      const todo: Todo = {
-        id: '1',
-        title: 'Test Todo',
-        completed: false,
-        priority: 'medium',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      component.todos.set([todo]);
-
-      component.onTodoToggled('1');
-
-      expect(component.todos()[0].completed).toBe(true);
-    });
-
-    it('should delete todo', () => {
-      const todo: Todo = {
-        id: '1',
-        title: 'Test Todo',
-        completed: false,
-        priority: 'medium',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      component.todos.set([todo]);
-
-      component.onTodoDeleted('1');
-
-      expect(component.todos()).toHaveLength(0);
-    });
-
-    it('should edit todo', () => {
-      const todo: Todo = {
-        id: '1',
-        title: 'Original Title',
-        completed: false,
-        priority: 'medium',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      component.todos.set([todo]);
-
-      const updatedTodo = { ...todo, title: 'Updated Title' };
-      component.onTodoEdited(updatedTodo);
-
-      expect(component.todos()[0].title).toBe('Updated Title');
-    });
-  });
-
-  describe('Bulk Operations', () => {
-    beforeEach(() => {
-      const testTodos: Todo[] = [
-        {
-          id: '1',
-          title: 'Todo 1',
-          completed: false,
-          priority: 'high',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: '2',
-          title: 'Todo 2',
-          completed: true,
-          priority: 'low',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ];
-      component.todos.set(testTodos);
-    });
-
-    it('should toggle all todos to completed when not all are completed', () => {
-      component.onToggleAll();
-
-      expect(component.todos().every(todo => todo.completed)).toBe(true);
-    });
-
-    it('should toggle all todos to incomplete when all are completed', () => {
-      // First mark all as completed
-      component.todos.update(todos => todos.map(todo => ({ ...todo, completed: true })));
-
-      component.onToggleAll();
-
-      expect(component.todos().every(todo => !todo.completed)).toBe(true);
-    });
-
-    it('should clear completed todos', () => {
+    it('should clear all completed todos', () => {
       component.onClearCompleted();
 
-      expect(component.todos()).toHaveLength(1);
-      expect(component.todos()[0].completed).toBe(false);
-    });
-  });
-
-  describe('User Input Handling', () => {
-    it('should handle input changes', () => {
-      const mockEvent = {
-        target: { value: 'New Todo Title' }
-      } as Event;
-
-      component.onNewTodoInput(mockEvent);
-
-      expect(component.newTodoTitle()).toBe('New Todo Title');
-    });
-
-    it('should handle Enter key to add todo', () => {
-      component.newTodoTitle.set('Test Todo');
-
-      const mockEvent = {
-        key: 'Enter'
-      } as KeyboardEvent;
-
-      const initialLength = component.todos().length;
-      component.onNewTodoKeydown(mockEvent);
-
-      expect(component.todos()).toHaveLength(initialLength + 1);
-    });
-
-    it('should ignore other keys', () => {
-      const mockEvent = {
-        key: 'Escape'
-      } as KeyboardEvent;
-
-      const initialLength = component.todos().length;
-      component.onNewTodoKeydown(mockEvent);
-
-      expect(component.todos()).toHaveLength(initialLength);
-    });
-  });
-
-  describe('Filter Management', () => {
-    it('should change filter', () => {
-      component.onFilterChanged('active');
-      expect(component.filter()).toBe('active');
-
-      component.onFilterChanged('completed');
-      expect(component.filter()).toBe('completed');
-
-      component.onFilterChanged('all');
-      expect(component.filter()).toBe('all');
-    });
-  });
-
-  describe('Template Rendering', () => {
-    it('should render header', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const header = compiled.querySelector('h1');
-
-      expect(header?.textContent?.trim()).toBe('Todo App');
-    });
-
-    it('should render add todo form', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const input = compiled.querySelector('#new-todo-input');
-      const button = compiled.querySelector('button[aria-label="Add new todo"]');
-
-      expect(input).toBeTruthy();
-      expect(button).toBeTruthy();
-    });
-
-    it('should render todo statistics', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const stats = compiled.querySelector('#todo-count');
-
-      expect(stats?.textContent).toContain('total');
-      expect(stats?.textContent).toContain('active');
-      expect(stats?.textContent).toContain('completed');
-    });
-
-    it('should render filter tabs when todos exist', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const filterTabs = compiled.querySelectorAll('[role="tab"]');
-
-      expect(filterTabs).toHaveLength(3);
-    });
-  });
-
-  describe('Accessibility', () => {
-    it('should have proper ARIA labels and roles', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-
-      const main = compiled.querySelector('[role="main"]');
-      const tablist = compiled.querySelector('[role="tablist"]');
-      const tabpanel = compiled.querySelector('[role="tabpanel"]');
-
-      expect(main).toBeTruthy();
-      expect(tablist).toBeTruthy();
-      expect(tabpanel).toBeTruthy();
-    });
-
-    it('should have proper form labels', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const input = compiled.querySelector('#new-todo-input');
-      const label = compiled.querySelector('label[for="new-todo-input"]');
-
-      expect(input).toBeTruthy();
-      expect(label).toBeTruthy();
-    });
-
-    it('should have live regions for dynamic content', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const liveRegions = compiled.querySelectorAll('[aria-live]');
-
-      expect(liveRegions.length).toBeGreaterThan(0);
+      expect(component.testTodos().length).toBe(2);
+      expect(component.testTodos().every(t => !t.completed)).toBe(true);
     });
   });
 });

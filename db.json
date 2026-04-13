@@ -1,0 +1,43 @@
+{
+  "todos": [
+    {
+      "id": "1",
+      "title": "Learn Angular 21 Signals",
+      "description": "Master the new signal-based reactive patterns",
+      "completed": false,
+      "priority": "high",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "tags": [
+        "angular",
+        "learning"
+      ]
+    },
+    {
+      "id": "2",
+      "title": "Set up TailwindCSS",
+      "description": "Configure TailwindCSS for the project",
+      "completed": true,
+      "priority": "medium",
+      "createdAt": "2026-01-02T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "tags": [
+        "setup",
+        "css"
+      ]
+    },
+    {
+      "id": "3",
+      "title": "Write unit tests",
+      "description": "Add comprehensive test coverage with Vitest",
+      "completed": false,
+      "priority": "medium",
+      "createdAt": "2026-01-03T00:00:00.000Z",
+      "updatedAt": "2026-01-03T00:00:00.000Z",
+      "tags": [
+        "testing",
+        "vitest"
+      ]
+    }
+  ]
+}
