@@ -1,4 +1,4 @@
-# 🚀 Angular Workflow with GitHub Copilot
+# 🚀 Angular Development Workflow with GitHub Copilot
 
 _A practical guide for Angular developers who want AI that actually understands their codebase._
 

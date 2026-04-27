@@ -1,0 +1,10 @@
+{
+  "id": "99",
+  "title": "Cypress E2E Todo",
+  "description": "Created by Cypress test",
+  "completed": false,
+  "priority": "high",
+  "createdAt": "2026-04-17T00:00:00.000Z",
+  "updatedAt": "2026-04-17T00:00:00.000Z",
+  "tags": ["cypress", "e2e"]
+}

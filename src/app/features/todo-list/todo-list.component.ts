@@ -1,11 +1,12 @@
-import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, computed, inject, input, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { Todo } from '../../interfaces/todo.interface';
 import { TodoApiService } from '../../services/todo-api.service';
 import { TodoItemComponent } from '../../components/todo-item/todo-item.component';
+import { DeadlineTimerComponent } from '../dead-line/deadline-timer.component'
 
 @Component({
   selector: 'app-todo-list',
-  imports: [TodoItemComponent],
+  imports: [TodoItemComponent, DeadlineTimerComponent],
   templateUrl: './todo-list.component.html',
   styleUrl: './todo-list.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -17,6 +18,21 @@ import { TodoItemComponent } from '../../components/todo-item/todo-item.componen
 })
 export class TodoListComponent implements OnInit {
   private readonly todoApiService = inject(TodoApiService);
+
+  // ── MFE Stats — input() signals (Angular 17+) ────────────────────────────
+  // Angular Elements generates DOM property setters for input() signals,
+  // identical to @Input(). Shell sets wcRef.current.visitCount = N and
+  // Angular's signal machinery updates the view — no @Input() or manual
+  // signal wrapper needed. Read-only from inside the component.
+  readonly visitCount = input(0);
+  readonly allVisitCounts = input<Record<string, number>>({});
+  readonly userName = input('');
+  readonly sessionStartTime = input('');
+  readonly lastVisited = input('');
+
+  protected readonly allVisitEntries = computed(() =>
+    Object.entries(this.allVisitCounts()).map(([key, count]) => ({ key, count }))
+  );
   // State signals – backed by service
   protected readonly todos = computed(() => this.todoApiService.todos());
   protected readonly loading = computed(() => this.todoApiService.isLoading());

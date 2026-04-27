@@ -78,6 +78,63 @@
         },
         "test": {
           "builder": "@angular/build:unit-test"
+        },
+        "esbuild-mfe": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "src/main-mfe.ts",
+            "tsConfig": "tsconfig.app.json",
+            "assets": [{ "glob": "**/*", "input": "public" }],
+            "styles": ["src/styles.css"]
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                { "type": "initial", "maximumWarning": "500kB", "maximumError": "1MB" },
+                { "type": "anyComponentStyle", "maximumWarning": "4kB", "maximumError": "8kB" }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "build-mfe": {
+          "builder": "@angular-architects/native-federation:build",
+          "options": {},
+          "configurations": {
+            "production": {
+              "target": "angularTodo:esbuild-mfe:production"
+            },
+            "development": {
+              "target": "angularTodo:esbuild-mfe:development",
+              "dev": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve-mfe-original": {
+          "builder": "@angular/build:dev-server",
+          "configurations": {
+            "production": { "buildTarget": "angularTodo:esbuild-mfe:production" },
+            "development": { "buildTarget": "angularTodo:esbuild-mfe:development" }
+          },
+          "defaultConfiguration": "development",
+          "options": { "port": 4200 }
+        },
+        "serve-mfe": {
+          "builder": "@angular-architects/native-federation:build",
+          "options": {
+            "target": "angularTodo:serve-mfe-original:development",
+            "rebuildDelay": 500,
+            "dev": true,
+            "cacheExternalArtifacts": false,
+            "port": 0
+          }
         }
       }
     }
