@@ -1,0 +1,97 @@
+<div class="cl-contact-page">
+  @if (isSubmitted()) {
+    <div class="cl-contact-success">
+      <h2 class="cl-contact-success__title">Message sent!</h2>
+      <p class="cl-contact-success__body">
+        Thanks for reaching out. We'll get back to you as soon as possible.
+      </p>
+      <cl-button label="Send another message" variant="secondary" (click)="onReset()" (keydown.enter)="onReset()"></cl-button>
+    </div>
+  } @else {
+    <header class="cl-contact-header">
+      <h1 class="cl-contact-header__title">Contact Us</h1>
+      <p class="cl-contact-header__subtitle">Fill in the form below and we'll get back to you.</p>
+    </header>
+
+    <form class="cl-contact-form" novalidate>
+      <div class="cl-contact-form__row">
+        <div class="cl-contact-form__field">
+          <cl-textbox
+            label="First name"
+            placeholder="Jane"
+            [value]="firstName()"
+            [error]="errors().firstName"
+            required
+            (change)="onFirstNameChange($event)"
+          ></cl-textbox>
+        </div>
+        <div class="cl-contact-form__field">
+          <cl-textbox
+            label="Last name"
+            placeholder="Doe"
+            [value]="lastName()"
+            [error]="errors().lastName"
+            required
+            (change)="onLastNameChange($event)"
+          ></cl-textbox>
+        </div>
+      </div>
+
+      <div class="cl-contact-form__field">
+        <cl-textbox
+          label="Email address"
+          placeholder="jane@example.com"
+          [value]="email()"
+          [error]="errors().email"
+          required
+          (change)="onEmailChange($event)"
+        ></cl-textbox>
+      </div>
+
+      <div class="cl-contact-form__field">
+        <cl-select
+          #subjectSelect
+          label="Subject"
+          placeholder="Select a subject…"
+          [value]="subject()"
+          [error]="errors().subject"
+          required
+          (change)="onSubjectChange($event)"
+        ></cl-select>
+      </div>
+
+      <div class="cl-contact-form__field">
+        <cl-textarea
+          label="Message"
+          placeholder="Tell us how we can help…"
+          [value]="message()"
+          [error]="errors().message"
+          rows="5"
+          resize="vertical"
+          [showCount]="true"
+          [maxLength]="500"
+          required
+          (change)="onMessageChange($event)"
+        ></cl-textarea>
+      </div>
+
+      <div class="cl-contact-form__actions">
+        <cl-button
+          label="Send message"
+          variant="primary"
+          [loading]="isSubmitting()"
+          [disabled]="isSubmitting()"
+          (click)="onSubmit()"
+          (keydown.enter)="onSubmit()"
+        ></cl-button>
+        <cl-button
+          label="Reset"
+          variant="secondary"
+          [disabled]="isSubmitting()"
+          (click)="onReset()"
+          (keydown.enter)="onReset()"
+        ></cl-button>
+      </div>
+    </form>
+  }
+</div>

@@ -4,7 +4,11 @@
     <div class="max-w-3xl mx-auto px-4 sm:px-6">
       <div class="flex justify-between items-center h-14">
         <h1 class="text-base font-semibold text-gray-800">{{ title() }}</h1>
-        <span class="text-xs text-gray-400">Angular 21 · Signals · TailwindCSS</span>
+        <div class="flex items-center gap-4">
+          <a routerLink="/" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Todos</a>
+          <a routerLink="/contact" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Contact</a>
+          <span class="text-xs text-gray-400">Angular 21 · Signals · TailwindCSS</span>
+        </div>
       </div>
     </div>
   </nav>
@@ -12,6 +16,7 @@
   <!-- Main content -->
   <main class="max-w-3xl mx-auto px-4 sm:px-6 py-8">
     <app-todo-list />
+    <router-outlet />
   </main>
 
   <!-- Footer -->
@@ -20,6 +25,4 @@
       <p class="text-center text-xs text-gray-400">Built with Angular 21, Signals &amp; TailwindCSS</p>
     </div>
   </footer>
-
-  <router-outlet />
 </div>
