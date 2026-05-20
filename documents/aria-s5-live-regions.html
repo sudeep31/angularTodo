@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Section 5: ARIA Live Regions — ARIA Complete Guide</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg:            #0f172a;
+        --surface:       #1e293b;
+        --surface-2:     #273549;
+        --border:        #334155;
+        --primary:       #818cf8;
+        --primary-light: #a5b4fc;
+        --accent:        #34d399;
+        --warn:          #fbbf24;
+        --danger:        #f87171;
+        --purple:        #c084fc;
+        --cyan:          #67e8f9;
+        --text:          #e2e8f0;
+        --muted:         #94a3b8;
+        --code-bg:       #0d1117;
+        --font-sans:     'Segoe UI', system-ui, -apple-system, sans-serif;
+        --font-mono:     'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+        --radius:        0.75rem;
+        --radius-sm:     0.4rem;
+        --shadow:        0 4px 24px rgba(0,0,0,0.5);
+        --max-width:     960px;
+      }
+
+      html { scroll-behavior: smooth; }
+      body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.8; font-size: 1rem; }
+
+      .skip-link {
+        position: absolute; top: -100%; left: 1rem;
+        padding: 0.5rem 1rem; background: var(--primary); color: #0f172a;
+        font-weight: 700; border-radius: 0 0 var(--radius) var(--radius);
+        z-index: 9999; transition: top 0.2s; text-decoration: none;
+      }
+      .skip-link:focus { top: 0; }
+
+      .page-wrapper { max-width: var(--max-width); margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+
+      /* ─── Top Nav ───────────────────────────────────────────── */
+      .top-nav {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 0.75rem 1.25rem;
+        margin-bottom: 2rem; font-size: 0.85rem; gap: 1rem;
+      }
+      .top-nav a {
+        color: var(--primary-light); text-decoration: none;
+        padding: 0.3rem 0.75rem; border-radius: var(--radius-sm);
+        border: 1px solid var(--border); transition: border-color 0.15s, background 0.15s;
+        white-space: nowrap;
+      }
+      .top-nav a:hover { border-color: var(--primary); background: var(--surface-2); }
+      .top-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .top-nav .nav-center { font-size: 0.75rem; color: var(--muted); text-align: center; flex: 1; min-width: 0; }
+      .top-nav .nav-center strong { color: var(--primary-light); }
+      .top-nav .nav-next { opacity: 0.45; pointer-events: none; }
+
+      /* ─── Hero ──────────────────────────────────────────────── */
+      .hero {
+        background: linear-gradient(135deg, #0c1a2e 0%, #1e293b 50%, #1a1035 100%);
+        border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 3rem 2.5rem; margin-bottom: 2rem;
+        text-align: center; box-shadow: var(--shadow);
+      }
+      .hero-badge {
+        display: inline-block; background: rgba(129,140,248,0.15);
+        border: 1px solid var(--primary); color: var(--primary-light);
+        font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em;
+        text-transform: uppercase; padding: 0.3rem 1rem;
+        border-radius: 999px; margin-bottom: 1.25rem;
+      }
+      .hero h1 { font-size: clamp(1.75rem, 4vw, 2.8rem); font-weight: 800; line-height: 1.15; color: #fff; margin-bottom: 1rem; }
+      .hero h1 span { color: var(--primary-light); }
+      .hero h1 .section-num { color: var(--muted); font-size: 0.55em; font-weight: 600; display: block; margin-bottom: 0.25rem; }
+      .hero p { font-size: 1.05rem; color: var(--muted); max-width: 700px; margin: 0 auto 1rem; }
+      .hero-meta { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-top: 1.25rem; }
+      .hero-meta span { font-size: 0.78rem; color: var(--muted); display: flex; align-items: center; gap: 0.4rem; }
+      .hero-meta span strong { color: var(--accent); }
+
+      /* ─── TOC ───────────────────────────────────────────────── */
+      .toc {
+        background: var(--surface); border: 1px solid var(--border);
+        border-left: 4px solid var(--primary); border-radius: var(--radius);
+        padding: 1.5rem 2rem; margin-bottom: 3rem;
+      }
+      .toc-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--primary); margin-bottom: 1rem; }
+      .toc ol { padding-left: 1.5rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.3rem 2rem; }
+      .toc li { font-size: 0.875rem; }
+      .toc a { color: var(--muted); text-decoration: none; transition: color 0.15s; }
+      .toc a:hover, .toc a:focus { color: var(--primary-light); text-decoration: underline; }
+
+      /* ─── Sections ──────────────────────────────────────────── */
+      section { margin-bottom: 4.5rem; scroll-margin-top: 2rem; }
+      .section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+      .section-number { flex-shrink: 0; width: 2.25rem; height: 2.25rem; background: linear-gradient(135deg, var(--primary), #6366f1); color: #fff; font-size: 0.82rem; font-weight: 800; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+      h2 { font-size: 1.55rem; font-weight: 800; color: #fff; }
+      h3 { font-size: 1.1rem; font-weight: 700; color: var(--primary-light); margin: 2.25rem 0 0.75rem; }
+      h4 { font-size: 0.9rem; font-weight: 700; color: var(--accent); margin: 1.5rem 0 0.5rem; text-transform: uppercase; letter-spacing: 0.07em; }
+      p { margin-bottom: 1rem; color: var(--text); }
+      p:last-child { margin-bottom: 0; }
+      ul, ol { padding-left: 1.5rem; margin: 0.75rem 0; }
+      li { margin-bottom: 0.4rem; color: var(--text); font-size: 0.95rem; }
+      strong { color: #fff; }
+      em { color: var(--warn); font-style: italic; }
+      code { font-family: var(--font-mono); font-size: 0.82em; background: var(--surface-2); border: 1px solid var(--border); padding: 0.15em 0.45em; border-radius: var(--radius-sm); color: var(--primary-light); }
+      kbd { font-family: var(--font-mono); font-size: 0.78em; background: var(--surface-2); border: 1px solid var(--border); border-bottom: 2px solid var(--border); padding: 0.15em 0.45em; border-radius: var(--radius-sm); color: var(--text); }
+
+      /* ─── Callouts ──────────────────────────────────────────── */
+      .callout { display: flex; gap: 0.75rem; padding: 1rem 1.25rem; border-radius: var(--radius); margin: 1.25rem 0; border: 1px solid; font-size: 0.9rem; }
+      .callout-icon { font-size: 1.25rem; flex-shrink: 0; line-height: 1.5; margin-top: 0.1rem; }
+      .callout p { margin: 0; color: inherit; line-height: 1.7; }
+      .callout.info    { background: rgba(129,140,248,0.08); border-color: rgba(129,140,248,0.3); color: var(--primary-light); }
+      .callout.warn    { background: rgba(251,191,36,0.08);  border-color: rgba(251,191,36,0.3);  color: var(--warn); }
+      .callout.success { background: rgba(52,211,153,0.08);  border-color: rgba(52,211,153,0.3);  color: var(--accent); }
+      .callout.danger  { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.3); color: var(--danger); }
+      .callout.purple  { background: rgba(192,132,252,0.08); border-color: rgba(192,132,252,0.3); color: var(--purple); }
+
+      /* ─── Code Blocks ───────────────────────────────────────── */
+      .code-block { background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; overflow-x: auto; margin: 1.25rem 0; position: relative; }
+      .code-block .lang-tag { position: absolute; top: 0.6rem; right: 0.75rem; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); background: var(--surface); padding: 0.15rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+      pre { font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.75; color: #e2e8f0; white-space: pre; }
+      .kw  { color: #c792ea; } .fn  { color: #82aaff; } .str { color: #c3e88d; }
+      .cmt { color: #546e7a; font-style: italic; } .typ { color: #ffcb6b; }
+      .tag-c { color: #f07178; } .atr { color: #ffcb6b; } .val { color: #c3e88d; }
+      .op  { color: #89ddff; } .num { color: #f78c6c; }
+
+      /* ─── Live Region Card ──────────────────────────────────── */
+      .lr-card {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 1.5rem;
+        margin: 1.5rem 0;
+      }
+      .lr-card-head {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;
+        padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);
+      }
+      .lr-card-head code { font-size: 1rem; color: var(--cyan); }
+      .lr-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+      .lr-tag {
+        display: inline-block; font-size: 0.68rem; font-weight: 700;
+        letter-spacing: 0.07em; text-transform: uppercase;
+        padding: 0.15rem 0.55rem; border-radius: 999px;
+      }
+      .tag-polite    { background: rgba(52,211,153,0.12);  color: var(--accent);  border: 1px solid rgba(52,211,153,0.3); }
+      .tag-assertive { background: rgba(248,113,113,0.12); color: var(--danger);  border: 1px solid rgba(248,113,113,0.3); }
+      .tag-off       { background: rgba(148,163,184,0.12); color: var(--muted);   border: 1px solid rgba(148,163,184,0.3); }
+      .tag-role      { background: rgba(192,132,252,0.12); color: var(--purple);  border: 1px solid rgba(192,132,252,0.3); }
+
+      .lr-values { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+      .val-pill { font-family: var(--font-mono); font-size: 0.78rem; padding: 0.2rem 0.6rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
+      .val-pill.active  { border-color: var(--accent); color: var(--accent); background: rgba(52,211,153,0.08); }
+      .val-pill.danger  { border-color: var(--danger); color: var(--danger); background: rgba(248,113,113,0.08); }
+      .val-pill.default { border-color: var(--muted); color: var(--muted); }
+
+      .lr-body { font-size: 0.9rem; color: var(--muted); line-height: 1.7; margin-bottom: 0.75rem; }
+      .lr-body strong { color: #fff; }
+      .lr-rule { font-size: 0.82rem; background: var(--surface-2); border-left: 3px solid var(--primary); padding: 0.6rem 1rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 0.75rem; color: var(--text); }
+      .lr-rule strong { color: var(--primary-light); }
+      .lr-announce { font-size: 0.8rem; background: var(--code-bg); border: 1px solid var(--border); border-left: 3px solid var(--purple); padding: 0.6rem 1rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 0.75rem; color: var(--purple); font-style: italic; }
+
+      /* ─── Comparison Grid ─────────────────────────────────────── */
+      .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+      @media (max-width: 640px) { .compare-grid { grid-template-columns: 1fr; } }
+      .compare-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+      .compare-card.good { border-top: 3px solid var(--accent); }
+      .compare-card.bad  { border-top: 3px solid var(--danger); }
+      .compare-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.75rem; }
+      .compare-card.good .compare-label { color: var(--accent); }
+      .compare-card.bad  .compare-label { color: var(--danger); }
+
+      /* ─── Tables ─────────────────────────────────────────────── */
+      .table-wrapper { overflow-x: auto; margin: 1.25rem 0; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+      thead th { background: var(--surface); color: var(--primary-light); font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.75rem 1rem; text-align: left; border-bottom: 2px solid var(--border); }
+      tbody td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; line-height: 1.6; }
+      tbody tr:hover td { background: var(--surface); }
+
+      /* ─── Pitfall cards ──────────────────────────────────────── */
+      .pitfall-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+      .pitfall-card { background: var(--surface); border: 1px solid var(--danger); border-top: 3px solid var(--danger); border-radius: var(--radius); padding: 1.25rem; }
+      .pitfall-card h4 { color: var(--danger); text-transform: none; letter-spacing: 0; font-size: 0.95rem; margin-top: 0; }
+      .pitfall-card p { font-size: 0.85rem; color: var(--muted); margin: 0.5rem 0 0; }
+      .pitfall-card .fix { font-size: 0.82rem; color: var(--accent); margin-top: 0.5rem; }
+
+      /* ─── Bottom Nav ─────────────────────────────────────────── */
+      .bottom-nav { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 2rem; margin-top: 4rem; gap: 1rem; flex-wrap: wrap; }
+      .bottom-nav a { color: var(--primary-light); text-decoration: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.875rem; transition: border-color 0.15s, background 0.15s; display: flex; align-items: center; gap: 0.4rem; }
+      .bottom-nav a:hover { border-color: var(--primary); background: var(--surface); }
+      .bottom-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .bottom-nav .nav-next { opacity: 0.45; pointer-events: none; }
+
+      /* ─── Footer ────────────────────────────────────────────── */
+      footer { border-top: 1px solid var(--border); padding: 2rem 0 0; text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 3rem; }
+      footer a { color: var(--primary-light); text-decoration: none; }
+      footer a:hover { text-decoration: underline; }
+    </style>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <div class="page-wrapper">
+
+      <!-- ═══ TOP NAV ═══════════════════════════════════════════════ -->
+      <nav class="top-nav" aria-label="Document navigation">
+        <a href="./aria-s4-states.html">← Section 4</a>
+        <div class="nav-center">
+          <strong>Section 5 of 9</strong> — ARIA Live Regions
+        </div>
+        <a href="./aria-s6-custom-patterns.html" aria-label="Section 6: Custom Patterns">
+          Section 6 →
+        </a>
+      </nav>
+
+      <!-- ═══ HERO ══════════════════════════════════════════════════ -->
+      <header role="banner">
+        <div class="hero">
+          <div class="hero-badge">Section 5 · WAI-ARIA 1.2 · Angular 21 · May 2026</div>
+          <h1>
+            <span class="section-num">Section 5 of 9</span>
+            ARIA <span>Live Regions</span>
+          </h1>
+          <p>
+            Live regions tell assistive technologies to announce <em>dynamic content changes</em>
+            without the user moving focus. Covers <code>aria-live</code>, <code>aria-atomic</code>,
+            <code>aria-relevant</code>, <code>role="alert"</code>, <code>role="status"</code>,
+            <code>role="log"</code>, Angular CDK <code>LiveAnnouncer</code>, SPA routing
+            announcements, and the timing pitfalls that silently break announcements.
+          </p>
+          <div class="hero-meta">
+            <span>📋 Spec: <strong>WAI-ARIA 1.2 (W3C Rec)</strong></span>
+            <span>🔧 Framework: <strong>Angular 21</strong></span>
+            <span>📅 Updated: <strong>May 2026</strong></span>
+            <span>🎯 WCAG: <strong>SC 4.1.3 Status Messages (AA)</strong></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ═══ TOC ════════════════════════════════════════════════════ -->
+      <nav aria-label="Section contents">
+        <div class="toc">
+          <div class="toc-title">In This Section</div>
+          <ol>
+            <li><a href="#s5-1">5.1 — What Is a Live Region?</a></li>
+            <li><a href="#s5-2">5.2 — aria-live: polite / assertive / off</a></li>
+            <li><a href="#s5-3">5.3 — aria-atomic</a></li>
+            <li><a href="#s5-4">5.4 — aria-relevant</a></li>
+            <li><a href="#s5-5">5.5 — role="alert"</a></li>
+            <li><a href="#s5-6">5.6 — role="status"</a></li>
+            <li><a href="#s5-7">5.7 — role="log"</a></li>
+            <li><a href="#s5-8">5.8 — role="timer"</a></li>
+            <li><a href="#s5-9">5.9 — Angular CDK LiveAnnouncer</a></li>
+            <li><a href="#s5-10">5.10 — SPA Route Change Announcements</a></li>
+            <li><a href="#s5-11">5.11 — Timing Pitfalls &amp; Common Mistakes</a></li>
+            <li><a href="#s5-12">5.12 — Screen Reader Matrix</a></li>
+          </ol>
+        </div>
+      </nav>
+
+      <!-- ═══ MAIN ═══════════════════════════════════════════════════ -->
+      <main id="main-content">
+
+        <!-- ─── 5.1 What Is a Live Region ─────────────────────────── -->
+        <section id="s5-1" aria-labelledby="h5-1">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">5.1</div>
+            <h2 id="h5-1">What Is a Live Region?</h2>
+          </div>
+
+          <p>
+            A <strong>live region</strong> is any part of the page whose content changes
+            dynamically — loading spinners, error messages, notification toasts, search result
+            counts, chat messages — where the user has <em>not</em> moved focus into the region.
+          </p>
+          <p>
+            By default, screen readers only announce content when the user navigates to it.
+            Live regions override this: they tell AT <em>"watch this area — announce its
+            changes automatically."</em>
+          </p>
+
+          <div class="callout info">
+            <span class="callout-icon" aria-hidden="true">💡</span>
+            <p>
+              <strong>WCAG SC 4.1.3 — Status Messages (Level AA):</strong> Status messages
+              that do <em>not</em> receive focus must be programmatically determined so they
+              can be announced by AT without moving focus. Live regions are the primary
+              mechanism for satisfying this criterion.
+            </p>
+          </div>
+
+          <h3>The Three Live Region Attributes</h3>
+          <div class="table-wrapper">
+            <table aria-label="ARIA live region attributes overview">
+              <thead>
+                <tr>
+                  <th scope="col">Attribute</th>
+                  <th scope="col">Purpose</th>
+                  <th scope="col">Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>aria-live</code></td>
+                  <td>Sets the politeness of announcements — <code>polite</code>, <code>assertive</code>, or <code>off</code></td>
+                  <td><code>off</code></td>
+                </tr>
+                <tr>
+                  <td><code>aria-atomic</code></td>
+                  <td>Whether to read the <em>entire</em> region or only the changed node</td>
+                  <td><code>false</code></td>
+                </tr>
+                <tr>
+                  <td><code>aria-relevant</code></td>
+                  <td>Which types of DOM changes trigger an announcement (additions, removals, text)</td>
+                  <td><code>additions text</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Implicit Live Regions — ARIA Roles That Are Already Live</h3>
+          <div class="table-wrapper">
+            <table aria-label="ARIA roles with implicit live region behaviour">
+              <thead>
+                <tr>
+                  <th scope="col">Role</th>
+                  <th scope="col">Implied aria-live</th>
+                  <th scope="col">Implied aria-atomic</th>
+                  <th scope="col">Use Case</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>role="alert"</code></td>
+                  <td><code>assertive</code></td>
+                  <td><code>true</code></td>
+                  <td>Urgent error messages, critical warnings</td>
+                </tr>
+                <tr>
+                  <td><code>role="status"</code></td>
+                  <td><code>polite</code></td>
+                  <td><code>true</code></td>
+                  <td>Non-urgent status: "Saved", "3 results found"</td>
+                </tr>
+                <tr>
+                  <td><code>role="log"</code></td>
+                  <td><code>polite</code></td>
+                  <td><code>false</code></td>
+                  <td>Chat messages, activity logs, terminal output</td>
+                </tr>
+                <tr>
+                  <td><code>role="marquee"</code></td>
+                  <td><code>off</code></td>
+                  <td><code>false</code></td>
+                  <td>Scrolling tickers (rarely appropriate)</td>
+                </tr>
+                <tr>
+                  <td><code>role="timer"</code></td>
+                  <td><code>off</code></td>
+                  <td><code>false</code></td>
+                  <td>Countdown timers — silent by default, announce on key intervals only</td>
+                </tr>
+                <tr>
+                  <td><code>role="progressbar"</code></td>
+                  <td><em>varies</em></td>
+                  <td><em>varies</em></td>
+                  <td>Loading bars — use <code>aria-valuenow</code>, <code>aria-valuemin</code>, <code>aria-valuemax</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong>Critical rule:</strong> Live regions must be present in the DOM
+              <em>before</em> their content changes. AT registers live regions on page load.
+              Inserting a live region <em>and</em> its content simultaneously (e.g., with
+              Angular's <code>@if</code>) often results in silence — AT never heard about
+              the region before the content appeared.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 5.2 aria-live ─────────────────────────────────────── -->
+        <section id="s5-2" aria-labelledby="h5-2">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">5.2</div>
+            <h2 id="h5-2"><code>aria-live</code> — polite / assertive / off</h2>
+          </div>
+
+          <!-- polite -->
+          <div class="lr-card">
+            <div class="lr-card-head">
+              <code>aria-live="polite"</code>
+              <div class="lr-meta">
+                <span class="lr-tag tag-polite">Polite</span>
+                <span class="lr-tag tag-role">Recommended Default</span>
+              </div>
+            </div>
+            <div class="lr-values">
+              <span class="val-pill active">polite</span>
+            </div>
+            <div class="lr-body">
+              AT waits until the user <strong>finishes reading</strong> the current content,
+              then announces the change. Use this for the vast majority of dynamic updates:
+              load completion, item counts, filter results, form save confirmations, pagination changes.
+            </div>
+            <div class="lr-rule">
+              <strong>Use when:</strong> The update is informational — the user should know about
+              it, but it can wait until they finish what they are currently doing.
+            </div>
+            <div class="lr-announce">
+              AT: "…continuing reading…" → pause → "5 todos loaded."
+            </div>
+          </div>
+
+          <!-- assertive -->
+          <div class="lr-card">
+            <div class="lr-card-head">
+              <code>aria-live="assertive"</code>
+              <div class="lr-meta">
+                <span class="lr-tag tag-assertive">Assertive</span>
+                <span class="lr-tag tag-role">Use Sparingly</span>
+              </div>
+            </div>
+            <div class="lr-values">
+              <span class="val-pill danger">assertive</span>
+            </div>
+            <div class="lr-body">
+              AT <strong>immediately interrupts</strong> whatever it is currently reading and
+              announces the change. This is jarring — like someone shouting while you are reading.
+              Reserve exclusively for <em>urgent, time-critical</em> situations: session timeouts,
+              critical security errors, form submission failures.
+            </div>
+            <div class="lr-rule">
+              <strong>Use when:</strong> The message is so urgent that the user must hear it
+              right now — even if it interrupts something they are in the middle of reading.
+              This is rare. Most app notifications should be <code>polite</code>.
+            </div>
+            <div class="lr-announce">
+              AT: "…reading paragraph… [CUT OFF]" → "Session will expire in 60 seconds."
+            </div>
+          </div>
+
+          <!-- off -->
+          <div class="lr-card">
+            <div class="lr-card-head">
+              <code>aria-live="off"</code>
+              <div class="lr-meta">
+                <span class="lr-tag tag-off">Off</span>
+              </div>
+            </div>
+            <div class="lr-values">
+              <span class="val-pill default">off (default)</span>
+            </div>
+            <div class="lr-body">
+              No announcements. The region updates silently. This is the default for all
+              elements unless <code>aria-live</code> is set. Use it deliberately to
+              <em>silence</em> a region that would otherwise be noisy — for example, a
+              real-time counter that updates every 100ms while the user is typing.
+            </div>
+            <div class="lr-rule">
+              <strong>Use when:</strong> A region updates too frequently for every change
+              to be announced (e.g., character counter while typing). Announce only on
+              final submission or at meaningful intervals using <code>LiveAnnouncer</code>.
+            </div>
+          </div>
+
+          <h3>Angular Template — Dual Live Region Pattern</h3>
+          <p>
+            The recommended pattern is to keep both polite and assertive regions in the DOM
+            at all times (hidden with <code>sr-only</code>), and populate them from signals.
+          </p>
+          <div class="code-block">
+            <span class="lang-tag">HTML — Angular 21 template</span>
+            <pre>
+<span class="cmt">&lt;!-- Always in DOM — AT registers them on load --&gt;</span>
+
+<span class="cmt">&lt;!-- Polite: general status updates --&gt;</span>
+<span class="tag-c">&lt;div</span> <span class="atr">aria-live</span>=<span class="val">"polite"</span> <span class="atr">aria-atomic</span>=<span class="val">"true"</span>
+     <span class="atr">class</span>=<span class="val">"sr-only"</span> <span class="atr">data-testid</span>=<span class="val">"status-region"</span><span class="tag-c">&gt;</span>
+  {{ statusMessage() }}
+<span class="tag-c">&lt;/div&gt;</span>
+
+<span class="cmt">&lt;!-- Assertive: critical errors only --&gt;</span>
+<span class="tag-c">&lt;div</span> <span class="atr">aria-live</span>=<span class="val">"assertive"</span> <span class="atr">aria-atomic</span>=<span class="val">"true"</span>
+     <span class="atr">class</span>=<span class="val">"sr-only"</span> <span class="atr">data-testid</span>=<span class="val">"error-region"</span><span class="tag-c">&gt;</span>
+  {{ criticalError() }}
+<span class="tag-c">&lt;/div&gt;</span>
+</pre>
+          </div>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — Angular 21 component</span>
+            <pre>
+<span class="fn">@Component</span>(<span class="op">{</span>
+  standalone<span class="op">:</span> <span class="kw">true</span><span class="op">,</span>
+  changeDetection<span class="op">:</span> <span class="typ">ChangeDetectionStrategy</span><span class="op">.</span>OnPush<span class="op">,</span>
+<span class="op">})</span>
+<span class="kw">export class</span> <span class="typ">TodoListComponent</span> <span class="op">{</span>
+  <span class="kw">readonly</span> statusMessage  <span class="op">=</span> <span class="fn">signal</span><span class="op">&lt;</span><span class="kw">string</span><span class="op">&gt;</span>(<span class="str">''</span>)<span class="op">;</span>
+  <span class="kw">readonly</span> criticalError   <span class="op">=</span> <span class="fn">signal</span><span class="op">&lt;</span><span class="kw">string</span><span class="op">&gt;</span>(<span class="str">''</span>)<span class="op">;</span>
+
+  <span class="kw">private readonly</span> todoService <span class="op">=</span> <span class="fn">inject</span>(<span class="typ">TodoApiService</span>)<span class="op">;</span>
+
+  <span class="kw">async</span> <span class="fn">loadTodos</span>()<span class="op">:</span> <span class="typ">Promise</span><span class="op">&lt;</span><span class="kw">void</span><span class="op">&gt;</span> <span class="op">{</span>
+    <span class="kw">this</span><span class="op">.</span><span class="fn">statusMessage</span><span class="op">.</span><span class="fn">set</span>(<span class="str">'Loading todos…'</span>)<span class="op">;</span>
+    <span class="kw">try</span> <span class="op">{</span>
+      <span class="kw">const</span> todos <span class="op">=</span> <span class="kw">await</span> <span class="fn">firstValueFrom</span>(<span class="kw">this</span><span class="op">.</span>todoService<span class="op">.</span><span class="fn">getAll</span>())<span class="op">;</span>
+      <span class="kw">this</span><span class="op">.</span><span class="fn">statusMessage</span><span class="op">.</span><span class="fn">set</span>(<span class="str">`<span class="op">${</span>todos<span class="op">.</span>length<span class="op">}</span> todos loaded`</span>)<span class="op">;</span>
+    <span class="op">}</span> <span class="kw">catch</span> <span class="op">{</span>
+      <span class="cmt">// Critical error — use assertive region</span>
+      <span class="kw">this</span><span class="op">.</span><span class="fn">criticalError</span><span class="op">.</span><span class="fn">set</span>(<span class="str">'Failed to load todos. Please refresh the page.'</span>)<span class="op">;</span>
+    <span class="op">}</span>
+  <span class="op">}</span>
+
+  <span class="kw">async</span> <span class="fn">deleteTodo</span>(todo<span class="op">:</span> <span class="typ">Todo</span>)<span class="op">:</span> <span class="typ">Promise</span><span class="op">&lt;</span><span class="kw">void</span><span class="op">&gt;</span> <span class="op">{</span>
+    <span class="kw">await</span> <span class="fn">firstValueFrom</span>(<span class="kw">this</span><span class="op">.</span>todoService<span class="op">.</span><span class="fn">delete</span>(todo<span class="op">.</span>id))<span class="op">;</span>
+    <span class="cmt">// Polite — user initiated, not urgent</span>
+    <span class="kw">this</span><span class="op">.</span><span class="fn">statusMessage</span><span class="op">.</span><span class="fn">set</span>(<span class="str">`"<span class="op">${</span>todo<span class="op">.</span>title<span class="op">}</span>" deleted`</span>)<span class="op">;</span>
+  <span class="op">}</span>
+<span class="op">}</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 5.3 aria-atomic ───────────────────────────────────── -->
+        <section id="s5-3" aria-labelledby="h5-3">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">5.3</div>
+            <h2 id="h5-3"><code>aria-atomic</code> — The Full-Read Guarantee</h2>
+          </div>
+
+          <p>
+            <code>aria-atomic</code> controls whether AT reads the <em>entire region</em>
+            after a change, or only the <em>changed node</em>.
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="aria-atomic values and their behaviour">
+              <thead>
+                <tr>
+                  <th scope="col">Value</th>
+                  <th scope="col">Behaviour</th>
+                  <th scope="col">Use When</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>true</code></td>
+                  <td>AT reads the <strong>entire region</strong> as one unit after any change</td>
+                  <td>Status messages, counters, compound labels where context is needed: <em>"5 of 12 items selected"</em> → reads whole string, not just "5"</td>
+                </tr>
+                <tr>
+                  <td><code>false</code> (default)</td>
+                  <td>AT reads only the <strong>changed subtree</strong></td>
+                  <td>Chat logs, activity feeds where each new entry should be announced independently; reading the whole log on every new message would be overwhelming</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="compare-grid">
+            <div class="compare-card bad">
+              <div class="compare-label">✗ Without aria-atomic</div>
+              <div class="code-block" style="margin:0;">
+                <pre>
+<span class="cmt">&lt;!-- aria-atomic="false" (default) --&gt;</span>
+<span class="tag-c">&lt;div</span> <span class="atr">aria-live</span>=<span class="val">"polite"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;span</span> <span class="atr">class</span>=<span class="val">"count"</span><span class="tag-c">&gt;</span>5<span class="tag-c">&lt;/span&gt;</span> items remaining
+<span class="tag-c">&lt;/div&gt;</span>
+
+<span class="cmt">&lt;!-- When count changes to 4, AT may only
+     announce: "4" — no context --&gt;</span>
+</pre>
+              </div>
+            </div>
+            <div class="compare-card good">
+              <div class="compare-label">✓ With aria-atomic="true"</div>
+              <div class="code-block" style="margin:0;">
+                <pre>
+<span class="cmt">&lt;!-- aria-atomic="true" --&gt;</span>
+<span class="tag-c">&lt;div</span> <span class="atr">aria-live</span>=<span class="val">"polite"</span> <span class="atr">aria-atomic</span>=<span class="val">"true"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;span</span> <span class="atr">class</span>=<span class="val">"count"</span><span class="tag-c">&gt;</span>4<span class="tag-c">&lt;/span&gt;</span> items remaining
+<span class="tag-c">&lt;/div&gt;</span>
+
+<span class="cmt">&lt;!-- AT announces full string:
+     "4 items remaining" --&gt;</span>
+</pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 5.4 aria-relevant ─────────────────────────────────── -->
+        <section id="s5-4" aria-labelledby="h5-4">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">5.4</div>
+            <h2 id="h5-4"><code>aria-relevant</code> — Filtering Change Types</h2>
+          </div>
+
+          <p>
+            <code>aria-relevant</code> specifies <em>which types</em> of DOM mutations within
+            the live region should trigger an announcement. The default (<code>additions text</code>)
+            is correct for most use cases.
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="aria-relevant values">
+              <thead>
+                <tr>
+                  <th scope="col">Value</th>
+                  <th scope="col">Triggers announcement when…</th>
+                  <th scope="col">Use case</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>additions</code></td>
+                  <td>New DOM nodes are added to the region</td>
+                  <td>New chat messages, new list items appended</td>
+                </tr>
+                <tr>
+                  <td><code>text</code></td>
+                  <td>Text content of existing nodes changes</td>
+                  <td>Counter updating, status text changing</td>
+                </tr>
+                <tr>
+                  <td><code>removals</code></td>
+                  <td>DOM nodes are removed from the region</td>
+                  <td>Error cleared, notification dismissed — only when removal is meaningful</td>
+                </tr>
+                <tr>
+                  <td><code>all</code></td>
+                  <td>Any DOM mutation including attribute changes</td>
+                  <td>Rarely appropriate — very noisy; announces attribute changes too</td>
+                </tr>
+                <tr>
+                  <td><code>additions text</code> (default)</td>
+                  <td>New nodes added <em>or</em> text changes</td>
+                  <td><strong>Use this in the vast majority of cases</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout info">
+            <span class="callout-icon" aria-hidden="true">💡</span>
+            <p>
+              <strong>Rarely needed:</strong> Only override <code>aria-relevant</code> when you
+              specifically need to announce <em>removals</em> — e.g., a notification list where
+              items expire and are removed. For chat logs: <code>aria-relevant="additions"</code>
+              prevents the entire log being re-read when old messages scroll out of the DOM.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 5.5 role="alert" ──────────────────────────────────── -->
+        <section id="s5-5" aria-labelledby="h5-5">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">5.5</div>
+            <h2 id="h5-5"><code>role="alert"</code> — Urgent One-Shot Messages</h2>
+          </div>
+
+          <div class="lr-card">
+            <div class="lr-card-head">
+              <code>role="alert"</code>
+              <div class="lr-meta">
+                <span class="lr-tag tag-assertive">Assertive (implicit)</span>
+                <span class="lr-tag tag-role">aria-atomic: true (implicit)</span>
+              </div>
+            </div>
+            <div class="lr-body">
+              <code>role="alert"</code> is shorthand for
+              <code>aria-live="assertive" aria-atomic="true"</code>.
+              As soon as an element with <code>role="alert"</code> is added to the DOM
+              (or its text content changes), AT <strong>immediately interrupts and reads it</strong>.
+              <br><br>
+              <strong>Use for:</strong> Form validation errors, API failure messages, confirmation
+              of destructive actions. Do <em>not</em> use for routine success messages —
+              that is <code>role="status"</code>.
+            </div>
+            <div class="lr-rule">
+              <strong>Angular pattern:</strong> Show the element only when the error exists.
+              Use <code>@if</code> or bind text content — either triggers the alert.
+              Pair with <code>aria-describedby</code> on the relevant input.
+            </div>
+            <div class="lr-announce">
+              AT immediately: "Error: Email address is invalid. Please enter a valid email."
+            </div>
+          </div>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — Angular 21 reactive form error</span>
+            <pre>
+<span class="tag-c">&lt;form</span> <span class="atr">[formGroup]</span>=<span class="val">"form"</span> <span class="atr">(ngSubmit)</span>=<span class="val">"submit()"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;div</span> <span class="atr">class</span>=<span class="val">"field"</span><span class="tag-c">&gt;</span>
+    <span class="tag-c">&lt;label</span> <span class="atr">for</span>=<span class="val">"email"</span><span class="tag-c">&gt;</span>Email address<span class="tag-c">&lt;/label&gt;</span>
+    <span class="tag-c">&lt;input</span>
+      <span class="atr">id</span>=<span class="val">"email"</span>
+      <span class="atr">type</span>=<span class="val">"email"</span>
+      <span class="atr">formControlName</span>=<span class="val">"email"</span>
+      <span class="atr">[attr.aria-invalid]</span>=<span class="val">"emailCtrl.invalid && emailCtrl.touched ? 'true' : null"</span>
+      <span class="atr">[attr.aria-describedby]</span>=<span class="val">"emailCtrl.invalid && emailCtrl.touched ? 'email-error' : null"</span>
+    <span class="tag-c">/&gt;</span>
+
+    <span class="cmt">&lt;!-- role="alert" fires when this element appears in DOM --&gt;</span>
+    @if (emailCtrl.invalid &amp;&amp; emailCtrl.touched) {
+      <span class="tag-c">&lt;p</span> <span class="atr">id</span>=<span class="val">"email-error"</span> <span class="atr">role</span>=<span class="val">"alert"</span><span class="tag-c">&gt;</span>
+        @if (emailCtrl.hasError('required')) { Please enter your email address. }
+        @if (emailCtrl.hasError('email')) { Please enter a valid email address. }
+      <span class="tag-c">&lt;/p&gt;</span>
+    }
+  <span class="tag-c">&lt;/div&gt;</span>
+<span class="tag-c">&lt;/form&gt;</span>
+</pre>
+          </div>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong>Do not pre-render hidden alerts.</strong> Some developers render
+              <code>&lt;p role="alert" hidden&gt;&lt;/p&gt;</code> and then remove <code>hidden</code>.
+              Removing the <code>hidden</code> attribute does <em>not</em> reliably trigger
+              the alert in all AT. Change the <strong>text content</strong> instead, or use
+              <code>@if</code> to insert/remove the element entirely.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 5.6 role="status" ─────────────────────────────────── -->
+        <section id="s5-6" aria-labelledby="h5-6">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">5.6</div>
+            <h2 id="h5-6"><code>role="status"</code> — Polite Status Updates</h2>
+          </div>
+
+          <div class="lr-card">
+            <div class="lr-card-head">
+              <code>role="status"</code>
+              <div class="lr-meta">
+                <span class="lr-tag tag-polite">Polite (implicit)</span>
+                <span class="lr-tag tag-role">aria-atomic: true (implicit)</span>
+              </div>
+            </div>
+            <div class="lr-body">
+              <code>role="status"</code> is shorthand for
+              <code>aria-live="polite" aria-atomic="true"</code>.
+              AT waits for the user to pause, then announces the status message.
+              <br><br>
+              <strong>Use for:</strong> "Todo saved", "3 results found", "Filter applied",
+              "Copied to clipboard", "Loading…", "Operation complete".
+              These messages are informative but not urgent.
+            </div>
+            <div class="lr-announce">
+              AT (after user pauses): "Todo saved."
+            </div>
+          </div>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML + TypeScript — status region with Angular signal</span>
+            <pre>
+<span class="cmt">&lt;!-- Template: status region always in DOM --&gt;</span>
+<span class="tag-c">&lt;div</span> <span class="atr">role</span>=<span class="val">"status"</span> <span class="atr">class</span>=<span class="val">"sr-only"</span> <span class="atr">aria-atomic</span>=<span class="val">"true"</span><span class="tag-c">&gt;</span>
+  {{ appStatus() }}
+<span class="tag-c">&lt;/div&gt;</span>
+
+<span class="cmt">&lt;!-- Save button --&gt;</span>
+<span class="tag-c">&lt;button</span> <span class="atr">type</span>=<span class="val">"button"</span> <span class="atr">(click)</span>=<span class="val">"saveTodo()"</span><span class="tag-c">&gt;</span>Save<span class="tag-c">&lt;/button&gt;</span>
+</pre>
+          </div>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre>
+<span class="kw">readonly</span> appStatus <span class="op">=</span> <span class="fn">signal</span><span class="op">&lt;</span><span class="kw">string</span><span class="op">&gt;</span>(<span class="str">''</span>)<span class="op">;</span>
+
+<span class="kw">async</span> <span class="fn">saveTodo</span>()<span class="op">:</span> <span class="typ">Promise</span><span class="op">&lt;</span><span class="kw">void</span><span class="op">&gt;</span> <span class="op">{</span>
+  <span class="kw">await</span> <span class="fn">firstValueFrom</span>(<span class="kw">this</span><span class="op">.</span>todoService<span class="op">.</span><span class="fn">save</span>(...))<span class="op">;</span>
+  <span class="kw">this</span><span class="op">.</span><span class="fn">appStatus</span><span class="op">.</span><span class="fn">set</span>(<span class="str">'Todo saved'</span>)<span class="op">;</span>
+  <span class="cmt">// Clear after 5s so the same message can fire again</span>
+  <span class="fn">setTimeout</span>(() <span class="op">=&gt;</span> <span class="kw">this</span><span class="op">.</span><span class="fn">appStatus</span><span class="op">.</span><span class="fn">set</span>(<span class="str">''</span>)<span class="op">,</span> <span class="num">5000</span>)<span class="op">;</span>
+<span class="op">}</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 5.7 role="log" ────────────────────────────────────── -->
+        <section id="s5-7" aria-labelledby="h5-7">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">5.7</div>
+            <h2 id="h5-7"><code>role="log"</code> — Sequential History</h2>
+          </div>
+
+          <div class="lr-card">
+            <div class="lr-card-head">
+              <code>role="log"</code>
+              <div class="lr-meta">
+                <span class="lr-tag tag-polite">Polite (implicit)</span>
+                <span class="lr-tag tag-role">aria-atomic: false (implicit)</span>
+              </div>
+            </div>
+            <div class="lr-body">
+              A live region where new information is added sequentially and the order matters.
+              AT announces <em>each new addition</em> individually as it is appended.
+              Old content is retained. <code>aria-atomic="false"</code> by default — only the
+              newly added item is announced, not the entire history.
+              <br><br>
+              <strong>Use for:</strong> Chat message feeds, activity logs, terminal output,
+              audit trails, notification history.
+            </div>
+            <div class="lr-rule">
+              <strong>Angular pattern:</strong> Use <code>@for</code> to render items; append-only.
+              New items added to the signal array trigger announcement of only the new item.
+            </div>
+          </div>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — chat log example</span>
+            <pre>
+<span class="tag-c">&lt;section</span> <span class="atr">aria-labelledby</span>=<span class="val">"chat-label"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;h2</span> <span class="atr">id</span>=<span class="val">"chat-label"</span><span class="tag-c">&gt;</span>Chat<span class="tag-c">&lt;/h2&gt;</span>
+
+  <span class="cmt">&lt;!-- role="log": polite, aria-atomic=false by default --&gt;</span>
+  <span class="tag-c">&lt;ul</span>
+    <span class="atr">role</span>=<span class="val">"log"</span>
+    <span class="atr">aria-label</span>=<span class="val">"Chat messages"</span>
+    <span class="atr">aria-relevant</span>=<span class="val">"additions"</span>
+  <span class="tag-c">&gt;</span>
+    @for (msg of messages(); track msg.id) {
+      <span class="tag-c">&lt;li&gt;</span>
+        <span class="tag-c">&lt;strong&gt;</span>{{ msg.author }}<span class="tag-c">&lt;/strong&gt;</span>: {{ msg.text }}
+      <span class="tag-c">&lt;/li&gt;</span>
+    }
+  <span class="tag-c">&lt;/ul&gt;</span>
+<span class="tag-c">&lt;/section&gt;</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 5.8 role="timer" ──────────────────────────────────── -->
+        <section id="s5-8" aria-labelledby="h5-8">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">5.8</div>
+            <h2 id="h5-8"><code>role="timer"</code> — Countdown &amp; Elapsed Time</h2>
+          </div>
+
+          <div class="lr-card">
+            <div class="lr-card-head">
+              <code>role="timer"</code>
+              <div class="lr-meta">
+                <span class="lr-tag tag-off">Off (implicit)</span>
+                <span class="lr-tag tag-role">Silent by Default</span>
+              </div>
+            </div>
+            <div class="lr-body">
+              A live region representing a numerical counter that changes rapidly.
+              <code>aria-live="off"</code> by default — AT does <em>not</em> announce
+              every second update (that would be intolerable). Instead, announce only at
+              meaningful intervals using <code>LiveAnnouncer</code> or by adding a secondary
+              <code>role="status"</code> region that updates on key thresholds.
+              <br><br>
+              <strong>Use for:</strong> Quiz/test countdown timers, session timeout warnings,
+              real-time elapsed time. Always warn the user at critical thresholds (5 minutes,
+              1 minute, 30 seconds remaining).
+            </div>
+          </div>
+
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — Angular 21 countdown timer with accessible announcements</span>
+            <pre>
+<span class="fn">@Component</span>(<span class="op">{</span>
+  standalone<span class="op">:</span> <span class="kw">true</span><span class="op">,</span>
+  changeDetection<span class="op">:</span> <span class="typ">ChangeDetectionStrategy</span><span class="op">.</span>OnPush<span class="op">,</span>
+  template<span class="op">:</span> <span class="str">`
+    &lt;!-- Visual display: updates every second, role=timer --&gt;
+    &lt;div role="timer" aria-label="Time remaining" aria-live="off"&gt;
+      {{ formatTime(secondsLeft()) }}
+    &lt;/div&gt;
+
+    &lt;!-- AT announcements: only at key thresholds --&gt;
+    &lt;div role="status" class="sr-only" aria-atomic="true"&gt;
+      {{ timerAlert() }}
+    &lt;/div&gt;
+  `</span><span class="op">,</span>
+<span class="op">})</span>
+<span class="kw">export class</span> <span class="typ">CountdownTimerComponent</span> <span class="op">{</span>
+  <span class="kw">readonly</span> secondsLeft <span class="op">=</span> <span class="fn">signal</span>(<span class="num">600</span>)<span class="op">;</span> <span class="cmt">// 10 minutes</span>
+  <span class="kw">readonly</span> timerAlert  <span class="op">=</span> <span class="fn">signal</span>(<span class="str">''</span>)<span class="op">;</span>
+
+  <span class="cmt">// Announce at 5 min, 1 min, and 30 sec thresholds</span>
+  <span class="kw">private readonly</span> _ <span class="op">=</span> <span class="fn">effect</span>(() <span class="op">=&gt;</span> <span class="op">{</span>
+    <span class="kw">const</span> s <span class="op">=</span> <span class="kw">this</span><span class="op">.</span><span class="fn">secondsLeft</span>()<span class="op">;</span>
+    <span class="kw">if</span> (s <span class="op">===</span> <span class="num">300</span>) <span class="kw">this</span><span class="op">.</span><span class="fn">timerAlert</span><span class="op">.</span><span class="fn">set</span>(<span class="str">'5 minutes remaining'</span>)<span class="op">;</span>
+    <span class="kw">else if</span> (s <span class="op">===</span> <span class="num">60</span>)  <span class="kw">this</span><span class="op">.</span><span class="fn">timerAlert</span><span class="op">.</span><span class="fn">set</span>(<span class="str">'1 minute remaining'</span>)<span class="op">;</span>
+    <span class="kw">else if</span> (s <span class="op">===</span> <span class="num">30</span>)  <span class="kw">this</span><span class="op">.</span><span class="fn">timerAlert</span><span class="op">.</span><span class="fn">set</span>(<span class="str">'30 seconds remaining'</span>)<span class="op">;</span>
+    <span class="kw">else if</span> (s <span class="op">===</span> <span class="num">0</span>)   <span class="kw">this</span><span class="op">.</span><span class="fn">timerAlert</span><span class="op">.</span><span class="fn">set</span>(<span class="str">'Time is up!'</span>)<span class="op">;</span>
+  <span class="op">})</span><span class="op">;</span>
+<span class="op">}</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 5.9 LiveAnnouncer ──────────────────────────────────── -->
+        <section id="s5-9" aria-labelledby="h5-9">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">5.9</div>
+            <h2 id="h5-9">Angular CDK <code>LiveAnnouncer</code></h2>
+          </div>
+
+          <p>
+            The Angular CDK's <code>LiveAnnouncer</code> is the <strong>recommended imperative
+            API</strong> for making announcements without managing live region DOM elements manually.
+            It creates an off-screen live region internally and clears it after each announcement.
+          </p>
+
+          <h4>When to use LiveAnnouncer vs declarative aria-live</h4>
+          <div class="table-wrapper">
+            <table aria-label="LiveAnnouncer vs declarative aria-live comparison">
+              <thead>
+                <tr>
+                  <th scope="col">Approach</th>
+                  <th scope="col">Use When</th>
+                  <th scope="col">Advantage</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>LiveAnnouncer</code></td>
+                  <td>Imperative one-off announcements from component logic: after async API call, after keyboard shortcut, after route change</td>
+                  <td>No HTML template needed; handles timing and cleanup automatically; integrates with OnPush</td>
+                </tr>
+                <tr>
+                  <td>Declarative <code>aria-live</code></td>
+                  <td>Regions that update reactively based on signal state (status bar, error container, filter count)</td>
+                  <td>Template-driven; visible in source; works with any signal/reactive pattern; testable via DOM queries</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — LiveAnnouncer complete usage</span>
+            <pre>
+<span class="kw">import</span> { <span class="typ">LiveAnnouncer</span> } <span class="kw">from</span> <span class="str">'@angular/cdk/a11y'</span><span class="op">;</span>
+
+<span class="fn">@Component</span>(<span class="op">{</span>
+  standalone<span class="op">:</span> <span class="kw">true</span><span class="op">,</span>
+  imports<span class="op">:</span> [<span class="typ">A11yModule</span>]<span class="op">,</span>
+  changeDetection<span class="op">:</span> <span class="typ">ChangeDetectionStrategy</span><span class="op">.</span>OnPush<span class="op">,</span>
+<span class="op">})</span>
+<span class="kw">export class</span> <span class="typ">TodoListComponent</span> <span class="op">{</span>
+  <span class="kw">private readonly</span> announcer <span class="op">=</span> <span class="fn">inject</span>(<span class="typ">LiveAnnouncer</span>)<span class="op">;</span>
+
+  <span class="kw">async</span> <span class="fn">addTodo</span>(title<span class="op">:</span> <span class="kw">string</span>)<span class="op">:</span> <span class="typ">Promise</span><span class="op">&lt;</span><span class="kw">void</span><span class="op">&gt;</span> <span class="op">{</span>
+    <span class="kw">await</span> <span class="fn">firstValueFrom</span>(<span class="kw">this</span><span class="op">.</span>todoService<span class="op">.</span><span class="fn">add</span>(title))<span class="op">;</span>
+    <span class="cmt">// polite: waits for AT to finish reading current content</span>
+    <span class="kw">await</span> <span class="kw">this</span><span class="op">.</span>announcer<span class="op">.</span><span class="fn">announce</span>(<span class="str">`Todo "<span class="op">${</span>title<span class="op">}</span>" added`</span><span class="op">,</span> <span class="str">'polite'</span>)<span class="op">;</span>
+  <span class="op">}</span>
+
+  <span class="kw">async</span> <span class="fn">deleteTodo</span>(todo<span class="op">:</span> <span class="typ">Todo</span>)<span class="op">:</span> <span class="typ">Promise</span><span class="op">&lt;</span><span class="kw">void</span><span class="op">&gt;</span> <span class="op">{</span>
+    <span class="kw">await</span> <span class="fn">firstValueFrom</span>(<span class="kw">this</span><span class="op">.</span>todoService<span class="op">.</span><span class="fn">delete</span>(todo<span class="op">.</span>id))<span class="op">;</span>
+    <span class="kw">await</span> <span class="kw">this</span><span class="op">.</span>announcer<span class="op">.</span><span class="fn">announce</span>(<span class="str">`"<span class="op">${</span>todo<span class="op">.</span>title<span class="op">}</span>" deleted`</span><span class="op">,</span> <span class="str">'polite'</span>)<span class="op">;</span>
+  <span class="op">}</span>
+
+  <span class="kw">async</span> <span class="fn">handleApiError</span>(msg<span class="op">:</span> <span class="kw">string</span>)<span class="op">:</span> <span class="typ">Promise</span><span class="op">&lt;</span><span class="kw">void</span><span class="op">&gt;</span> <span class="op">{</span>
+    <span class="cmt">// assertive: interrupts AT for critical failure</span>
+    <span class="kw">await</span> <span class="kw">this</span><span class="op">.</span>announcer<span class="op">.</span><span class="fn">announce</span>(msg<span class="op">,</span> <span class="str">'assertive'</span>)<span class="op">;</span>
+  <span class="op">}</span>
+
+  <span class="fn">ngOnDestroy</span>()<span class="op">:</span> <span class="kw">void</span> <span class="op">{</span>
+    <span class="cmt">// Best practice: clear the live region on destroy</span>
+    <span class="kw">this</span><span class="op">.</span>announcer<span class="op">.</span><span class="fn">clear</span>()<span class="op">;</span>
+  <span class="op">}</span>
+<span class="op">}</span>
+</pre>
+          </div>
+
+          <h4>LiveAnnouncer with effect() — Signal-Driven Announcements</h4>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — effect() watches signal, announces changes</span>
+            <pre>
+<span class="kw">export class</span> <span class="typ">FilteredListComponent</span> <span class="op">{</span>
+  <span class="kw">private readonly</span> announcer <span class="op">=</span> <span class="fn">inject</span>(<span class="typ">LiveAnnouncer</span>)<span class="op">;</span>
+
+  <span class="kw">readonly</span> filterText   <span class="op">=</span> <span class="fn">signal</span>(<span class="str">''</span>)<span class="op">;</span>
+  <span class="kw">readonly</span> filteredTodos <span class="op">=</span> <span class="fn">computed</span>(() <span class="op">=&gt;</span>
+    <span class="kw">this</span><span class="op">.</span><span class="fn">todos</span>()<span class="op">.</span><span class="fn">filter</span>(t <span class="op">=&gt;</span>
+      t<span class="op">.</span>title<span class="op">.</span><span class="fn">toLowerCase</span>()<span class="op">.</span><span class="fn">includes</span>(<span class="kw">this</span><span class="op">.</span><span class="fn">filterText</span>()<span class="op">.</span><span class="fn">toLowerCase</span>())
+    )
+  )<span class="op">;</span>
+
+  <span class="cmt">// Announce result count after each filter update</span>
+  <span class="kw">private readonly</span> _ <span class="op">=</span> <span class="fn">effect</span>(<span class="kw">async</span> () <span class="op">=&gt;</span> <span class="op">{</span>
+    <span class="kw">const</span> count <span class="op">=</span> <span class="kw">this</span><span class="op">.</span><span class="fn">filteredTodos</span>()<span class="op">.</span>length<span class="op">;</span>
+    <span class="kw">const</span> query <span class="op">=</span> <span class="kw">this</span><span class="op">.</span><span class="fn">filterText</span>()<span class="op">;</span>
+    <span class="kw">if</span> (query) <span class="op">{</span>
+      <span class="kw">await</span> <span class="kw">this</span><span class="op">.</span>announcer<span class="op">.</span><span class="fn">announce</span>(
+        <span class="str">`<span class="op">${</span>count<span class="op">}</span> todo<span class="op">${</span>count <span class="op">!==</span> <span class="num">1</span> <span class="op">?</span> <span class="str">'s'</span> <span class="op">:</span> <span class="str">''</span><span class="op">}</span> match "<span class="op">${</span>query<span class="op">}</span>"`</span><span class="op">,</span>
+        <span class="str">'polite'</span>
+      )<span class="op">;</span>
+    <span class="op">}</span>
+  <span class="op">})</span><span class="op">;</span>
+<span class="op">}</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 5.10 Route Announcements ──────────────────────────── -->
+        <section id="s5-10" aria-labelledby="h5-10">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">5.10</div>
+            <h2 id="h5-10">SPA Route Change Announcements</h2>
+          </div>
+
+          <p>
+            In a traditional multi-page site the browser announces the new page title on every
+            navigation. In an Angular SPA, the browser does not — screen reader users have no
+            indication that a new page has loaded unless you implement it explicitly.
+          </p>
+
+          <div class="callout danger">
+            <span class="callout-icon" aria-hidden="true">🚫</span>
+            <p>
+              <strong>Default Angular router behaviour:</strong> Focus stays on the link that was
+              clicked. The page title may or may not update. AT receives no announcement.
+              Screen reader users are effectively stuck "on the previous page" with no indication
+              anything changed. This violates WCAG 2.4.2 (Page Titled, Level A) in spirit.
+            </p>
+          </div>
+
+          <h3>Solution: Custom TitleStrategy with LiveAnnouncer</h3>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — app.config.ts</span>
+            <pre>
+<span class="kw">import</span> { <span class="typ">TitleStrategy</span><span class="op">,</span> <span class="typ">RouterStateSnapshot</span> } <span class="kw">from</span> <span class="str">'@angular/router'</span><span class="op">;</span>
+<span class="kw">import</span> { <span class="typ">LiveAnnouncer</span> } <span class="kw">from</span> <span class="str">'@angular/cdk/a11y'</span><span class="op">;</span>
+<span class="kw">import</span> { <span class="typ">Title</span> } <span class="kw">from</span> <span class="str">'@angular/platform-browser'</span><span class="op">;</span>
+
+<span class="fn">@Injectable</span>(<span class="op">{</span> providedIn<span class="op">:</span> <span class="str">'root'</span> <span class="op">})</span>
+<span class="kw">export class</span> <span class="typ">A11yTitleStrategy</span> <span class="kw">extends</span> <span class="typ">TitleStrategy</span> <span class="op">{</span>
+  <span class="kw">private readonly</span> title     <span class="op">=</span> <span class="fn">inject</span>(<span class="typ">Title</span>)<span class="op">;</span>
+  <span class="kw">private readonly</span> announcer <span class="op">=</span> <span class="fn">inject</span>(<span class="typ">LiveAnnouncer</span>)<span class="op">;</span>
+
+  <span class="kw">override</span> <span class="fn">updateTitle</span>(snapshot<span class="op">:</span> <span class="typ">RouterStateSnapshot</span>)<span class="op">:</span> <span class="kw">void</span> <span class="op">{</span>
+    <span class="kw">const</span> pageTitle <span class="op">=</span> <span class="kw">this</span><span class="op">.</span><span class="fn">buildTitle</span>(snapshot) <span class="op">??</span> <span class="str">'Angular Todo App'</span><span class="op">;</span>
+    <span class="kw">this</span><span class="op">.</span>title<span class="op">.</span><span class="fn">setTitle</span>(pageTitle)<span class="op">;</span>
+
+    <span class="cmt">// Announce new page name politely after navigation</span>
+    <span class="kw">this</span><span class="op">.</span>announcer<span class="op">.</span><span class="fn">announce</span>(<span class="str">`Navigated to <span class="op">${</span>pageTitle<span class="op">}</span>`</span><span class="op">,</span> <span class="str">'polite'</span>)<span class="op">;</span>
+  <span class="op">}</span>
+<span class="op">}</span>
+
+<span class="cmt">// In app.config.ts providers array:</span>
+<span class="op">{</span> provide<span class="op">:</span> <span class="typ">TitleStrategy</span><span class="op">,</span> useClass<span class="op">:</span> <span class="typ">A11yTitleStrategy</span> <span class="op">}</span>
+</pre>
+          </div>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — app.routes.ts — every route needs a title</span>
+            <pre>
+<span class="kw">export const</span> routes<span class="op">:</span> <span class="typ">Routes</span> <span class="op">=</span> [
+  <span class="op">{</span>
+    path<span class="op">:</span> <span class="str">''</span><span class="op">,</span>
+    component<span class="op">:</span> <span class="typ">TodoListComponent</span><span class="op">,</span>
+    title<span class="op">:</span> <span class="str">'My Todos — Angular Todo App'</span><span class="op">,</span>    <span class="cmt">// &lt;-- mandatory</span>
+  <span class="op">},</span>
+  <span class="op">{</span>
+    path<span class="op">:</span> <span class="str">'todo/:id'</span><span class="op">,</span>
+    component<span class="op">:</span> <span class="typ">TodoDetailComponent</span><span class="op">,</span>
+    title<span class="op">:</span> <span class="str">'Todo Detail — Angular Todo App'</span><span class="op">,</span>  <span class="cmt">// &lt;-- mandatory</span>
+  <span class="op">},</span>
+  <span class="op">{</span>
+    path<span class="op">:</span> <span class="str">'settings'</span><span class="op">,</span>
+    component<span class="op">:</span> <span class="typ">SettingsComponent</span><span class="op">,</span>
+    title<span class="op">:</span> <span class="str">'Settings — Angular Todo App'</span><span class="op">,</span>     <span class="cmt">// &lt;-- mandatory</span>
+  <span class="op">},</span>
+]<span class="op">;</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 5.11 Timing Pitfalls ───────────────────────────────── -->
+        <section id="s5-11" aria-labelledby="h5-11">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">5.11</div>
+            <h2 id="h5-11">Timing Pitfalls &amp; Common Mistakes</h2>
+          </div>
+
+          <p>
+            Live regions are deceptively easy to get wrong. The following pitfalls are
+            responsible for the majority of "my announcement isn't firing" reports.
+          </p>
+
+          <div class="pitfall-grid">
+            <div class="pitfall-card">
+              <h4>🚫 Inserting region and content together</h4>
+              <p>Using <code>@if</code> to add the live region at the same time as its content. AT never registered the region and ignores the content.</p>
+              <p class="fix">✓ Fix: Keep the region in DOM always. Use <code>@if</code> only for the <em>content inside</em>, or update the text of an always-present container.</p>
+            </div>
+            <div class="pitfall-card">
+              <h4>🚫 Setting the same text twice</h4>
+              <p>If a signal is already set to "Saved" and you try to set it to "Saved" again, no DOM change occurs — no announcement fires.</p>
+              <p class="fix">✓ Fix: Clear to empty string first, then set the new value after a tick: <code>signal.set(''); setTimeout(() => signal.set('Saved'), 50);</code></p>
+            </div>
+            <div class="pitfall-card">
+              <h4>🚫 assertive for non-urgent messages</h4>
+              <p>Using <code>assertive</code> for routine status messages (saved, loaded, filtered). Interrupts AT constantly — extremely disruptive.</p>
+              <p class="fix">✓ Fix: Use <code>polite</code> for 95% of announcements. Reserve <code>assertive</code> for session timeouts and critical errors.</p>
+            </div>
+            <div class="pitfall-card">
+              <h4>🚫 Announcing too frequently</h4>
+              <p>Announcing on every keystroke (e.g., live search result count updates 10× per second while typing). AT can't keep up — output is garbled.</p>
+              <p class="fix">✓ Fix: Debounce announcements. Use <code>debounceTime(300)</code> with RxJS or <code>setTimeout</code> inside the effect.</p>
+            </div>
+            <div class="pitfall-card">
+              <h4>🚫 Missing aria-atomic on compound messages</h4>
+              <p>Counter reads "5" instead of "5 items remaining" because only the changed text node is announced, not the whole string.</p>
+              <p class="fix">✓ Fix: Add <code>aria-atomic="true"</code> to any region where partial text would be meaningless without context.</p>
+            </div>
+            <div class="pitfall-card">
+              <h4>🚫 Using aria-live="off" on a visible notification</h4>
+              <p>A toast notification appears visually but is never announced to AT because <code>aria-live</code> was forgotten or left as <code>off</code>.</p>
+              <p class="fix">✓ Fix: Add <code>role="status"</code> (polite) or <code>role="alert"</code> (assertive) to notification/toast containers.</p>
+            </div>
+          </div>
+
+          <h3>Good vs Bad: The @if Live Region Trap</h3>
+          <div class="compare-grid">
+            <div class="compare-card bad">
+              <div class="compare-label">✗ Wrong — region inserted with content</div>
+              <div class="code-block" style="margin:0;">
+                <pre>
+<span class="cmt">&lt;!-- @if creates region AND text together --&gt;</span>
+@if (statusMessage()) {
+  <span class="tag-c">&lt;div</span> <span class="atr">aria-live</span>=<span class="val">"polite"</span> <span class="atr">aria-atomic</span>=<span class="val">"true"</span><span class="tag-c">&gt;</span>
+    {{ statusMessage() }}
+  <span class="tag-c">&lt;/div&gt;</span>
+}
+<span class="cmt">&lt;!-- AT never registered the region
+     before the text appeared — SILENT --&gt;</span>
+</pre>
+              </div>
+            </div>
+            <div class="compare-card good">
+              <div class="compare-label">✓ Correct — region always in DOM</div>
+              <div class="code-block" style="margin:0;">
+                <pre>
+<span class="cmt">&lt;!-- Region always present; only text changes --&gt;</span>
+<span class="tag-c">&lt;div</span> <span class="atr">aria-live</span>=<span class="val">"polite"</span> <span class="atr">aria-atomic</span>=<span class="val">"true"</span>
+     <span class="atr">class</span>=<span class="val">"sr-only"</span><span class="tag-c">&gt;</span>
+  {{ statusMessage() }}
+<span class="tag-c">&lt;/div&gt;</span>
+<span class="cmt">&lt;!-- When signal changes from '' to 'Saved',
+     AT announces "Saved" — WORKS ✓ --&gt;</span>
+</pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 5.12 Screen Reader Matrix ────────────────────────── -->
+        <section id="s5-12" aria-labelledby="h5-12">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">5.12</div>
+            <h2 id="h5-12">Screen Reader Matrix — Live Region Support</h2>
+          </div>
+
+          <p>
+            Support for live regions is generally strong but has some important quirks
+            across screen reader and browser combinations as of May 2026.
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="Screen reader support matrix for ARIA live regions — May 2026">
+              <thead>
+                <tr>
+                  <th scope="col">Pattern</th>
+                  <th scope="col">NVDA + Firefox</th>
+                  <th scope="col">JAWS + Chrome</th>
+                  <th scope="col">VoiceOver + Safari</th>
+                  <th scope="col">TalkBack (Android)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>aria-live="polite"</code></td>
+                  <td>✅ Reliable</td>
+                  <td>✅ Reliable</td>
+                  <td>✅ Reliable</td>
+                  <td>✅ Reliable</td>
+                </tr>
+                <tr>
+                  <td><code>aria-live="assertive"</code></td>
+                  <td>✅ Interrupts immediately</td>
+                  <td>✅ Interrupts immediately</td>
+                  <td>⚠️ May not interrupt on iOS; use polite for mobile</td>
+                  <td>⚠️ Behaviour varies by Chrome version</td>
+                </tr>
+                <tr>
+                  <td><code>role="alert"</code></td>
+                  <td>✅ Reliable</td>
+                  <td>✅ Reliable</td>
+                  <td>✅ Reliable on macOS; ⚠️ iOS can miss dynamic insertion</td>
+                  <td>✅ Generally reliable</td>
+                </tr>
+                <tr>
+                  <td><code>role="status"</code></td>
+                  <td>✅ Reliable</td>
+                  <td>✅ Reliable</td>
+                  <td>✅ Reliable</td>
+                  <td>✅ Reliable</td>
+                </tr>
+                <tr>
+                  <td><code>role="log"</code></td>
+                  <td>✅ Announces new items</td>
+                  <td>✅ Announces new items</td>
+                  <td>⚠️ Announces full log in older Safari versions</td>
+                  <td>⚠️ Limited support</td>
+                </tr>
+                <tr>
+                  <td>Insert region + content together</td>
+                  <td>🚫 Silent (NVDA ignores)</td>
+                  <td>🚫 Silent (JAWS ignores)</td>
+                  <td>🚫 Silent</td>
+                  <td>🚫 Silent</td>
+                </tr>
+                <tr>
+                  <td>Update same text twice (no change)</td>
+                  <td>🚫 No announcement</td>
+                  <td>🚫 No announcement</td>
+                  <td>🚫 No announcement</td>
+                  <td>🚫 No announcement</td>
+                </tr>
+                <tr>
+                  <td><code>CDK LiveAnnouncer</code></td>
+                  <td>✅ Handles all timing</td>
+                  <td>✅ Handles all timing</td>
+                  <td>✅ Works reliably</td>
+                  <td>✅ Works reliably</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout success">
+            <span class="callout-icon" aria-hidden="true">✅</span>
+            <p>
+              <strong>Recommended approach for maximum compatibility:</strong> Use
+              Angular CDK <code>LiveAnnouncer</code> for imperative announcements (after async operations,
+              route changes, keyboard interactions). Use declarative <code>aria-live="polite"</code>
+              with <code>aria-atomic="true"</code> on always-present containers for reactive signal-driven
+              status areas. Avoid <code>assertive</code> except for genuine emergencies, and avoid it
+              entirely for mobile AT.
+            </p>
+          </div>
+        </section>
+
+        <!-- ═══ BOTTOM NAVIGATION ════════════════════════════════════ -->
+        <nav class="bottom-nav" aria-label="Section navigation">
+          <a href="./aria-s4-states.html">← Section 4: ARIA States</a>
+          <span style="font-size:0.78rem;color:var(--muted);text-align:center;flex:1;">
+            Section 5 of 9 — ARIA Live Regions
+          </span>
+          <a href="./aria-s6-custom-patterns.html" aria-label="Section 6: Custom Patterns in Angular 21">
+            Section 6: Custom Patterns →
+          </a>
+        </nav>
+
+      </main>
+
+      <!-- ═══ FOOTER ════════════════════════════════════════════════ -->
+      <footer role="contentinfo">
+        <p>
+          ARIA Complete Guide · Section 5 · Angular 21 · WAI-ARIA 1.2 (W3C Rec, June 2023) ·
+          Updated May 2026 ·
+          <a href="https://www.w3.org/TR/wai-aria-1.2/" rel="noopener noreferrer">W3C WAI-ARIA 1.2 Spec</a> ·
+          <a href="https://www.w3.org/WAI/ARIA/apg/" rel="noopener noreferrer">ARIA Authoring Practices Guide</a>
+        </p>
+        <p style="margin-top:0.5rem;">
+          <a href="./aria-complete-guide.html">← Back to ARIA Guide Index</a> ·
+          <a href="./aria-s4-states.html">← Section 4: ARIA States</a> ·
+          <a href="./aria-s6-custom-patterns.html">Section 6: Custom Patterns →</a>
+        </p>
+      </footer>
+
+    </div><!-- /page-wrapper -->
+  </body>
+</html>

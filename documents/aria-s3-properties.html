@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Section 3: ARIA Properties — ARIA Complete Guide</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg:            #0f172a;
+        --surface:       #1e293b;
+        --surface-2:     #273549;
+        --border:        #334155;
+        --primary:       #818cf8;
+        --primary-light: #a5b4fc;
+        --accent:        #34d399;
+        --warn:          #fbbf24;
+        --danger:        #f87171;
+        --purple:        #c084fc;
+        --cyan:          #67e8f9;
+        --text:          #e2e8f0;
+        --muted:         #94a3b8;
+        --code-bg:       #0d1117;
+        --font-sans:     'Segoe UI', system-ui, -apple-system, sans-serif;
+        --font-mono:     'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+        --radius:        0.75rem;
+        --radius-sm:     0.4rem;
+        --shadow:        0 4px 24px rgba(0,0,0,0.5);
+        --max-width:     960px;
+      }
+
+      html { scroll-behavior: smooth; }
+      body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.8; font-size: 1rem; }
+
+      .skip-link {
+        position: absolute; top: -100%; left: 1rem;
+        padding: 0.5rem 1rem; background: var(--primary); color: #0f172a;
+        font-weight: 700; border-radius: 0 0 var(--radius) var(--radius);
+        z-index: 9999; transition: top 0.2s; text-decoration: none;
+      }
+      .skip-link:focus { top: 0; }
+
+      .page-wrapper { max-width: var(--max-width); margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+
+      /* ─── Top Nav ───────────────────────────────────────────── */
+      .top-nav {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 0.75rem 1.25rem;
+        margin-bottom: 2rem; font-size: 0.85rem; gap: 1rem;
+      }
+      .top-nav a {
+        color: var(--primary-light); text-decoration: none;
+        padding: 0.3rem 0.75rem; border-radius: var(--radius-sm);
+        border: 1px solid var(--border); transition: border-color 0.15s, background 0.15s;
+        white-space: nowrap;
+      }
+      .top-nav a:hover { border-color: var(--primary); background: var(--surface-2); }
+      .top-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .top-nav .nav-center { font-size: 0.75rem; color: var(--muted); text-align: center; flex: 1; min-width: 0; }
+      .top-nav .nav-center strong { color: var(--primary-light); }
+      .top-nav .nav-next { opacity: 0.45; pointer-events: none; }
+
+      /* ─── Hero ──────────────────────────────────────────────── */
+      .hero {
+        background: linear-gradient(135deg, #0c1a2e 0%, #1e293b 50%, #1a1035 100%);
+        border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 3rem 2.5rem; margin-bottom: 2rem;
+        text-align: center; box-shadow: var(--shadow);
+      }
+      .hero-badge {
+        display: inline-block; background: rgba(129,140,248,0.15);
+        border: 1px solid var(--primary); color: var(--primary-light);
+        font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em;
+        text-transform: uppercase; padding: 0.3rem 1rem;
+        border-radius: 999px; margin-bottom: 1.25rem;
+      }
+      .hero h1 { font-size: clamp(1.75rem, 4vw, 2.8rem); font-weight: 800; line-height: 1.15; color: #fff; margin-bottom: 1rem; }
+      .hero h1 span { color: var(--primary-light); }
+      .hero h1 .section-num { color: var(--muted); font-size: 0.55em; font-weight: 600; display: block; margin-bottom: 0.25rem; }
+      .hero p { font-size: 1.05rem; color: var(--muted); max-width: 700px; margin: 0 auto 1rem; }
+      .hero-meta { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-top: 1.25rem; }
+      .hero-meta span { font-size: 0.78rem; color: var(--muted); display: flex; align-items: center; gap: 0.4rem; }
+      .hero-meta span strong { color: var(--accent); }
+
+      /* ─── TOC ───────────────────────────────────────────────── */
+      .toc {
+        background: var(--surface); border: 1px solid var(--border);
+        border-left: 4px solid var(--primary); border-radius: var(--radius);
+        padding: 1.5rem 2rem; margin-bottom: 3rem;
+      }
+      .toc-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--primary); margin-bottom: 1rem; }
+      .toc ol { padding-left: 1.5rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.3rem 2rem; }
+      .toc li { font-size: 0.875rem; }
+      .toc a { color: var(--muted); text-decoration: none; transition: color 0.15s; }
+      .toc a:hover, .toc a:focus { color: var(--primary-light); text-decoration: underline; }
+
+      /* ─── Sections ──────────────────────────────────────────── */
+      section { margin-bottom: 4.5rem; scroll-margin-top: 2rem; }
+      .section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+      .section-number { flex-shrink: 0; width: 2.25rem; height: 2.25rem; background: linear-gradient(135deg, var(--primary), #6366f1); color: #fff; font-size: 0.82rem; font-weight: 800; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+      h2 { font-size: 1.55rem; font-weight: 800; color: #fff; }
+      h3 { font-size: 1.1rem; font-weight: 700; color: var(--primary-light); margin: 2.25rem 0 0.75rem; }
+      h4 { font-size: 0.9rem; font-weight: 700; color: var(--accent); margin: 1.5rem 0 0.5rem; text-transform: uppercase; letter-spacing: 0.07em; }
+      p { margin-bottom: 1rem; color: var(--text); }
+      p:last-child { margin-bottom: 0; }
+      ul, ol { padding-left: 1.5rem; margin: 0.75rem 0; }
+      li { margin-bottom: 0.4rem; color: var(--text); font-size: 0.95rem; }
+      strong { color: #fff; }
+      em { color: var(--warn); font-style: italic; }
+      code { font-family: var(--font-mono); font-size: 0.82em; background: var(--surface-2); border: 1px solid var(--border); padding: 0.15em 0.45em; border-radius: var(--radius-sm); color: var(--primary-light); }
+
+      /* ─── Callouts ──────────────────────────────────────────── */
+      .callout { display: flex; gap: 0.75rem; padding: 1rem 1.25rem; border-radius: var(--radius); margin: 1.25rem 0; border: 1px solid; font-size: 0.9rem; }
+      .callout-icon { font-size: 1.25rem; flex-shrink: 0; line-height: 1.5; margin-top: 0.1rem; }
+      .callout p { margin: 0; color: inherit; line-height: 1.7; }
+      .callout.info    { background: rgba(129,140,248,0.08); border-color: rgba(129,140,248,0.3); color: var(--primary-light); }
+      .callout.warn    { background: rgba(251,191,36,0.08);  border-color: rgba(251,191,36,0.3);  color: var(--warn); }
+      .callout.success { background: rgba(52,211,153,0.08);  border-color: rgba(52,211,153,0.3);  color: var(--accent); }
+      .callout.danger  { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.3); color: var(--danger); }
+      .callout.purple  { background: rgba(192,132,252,0.08); border-color: rgba(192,132,252,0.3); color: var(--purple); }
+
+      /* ─── Code Blocks ───────────────────────────────────────── */
+      .code-block { background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; overflow-x: auto; margin: 1.25rem 0; position: relative; }
+      .code-block .lang-tag { position: absolute; top: 0.6rem; right: 0.75rem; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); background: var(--surface); padding: 0.15rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+      pre { font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.75; color: #e2e8f0; white-space: pre; }
+      .kw  { color: #c792ea; } .fn  { color: #82aaff; } .str { color: #c3e88d; }
+      .cmt { color: #546e7a; font-style: italic; } .typ { color: #ffcb6b; }
+      .tag-c { color: #f07178; } .atr { color: #ffcb6b; } .val { color: #c3e88d; }
+      .op  { color: #89ddff; } .num { color: #f78c6c; }
+
+      /* ─── Property Reference Card ───────────────────────────── */
+      .prop-card {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 1.5rem;
+        margin: 1.25rem 0;
+      }
+      .prop-card-head {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;
+        padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);
+      }
+      .prop-card-head code { font-size: 1rem; color: var(--cyan); }
+      .prop-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+      .prop-tag {
+        display: inline-block; font-size: 0.68rem; font-weight: 700;
+        letter-spacing: 0.07em; text-transform: uppercase;
+        padding: 0.15rem 0.55rem; border-radius: 999px;
+      }
+      .tag-naming   { background: rgba(103,232,249,0.12); color: var(--cyan);    border: 1px solid rgba(103,232,249,0.3); }
+      .tag-relation { background: rgba(192,132,252,0.12); color: var(--purple);  border: 1px solid rgba(192,132,252,0.3); }
+      .tag-widget   { background: rgba(52,211,153,0.12);  color: var(--accent);  border: 1px solid rgba(52,211,153,0.3); }
+      .tag-live     { background: rgba(248,113,113,0.12); color: var(--danger);  border: 1px solid rgba(248,113,113,0.3); }
+      .tag-drag     { background: rgba(251,191,36,0.12);  color: var(--warn);    border: 1px solid rgba(251,191,36,0.3); }
+
+      .prop-body { font-size: 0.9rem; color: var(--muted); line-height: 1.7; margin-bottom: 0.75rem; }
+      .prop-body strong { color: #fff; }
+      .prop-rule { font-size: 0.82rem; background: var(--surface-2); border-left: 3px solid var(--primary); padding: 0.6rem 1rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 0.75rem; color: var(--text); }
+      .prop-rule strong { color: var(--primary-light); }
+      .prop-snippet { font-family: var(--font-mono); font-size: 0.8rem; background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.6rem 0.9rem; color: #e2e8f0; overflow-x: auto; margin-top: 0.5rem; }
+
+      /* ─── Decision Flowchart ─────────────────────────────────── */
+      .flow-steps { display: flex; flex-direction: column; gap: 0; margin: 1.5rem 0; }
+      .flow-step {
+        display: flex; gap: 1rem; align-items: flex-start;
+        background: var(--surface); border: 1px solid var(--border);
+        border-bottom: none; padding: 1rem 1.25rem;
+        font-size: 0.875rem;
+      }
+      .flow-step:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+      .flow-step:last-child  { border-bottom: 1px solid var(--border); border-radius: 0 0 var(--radius) var(--radius); }
+      .flow-num {
+        flex-shrink: 0; width: 1.75rem; height: 1.75rem;
+        background: var(--primary); color: #0f172a;
+        font-size: 0.75rem; font-weight: 800; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .flow-step .flow-content strong { color: var(--primary-light); display: block; margin-bottom: 0.2rem; }
+      .flow-step .flow-content span { color: var(--muted); }
+
+      /* ─── Comparison Grid ─────────────────────────────────────── */
+      .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+      @media (max-width: 640px) { .compare-grid { grid-template-columns: 1fr; } }
+      .compare-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+      .compare-card.good { border-top: 3px solid var(--accent); }
+      .compare-card.bad  { border-top: 3px solid var(--danger); }
+      .compare-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.75rem; }
+      .compare-card.good .compare-label { color: var(--accent); }
+      .compare-card.bad  .compare-label { color: var(--danger); }
+
+      /* ─── Tables ─────────────────────────────────────────────── */
+      .table-wrapper { overflow-x: auto; margin: 1.25rem 0; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+      thead th { background: var(--surface); color: var(--primary-light); font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.75rem 1rem; text-align: left; border-bottom: 2px solid var(--border); }
+      tbody td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; line-height: 1.6; }
+      tbody tr:hover td { background: var(--surface); }
+
+      /* ─── Bottom Nav ─────────────────────────────────────────── */
+      .bottom-nav { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 2rem; margin-top: 4rem; gap: 1rem; flex-wrap: wrap; }
+      .bottom-nav a { color: var(--primary-light); text-decoration: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.875rem; transition: border-color 0.15s, background 0.15s; display: flex; align-items: center; gap: 0.4rem; }
+      .bottom-nav a:hover { border-color: var(--primary); background: var(--surface); }
+      .bottom-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .bottom-nav .nav-next { opacity: 0.45; pointer-events: none; }
+
+      /* ─── Footer ────────────────────────────────────────────── */
+      footer { border-top: 1px solid var(--border); padding: 2rem 0 0; text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 3rem; }
+      footer a { color: var(--primary-light); text-decoration: none; }
+      footer a:hover { text-decoration: underline; }
+    </style>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <div class="page-wrapper">
+
+      <!-- ═══ TOP NAV ═══════════════════════════════════════════════ -->
+      <nav class="top-nav" aria-label="Document navigation">
+        <a href="./aria-s2-roles.html">← Section 2</a>
+        <div class="nav-center">
+          <strong>Section 3 of 9</strong> — ARIA Properties
+        </div>
+        <a href="./aria-s4-states.html" aria-label="Section 4: ARIA States">
+          Section 4 →
+        </a>
+      </nav>
+
+      <!-- ═══ HERO ══════════════════════════════════════════════════ -->
+      <header role="banner">
+        <div class="hero">
+          <div class="hero-badge">Section 3 · WAI-ARIA 1.2 · Angular 21 · May 2026</div>
+          <h1>
+            <span class="section-num">Section 3 of 9</span>
+            ARIA <span>Properties</span>
+          </h1>
+          <p>
+            Static ARIA properties that give accessible names, descriptions, and structural
+            relationships to elements — <code>aria-label</code>, <code>aria-labelledby</code>,
+            <code>aria-describedby</code>, <code>aria-controls</code>, <code>aria-owns</code>,
+            and every other property that isn't a live state.
+          </p>
+          <div class="hero-meta">
+            <span>📋 Spec: <strong>WAI-ARIA 1.2 (W3C Rec)</strong></span>
+            <span>🔧 Framework: <strong>Angular 21</strong></span>
+            <span>📅 Updated: <strong>May 2026</strong></span>
+            <span>🎯 Target: <strong>WCAG 2.1 AA</strong></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ═══ TABLE OF CONTENTS ═════════════════════════════════════ -->
+      <nav aria-label="Section 3 contents">
+        <div class="toc">
+          <p class="toc-title">In this section</p>
+          <ol>
+            <li><a href="#properties-vs-states">3.1 — Properties vs States</a></li>
+            <li><a href="#naming-properties">3.2 — Naming Properties</a></li>
+            <li><a href="#aria-label">3.3 — aria-label</a></li>
+            <li><a href="#aria-labelledby">3.4 — aria-labelledby</a></li>
+            <li><a href="#aria-describedby">3.5 — aria-describedby</a></li>
+            <li><a href="#naming-decision">3.6 — Naming Priority &amp; Decision Guide</a></li>
+            <li><a href="#relationship-properties">3.7 — Relationship Properties</a></li>
+            <li><a href="#widget-properties">3.8 — Widget Configuration Properties</a></li>
+            <li><a href="#drag-drop">3.9 — Drag-and-Drop Properties</a></li>
+            <li><a href="#angular-patterns">3.10 — Angular 21 Patterns</a></li>
+          </ol>
+        </div>
+      </nav>
+
+      <!-- ═══ MAIN CONTENT ══════════════════════════════════════════ -->
+      <main id="main-content">
+
+        <!-- ─── 3.1 Properties vs States ─────────────────────────── -->
+        <section id="properties-vs-states" aria-labelledby="h-props-vs-states">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">3.1</div>
+            <h2 id="h-props-vs-states">Properties vs States</h2>
+          </div>
+
+          <p>
+            WAI-ARIA attributes are divided into two categories that behave differently in the
+            accessibility tree:
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="ARIA properties versus ARIA states comparison">
+              <thead>
+                <tr>
+                  <th scope="col">Category</th>
+                  <th scope="col">Definition</th>
+                  <th scope="col">Changes at runtime?</th>
+                  <th scope="col">Examples</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Properties</strong></td>
+                  <td>Attributes that define the <em>nature</em> of an element — its name, description, or structural relationships. Generally set once and do not change as the user interacts.</td>
+                  <td>Rarely — set at render time</td>
+                  <td><code>aria-label</code>, <code>aria-labelledby</code>, <code>aria-describedby</code>, <code>aria-controls</code>, <code>aria-required</code>, <code>aria-haspopup</code>, <code>aria-level</code>, <code>aria-multiselectable</code></td>
+                </tr>
+                <tr>
+                  <td><strong>States</strong></td>
+                  <td>Attributes that represent the <em>current condition</em> of an element — toggled or updated as the user interacts.</td>
+                  <td>Yes — updated dynamically</td>
+                  <td><code>aria-expanded</code>, <code>aria-checked</code>, <code>aria-selected</code>, <code>aria-pressed</code>, <code>aria-invalid</code>, <code>aria-busy</code>, <code>aria-disabled</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout info">
+            <span class="callout-icon" aria-hidden="true">💡</span>
+            <p>
+              This section covers <strong>properties</strong>. States are covered in Section 4.
+              In practice, the line can blur — <code>aria-required</code> rarely changes but is
+              technically called a property, while <code>aria-current</code> updates during navigation
+              but is also a state. WAI-ARIA 1.2 labels each attribute explicitly.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 3.2 Naming Properties ─────────────────────────────── -->
+        <section id="naming-properties" aria-labelledby="h-naming">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">3.2</div>
+            <h2 id="h-naming">Naming Properties</h2>
+          </div>
+
+          <p>
+            The <strong>accessible name</strong> is what a screen reader announces as the
+            label of an element. Without it, interactive elements are announced as "button" or
+            "link" with no context — useless to a screen reader user.
+          </p>
+
+          <p>
+            Three ARIA naming properties exist. The W3C defines a strict priority order when
+            multiple are present — called the <strong>Accessible Name and Description Computation (ANDC)</strong>:
+          </p>
+
+          <div class="flow-steps" role="list" aria-label="Accessible name source priority (highest to lowest)">
+            <div class="flow-step" role="listitem">
+              <div class="flow-num" aria-hidden="true">1</div>
+              <div class="flow-content">
+                <strong>aria-labelledby</strong>
+                <span>References the text of another visible element by ID. Highest priority — overrides everything else including aria-label.</span>
+              </div>
+            </div>
+            <div class="flow-step" role="listitem">
+              <div class="flow-num" aria-hidden="true">2</div>
+              <div class="flow-content">
+                <strong>aria-label</strong>
+                <span>An explicit string attribute directly on the element. Overrides native label and content.</span>
+              </div>
+            </div>
+            <div class="flow-step" role="listitem">
+              <div class="flow-num" aria-hidden="true">3</div>
+              <div class="flow-content">
+                <strong>&lt;label for&gt; / &lt;legend&gt; / title / placeholder</strong>
+                <span>Native HTML labelling mechanisms — always prefer these over ARIA attributes.</span>
+              </div>
+            </div>
+            <div class="flow-step" role="listitem">
+              <div class="flow-num" aria-hidden="true">4</div>
+              <div class="flow-content">
+                <strong>Element text content</strong>
+                <span>The text inside the element itself (for buttons, links, headings). Used when nothing else is specified.</span>
+              </div>
+            </div>
+            <div class="flow-step" role="listitem">
+              <div class="flow-num" aria-hidden="true">5</div>
+              <div class="flow-content">
+                <strong>title attribute</strong>
+                <span>Lowest priority. Unreliable — not announced by all AT, not accessible to keyboard/touch users. Do not use as the sole accessible name.</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 3.3 aria-label ────────────────────────────────────── -->
+        <section id="aria-label" aria-labelledby="h-aria-label">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">3.3</div>
+            <h2 id="h-aria-label"><code>aria-label</code></h2>
+          </div>
+
+          <div class="prop-card">
+            <div class="prop-card-head">
+              <code>aria-label="string"</code>
+              <div class="prop-meta">
+                <span class="prop-tag tag-naming">Naming</span>
+              </div>
+            </div>
+            <p class="prop-body">
+              Provides an <strong>invisible string label</strong> directly on the element. The label is
+              announced instead of the element's visible text or child content. It does
+              <em>not</em> appear visually and is only available to assistive technology.
+            </p>
+            <div class="prop-rule">
+              <strong>When to use:</strong> Icon-only buttons, form fields without visible labels,
+              duplicate landmark regions, or when the visible label text is insufficient context.
+            </div>
+            <div class="prop-rule">
+              <strong>When NOT to use:</strong> When the element already has a visible <code>&lt;label&gt;</code>,
+              when the element's text content is already descriptive, or to change/override
+              a visible label (use <code>aria-labelledby</code> instead — it can concatenate).
+            </div>
+          </div>
+
+          <div class="compare-grid">
+            <div class="compare-card good">
+              <p class="compare-label">✓ Correct</p>
+              <div class="code-block" style="margin:0">
+                <pre>
+<span class="cmt">&lt;!-- Icon button: no visible text --&gt;</span>
+<span class="tag-c">&lt;button</span>
+  <span class="atr">type</span>=<span class="val">"button"</span>
+  <span class="atr">aria-label</span>=<span class="val">"Delete todo"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;svg</span> <span class="atr">aria-hidden</span>=<span class="val">"true"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/svg&gt;</span>
+<span class="tag-c">&lt;/button&gt;</span>
+
+<span class="cmt">&lt;!-- Two nav landmarks: unique labels --&gt;</span>
+<span class="tag-c">&lt;nav</span> <span class="atr">aria-label</span>=<span class="val">"Primary"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/nav&gt;</span>
+<span class="tag-c">&lt;nav</span> <span class="atr">aria-label</span>=<span class="val">"Footer"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/nav&gt;</span></pre>
+              </div>
+            </div>
+            <div class="compare-card bad">
+              <p class="compare-label">✗ Wrong</p>
+              <div class="code-block" style="margin:0">
+                <pre>
+<span class="cmt">&lt;!-- Redundant on element with visible text --&gt;</span>
+<span class="tag-c">&lt;button</span>
+  <span class="atr">aria-label</span>=<span class="val">"Delete todo button"</span><span class="tag-c">&gt;</span>
+  Delete todo
+<span class="tag-c">&lt;/button&gt;</span>
+
+<span class="cmt">&lt;!-- aria-label on a div (no role = ignored) --&gt;</span>
+<span class="tag-c">&lt;div</span> <span class="atr">aria-label</span>=<span class="val">"Section"</span><span class="tag-c">&gt;</span>
+  ...no semantic role...
+<span class="tag-c">&lt;/div&gt;</span></pre>
+              </div>
+            </div>
+          </div>
+
+          <h3>Angular 21 — Dynamic aria-label with Signals</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">TypeScript + HTML — Angular 21</span>
+            <pre>
+<span class="fn">@Component</span>({
+  selector<span class="op">:</span> <span class="str">'app-todo-item'</span>,
+  changeDetection<span class="op">:</span> ChangeDetectionStrategy.OnPush,
+  template<span class="op">:</span> <span class="str">`
+    &lt;!-- Computed label includes todo title for context --&gt;
+    &lt;button
+      type="button"
+      [attr.aria-label]="deleteLabel()"
+      (click)="delete()"&gt;
+      &lt;svg aria-hidden="true"&gt;...&lt;/svg&gt;
+    &lt;/button&gt;
+
+    &lt;!-- Toggle completion --&gt;
+    &lt;button
+      type="button"
+      [attr.aria-label]="toggleLabel()"
+      (click)="toggle()"&gt;
+      &lt;svg aria-hidden="true"&gt;...&lt;/svg&gt;
+    &lt;/button&gt;
+  `</span>,
+})
+<span class="kw">export class</span> <span class="typ">TodoItemComponent</span> {
+  todo <span class="op">=</span> input.required<span class="op">&lt;</span><span class="typ">Todo</span><span class="op">&gt;</span>()<span class="op">;</span>
+
+  <span class="cmt">// Computed labels include the todo title for full context</span>
+  deleteLabel <span class="op">=</span> computed(() <span class="op">=&gt;</span> <span class="str">`Delete todo: </span><span class="op">${</span><span class="kw">this</span>.todo().title<span class="op">}</span><span class="str">`</span>)<span class="op">;</span>
+  toggleLabel <span class="op">=</span> computed(() <span class="op">=&gt;</span>
+    <span class="kw">this</span>.todo().completed
+      ? <span class="str">`Mark incomplete: </span><span class="op">${</span><span class="kw">this</span>.todo().title<span class="op">}</span><span class="str">`</span>
+      : <span class="str">`Mark complete: </span><span class="op">${</span><span class="kw">this</span>.todo().title<span class="op">}</span><span class="str">`</span>
+  )<span class="op">;</span>
+
+  delete() { <span class="cmt">/* ... */</span> }
+  toggle() { <span class="cmt">/* ... */</span> }
+}
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 3.4 aria-labelledby ───────────────────────────────── -->
+        <section id="aria-labelledby" aria-labelledby="h-labelledby">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">3.4</div>
+            <h2 id="h-labelledby"><code>aria-labelledby</code></h2>
+          </div>
+
+          <div class="prop-card">
+            <div class="prop-card-head">
+              <code>aria-labelledby="id1 id2 ..."</code>
+              <div class="prop-meta">
+                <span class="prop-tag tag-naming">Naming</span>
+                <span class="prop-tag tag-relation">Relationship</span>
+              </div>
+            </div>
+            <p class="prop-body">
+              Points to the ID(s) of one or more <strong>existing visible elements</strong> that
+              serve as the label. The referenced elements' text is concatenated (space-separated)
+              to form the accessible name. This is the <strong>highest-priority naming method</strong>
+              — it overrides <code>aria-label</code> and all other mechanisms.
+            </p>
+            <div class="prop-rule">
+              <strong>Key advantage:</strong> The label is visible on screen AND read by screen readers —
+              no hidden text needed. Any change to the referenced element automatically updates the name.
+            </div>
+            <div class="prop-rule">
+              <strong>Multiple IDs:</strong> You can concatenate multiple elements:
+              <code>aria-labelledby="title-id subtitle-id"</code> — the browser reads both in order.
+            </div>
+          </div>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — aria-labelledby patterns</span>
+            <pre>
+<span class="cmt">&lt;!-- 1. Dialog labelled by its visible heading --&gt;</span>
+<span class="tag-c">&lt;div</span> <span class="atr">role</span>=<span class="val">"dialog"</span> <span class="atr">aria-labelledby</span>=<span class="val">"dialog-title"</span> <span class="atr">aria-modal</span>=<span class="val">"true"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;h2</span> <span class="atr">id</span>=<span class="val">"dialog-title"</span><span class="tag-c">&gt;</span>Confirm delete<span class="tag-c">&lt;/h2&gt;</span>
+  <span class="tag-c">&lt;p</span> <span class="atr">id</span>=<span class="val">"dialog-desc"</span><span class="tag-c">&gt;</span>This action cannot be undone.<span class="tag-c">&lt;/p&gt;</span>
+<span class="tag-c">&lt;/div&gt;</span>
+<span class="cmt">&lt;!-- Announces: "Confirm delete, dialog" --&gt;</span>
+
+<span class="cmt">&lt;!-- 2. Section region labelled by heading --&gt;</span>
+<span class="tag-c">&lt;section</span> <span class="atr">aria-labelledby</span>=<span class="val">"filters-heading"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;h2</span> <span class="atr">id</span>=<span class="val">"filters-heading"</span><span class="tag-c">&gt;</span>Filter todos<span class="tag-c">&lt;/h2&gt;</span>
+  ...filter controls...
+<span class="tag-c">&lt;/section&gt;</span>
+
+<span class="cmt">&lt;!-- 3. Concatenating multiple labels --&gt;</span>
+<span class="tag-c">&lt;div</span> <span class="atr">role</span>=<span class="val">"group"</span> <span class="atr">aria-labelledby</span>=<span class="val">"group-label group-hint"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;span</span> <span class="atr">id</span>=<span class="val">"group-label"</span><span class="tag-c">&gt;</span>Priority<span class="tag-c">&lt;/span&gt;</span>
+  <span class="tag-c">&lt;span</span> <span class="atr">id</span>=<span class="val">"group-hint"</span><span class="tag-c">&gt;</span>(required)<span class="tag-c">&lt;/span&gt;</span>
+  ...radio buttons...
+<span class="tag-c">&lt;/div&gt;</span>
+<span class="cmt">&lt;!-- Announces: "Priority (required), group" --&gt;</span>
+
+<span class="cmt">&lt;!-- 4. Self-referential label (element references its own ID) --&gt;</span>
+<span class="tag-c">&lt;h2</span> <span class="atr">id</span>=<span class="val">"panel-title"</span> <span class="atr">aria-labelledby</span>=<span class="val">"panel-title"</span><span class="tag-c">&gt;</span>My heading<span class="tag-c">&lt;/h2&gt;</span>
+<span class="cmt">&lt;!-- Valid but redundant — text content already IS the label --&gt;</span>
+</pre>
+          </div>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong>The referenced ID must exist in the DOM.</strong> If the target element is
+              conditionally rendered with <code>@if</code> and is currently hidden, the reference
+              resolves to an empty string and the element becomes unlabelled. Use
+              <code>[hidden]</code> to visually hide elements while keeping them in the DOM if
+              they are referenced by <code>aria-labelledby</code>.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 3.5 aria-describedby ──────────────────────────────── -->
+        <section id="aria-describedby" aria-labelledby="h-describedby">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">3.5</div>
+            <h2 id="h-describedby"><code>aria-describedby</code></h2>
+          </div>
+
+          <div class="prop-card">
+            <div class="prop-card-head">
+              <code>aria-describedby="id1 id2 ..."</code>
+              <div class="prop-meta">
+                <span class="prop-tag tag-naming">Description</span>
+              </div>
+            </div>
+            <p class="prop-body">
+              Points to elements that provide an <strong>extended description</strong> of the current
+              element — announced <em>after</em> the accessible name and role, with a brief pause.
+              Unlike <code>aria-labelledby</code> (which replaces the name), this <em>supplements</em> it.
+            </p>
+            <div class="prop-rule">
+              <strong>Rule of thumb:</strong>
+              <code>aria-labelledby</code> answers "<em>What is this?</em>" —
+              <code>aria-describedby</code> answers "<em>What does it do / what should I know?</em>"
+            </div>
+            <div class="prop-rule">
+              <strong>Screen reader behaviour:</strong> NVDA/JAWS announce the description
+              immediately after the role. VoiceOver announces it after a short pause and
+              only when the user presses <kbd>VO+Shift+M</kbd> or waits.
+            </div>
+          </div>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — aria-describedby patterns</span>
+            <pre>
+<span class="cmt">&lt;!-- 1. Form field with helper text --&gt;</span>
+<span class="tag-c">&lt;label</span> <span class="atr">for</span>=<span class="val">"todo-title"</span><span class="tag-c">&gt;</span>Todo title<span class="tag-c">&lt;/label&gt;</span>
+<span class="tag-c">&lt;input</span>
+  <span class="atr">id</span>=<span class="val">"todo-title"</span>
+  <span class="atr">type</span>=<span class="val">"text"</span>
+  <span class="atr">aria-describedby</span>=<span class="val">"title-hint title-error"</span>
+  <span class="atr">[attr.aria-invalid]</span>=<span class="val">"hasError()"</span><span class="tag-c">&gt;</span>
+<span class="tag-c">&lt;p</span> <span class="atr">id</span>=<span class="val">"title-hint"</span><span class="tag-c">&gt;</span>Maximum 120 characters.<span class="tag-c">&lt;/p&gt;</span>
+<span class="tag-c">&lt;p</span> <span class="atr">id</span>=<span class="val">"title-error"</span> <span class="atr">role</span>=<span class="val">"alert"</span><span class="tag-c">&gt;</span>{{ errorMessage() }}<span class="tag-c">&lt;/p&gt;</span>
+<span class="cmt">&lt;!-- Announces: "Todo title, edit text, Maximum 120 characters. Title is required." --&gt;</span>
+
+<span class="cmt">&lt;!-- 2. Button with tooltip description --&gt;</span>
+<span class="tag-c">&lt;button</span>
+  <span class="atr">type</span>=<span class="val">"button"</span>
+  <span class="atr">aria-label</span>=<span class="val">"Delete todo"</span>
+  <span class="atr">aria-describedby</span>=<span class="val">"delete-tooltip"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;svg</span> <span class="atr">aria-hidden</span>=<span class="val">"true"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/svg&gt;</span>
+<span class="tag-c">&lt;/button&gt;</span>
+<span class="tag-c">&lt;div</span> <span class="atr">id</span>=<span class="val">"delete-tooltip"</span> <span class="atr">role</span>=<span class="val">"tooltip"</span><span class="tag-c">&gt;</span>
+  Permanently removes this todo item
+<span class="tag-c">&lt;/div&gt;</span>
+<span class="cmt">&lt;!-- Announces: "Delete todo, button, Permanently removes this todo item" --&gt;</span>
+
+<span class="cmt">&lt;!-- 3. Dialog with description --&gt;</span>
+<span class="tag-c">&lt;div</span>
+  <span class="atr">role</span>=<span class="val">"dialog"</span>
+  <span class="atr">aria-labelledby</span>=<span class="val">"dlg-title"</span>
+  <span class="atr">aria-describedby</span>=<span class="val">"dlg-body"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;h2</span> <span class="atr">id</span>=<span class="val">"dlg-title"</span><span class="tag-c">&gt;</span>Delete all todos?<span class="tag-c">&lt;/h2&gt;</span>
+  <span class="tag-c">&lt;p</span>  <span class="atr">id</span>=<span class="val">"dlg-body"</span><span class="tag-c">&gt;</span>This will permanently delete your 12 todos.<span class="tag-c">&lt;/p&gt;</span>
+<span class="tag-c">&lt;/div&gt;</span>
+</pre>
+          </div>
+
+          <h3>aria-description (WAI-ARIA 1.3 preview)</h3>
+          <p>
+            WAI-ARIA 1.3 (in development) adds <code>aria-description</code> — an inline string
+            property equivalent to <code>aria-label</code> but for descriptions, eliminating the
+            need for a hidden off-screen element when only a descriptive string (not referenced
+            visible text) is needed. Not yet in WAI-ARIA 1.2 — use <code>aria-describedby</code>
+            pointing to a visually hidden element for now.
+          </p>
+        </section>
+
+        <!-- ─── 3.6 Naming Decision Guide ────────────────────────── -->
+        <section id="naming-decision" aria-labelledby="h-naming-decision">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">3.6</div>
+            <h2 id="h-naming-decision">Naming Priority &amp; Decision Guide</h2>
+          </div>
+
+          <p>
+            Use this decision guide every time you need to name an interactive element:
+          </p>
+
+          <div class="flow-steps" role="list" aria-label="Accessible name decision guide">
+            <div class="flow-step" role="listitem">
+              <div class="flow-num" aria-hidden="true">1</div>
+              <div class="flow-content">
+                <strong>Can you use a native &lt;label for&gt;?</strong>
+                <span>For form inputs — always use a visible <code>&lt;label&gt;</code> element. It gives you accessible name + click target for free.</span>
+              </div>
+            </div>
+            <div class="flow-step" role="listitem">
+              <div class="flow-num" aria-hidden="true">2</div>
+              <div class="flow-content">
+                <strong>Is there existing visible text on the page?</strong>
+                <span>Reference it with <code>aria-labelledby</code>. The label stays in sync with the visible text automatically.</span>
+              </div>
+            </div>
+            <div class="flow-step" role="listitem">
+              <div class="flow-num" aria-hidden="true">3</div>
+              <div class="flow-content">
+                <strong>Is there no suitable visible text?</strong>
+                <span>Use <code>aria-label</code> with a descriptive string. Keep it short — it is the name, not a description.</span>
+              </div>
+            </div>
+            <div class="flow-step" role="listitem">
+              <div class="flow-num" aria-hidden="true">4</div>
+              <div class="flow-content">
+                <strong>Does the element have descriptive child text?</strong>
+                <span>For buttons, links, and headings — the text content is already the accessible name. No ARIA needed.</span>
+              </div>
+            </div>
+            <div class="flow-step" role="listitem">
+              <div class="flow-num" aria-hidden="true">5</div>
+              <div class="flow-content">
+                <strong>Never rely on title or placeholder alone</strong>
+                <span><code>title</code> is not announced by all AT. <code>placeholder</code> disappears when the user types — it cannot be the only accessible name.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="callout danger">
+            <span class="callout-icon" aria-hidden="true">🚫</span>
+            <p>
+              <strong>Never use <code>placeholder</code> as the accessible name for a text input.</strong>
+              It fails WCAG 1.3.5 (Identify Input Purpose), disappears when the user starts typing,
+              and has insufficient contrast in most browser default styles.
+              Always pair it with a visible <code>&lt;label&gt;</code>.
+            </p>
+          </div>
+
+          <div class="table-wrapper">
+            <table aria-label="When to use each ARIA naming attribute">
+              <thead>
+                <tr>
+                  <th scope="col">Attribute</th>
+                  <th scope="col">Best for</th>
+                  <th scope="col">Avoid when</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>aria-label</code></td>
+                  <td>Icon buttons, duplicate landmarks, form fields with no visible label</td>
+                  <td>There is already visible text that works as a label; do not use to override a perfectly good visible label</td>
+                </tr>
+                <tr>
+                  <td><code>aria-labelledby</code></td>
+                  <td>Dialogs (reference the heading), sections (reference a heading), groups (reference a visible group heading)</td>
+                  <td>The referenced element may not be in the DOM (dynamically removed)</td>
+                </tr>
+                <tr>
+                  <td><code>aria-describedby</code></td>
+                  <td>Helper text under fields, error messages, tooltips, supplementary instructions in dialogs</td>
+                  <td>Brief labels — this is for secondary description, not primary naming</td>
+                </tr>
+                <tr>
+                  <td><code>&lt;label for&gt;</code></td>
+                  <td>All visible form inputs — text, checkbox, radio, select, textarea</td>
+                  <td>Non-form elements (use <code>aria-label</code> or <code>aria-labelledby</code> instead)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ─── 3.7 Relationship Properties ──────────────────────── -->
+        <section id="relationship-properties" aria-labelledby="h-relationship">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">3.7</div>
+            <h2 id="h-relationship">Relationship Properties</h2>
+          </div>
+
+          <p>
+            Relationship properties communicate structural or logical connections between elements
+            that are not inherent from the DOM structure — typically linking a control to its
+            controlled element.
+          </p>
+
+          <div class="prop-card">
+            <div class="prop-card-head">
+              <code>aria-controls="id"</code>
+              <div class="prop-meta"><span class="prop-tag tag-relation">Relationship</span></div>
+            </div>
+            <p class="prop-body">
+              Indicates that an element <strong>controls another element</strong> — its interaction
+              changes the content or visibility of the referenced element. Common on buttons,
+              tabs, and comboboxes.
+            </p>
+            <div class="prop-rule">
+              <strong>Screen reader support:</strong> JAWS reads "controls [target name]" on focus.
+              NVDA and VoiceOver do not always announce it — do not rely solely on
+              <code>aria-controls</code> for discoverability. Always pair with visual feedback.
+            </div>
+            <div class="prop-snippet">
+              <span class="tag-c">&lt;button</span> <span class="atr">aria-expanded</span>=<span class="val">"false"</span> <span class="atr">aria-controls</span>=<span class="val">"filter-panel"</span><span class="tag-c">&gt;</span>Filters<span class="tag-c">&lt;/button&gt;</span><br>
+              <span class="tag-c">&lt;div</span> <span class="atr">id</span>=<span class="val">"filter-panel"</span> <span class="atr">[hidden]</span>=<span class="val">"!isOpen()"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/div&gt;</span>
+            </div>
+          </div>
+
+          <div class="prop-card">
+            <div class="prop-card-head">
+              <code>aria-owns="id1 id2 ..."</code>
+              <div class="prop-meta"><span class="prop-tag tag-relation">Relationship</span></div>
+            </div>
+            <p class="prop-body">
+              Declares that an element <strong>owns child elements</strong> that are not its
+              DOM descendants — for example, a popup list that is rendered in a portal at the
+              document root, logically belonging to the combobox that triggered it.
+            </p>
+            <div class="prop-rule">
+              <strong>Use sparingly.</strong> <code>aria-owns</code> re-orders the accessibility
+              tree. It can confuse AT if misused. Prefer DOM nesting whenever possible.
+            </div>
+            <div class="prop-snippet">
+              <span class="cmt">/* Combobox whose listbox is portalled to document.body */</span><br>
+              <span class="tag-c">&lt;div</span> <span class="atr">role</span>=<span class="val">"combobox"</span> <span class="atr">aria-owns</span>=<span class="val">"listbox-id"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/div&gt;</span><br>
+              <span class="cmt">/* Inside Angular CDK Overlay (portal) */</span><br>
+              <span class="tag-c">&lt;ul</span> <span class="atr">id</span>=<span class="val">"listbox-id"</span> <span class="atr">role</span>=<span class="val">"listbox"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/ul&gt;</span>
+            </div>
+          </div>
+
+          <div class="prop-card">
+            <div class="prop-card-head">
+              <code>aria-flowto="id1 id2 ..."</code>
+              <div class="prop-meta"><span class="prop-tag tag-relation">Relationship</span></div>
+            </div>
+            <p class="prop-body">
+              Provides an alternative reading order — lets the user follow a logical flow that
+              differs from the DOM order. Very rarely needed. AT support is inconsistent.
+              Fix reading order in the DOM instead.
+            </p>
+            <div class="prop-rule"><strong>Recommendation:</strong> Avoid. Fix DOM order to match visual order instead.</div>
+          </div>
+
+          <div class="prop-card">
+            <div class="prop-card-head">
+              <code>aria-activedescendant="id"</code>
+              <div class="prop-meta"><span class="prop-tag tag-relation">Relationship</span><span class="prop-tag tag-widget">Widget</span></div>
+            </div>
+            <p class="prop-body">
+              Used in <strong>composite widgets</strong> (listbox, tree, grid) to indicate which
+              child is the currently "active" item without moving DOM focus away from the container.
+              The container keeps <code>tabindex="0"</code> and receives keyboard events; only the
+              referenced child is announced as "active".
+            </p>
+            <div class="prop-rule">
+              <strong>Alternative to roving tabindex.</strong> Use one or the other — never both.
+              Angular CDK's <code>ListKeyManager</code> supports both patterns.
+            </div>
+            <div class="prop-snippet">
+              <span class="tag-c">&lt;ul</span> <span class="atr">role</span>=<span class="val">"listbox"</span> <span class="atr">tabindex</span>=<span class="val">"0"</span><br>
+              &nbsp;&nbsp;&nbsp;<span class="atr">[attr.aria-activedescendant]</span>=<span class="val">"activeId()"</span><span class="tag-c">&gt;</span><br>
+              &nbsp;&nbsp;<span class="tag-c">@for</span> (opt of options(); track opt.id) {<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;<span class="tag-c">&lt;li</span> <span class="atr">role</span>=<span class="val">"option"</span> <span class="atr">[id]</span>=<span class="val">"opt.id"</span><span class="tag-c">&gt;</span>{{ opt.label }}<span class="tag-c">&lt;/li&gt;</span><br>
+              &nbsp;&nbsp;}<br>
+              <span class="tag-c">&lt;/ul&gt;</span>
+            </div>
+          </div>
+
+          <div class="prop-card">
+            <div class="prop-card-head">
+              <code>aria-errormessage="id"</code>
+              <div class="prop-meta"><span class="prop-tag tag-relation">Relationship</span><span class="prop-tag tag-widget">Widget</span></div>
+            </div>
+            <p class="prop-body">
+              References the element that contains the error message for an invalid input.
+              Only meaningful when <code>aria-invalid="true"</code> is set on the same element.
+              The error message element should <em>not</em> have <code>role="alert"</code> — use
+              <code>aria-errormessage</code> instead so AT reads the error when the field is focused,
+              not when it first appears.
+            </p>
+            <div class="prop-rule">
+              <strong>WAI-ARIA 1.2 replaces the older pattern</strong> of pairing
+              <code>aria-describedby</code> with <code>role="alert"</code>. Both still work —
+              but <code>aria-errormessage</code> is the recommended approach.
+            </div>
+            <div class="prop-snippet">
+              <span class="tag-c">&lt;input</span> <span class="atr">aria-invalid</span>=<span class="val">"true"</span> <span class="atr">aria-errormessage</span>=<span class="val">"title-err"</span><span class="tag-c">&gt;</span><br>
+              <span class="tag-c">&lt;p</span> <span class="atr">id</span>=<span class="val">"title-err"</span><span class="tag-c">&gt;</span>Title is required.<span class="tag-c">&lt;/p&gt;</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 3.8 Widget Configuration Properties ───────────────── -->
+        <section id="widget-properties" aria-labelledby="h-widget-props">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">3.8</div>
+            <h2 id="h-widget-props">Widget Configuration Properties</h2>
+          </div>
+
+          <p>
+            These properties configure the capabilities and constraints of widgets — they describe
+            what a widget can do, not what it is currently doing (that is for states in Section 4).
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="ARIA widget configuration properties reference">
+              <thead>
+                <tr>
+                  <th scope="col">Property</th>
+                  <th scope="col">Values</th>
+                  <th scope="col">Applies to</th>
+                  <th scope="col">What it communicates</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>aria-required</code></td>
+                  <td><code>true</code> / <code>false</code></td>
+                  <td>Form inputs, combobox</td>
+                  <td>User must provide a value before submitting. NVDA: "required". JAWS: "required field". Native HTML alternative: the <code>required</code> attribute.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-readonly</code></td>
+                  <td><code>true</code> / <code>false</code></td>
+                  <td>Textbox, spinbutton, listbox, grid</td>
+                  <td>The value is visible but cannot be modified. Different from <code>aria-disabled</code> — a read-only field is still focusable and its value is still submitted.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-haspopup</code></td>
+                  <td><code>menu</code> / <code>listbox</code> / <code>tree</code> / <code>grid</code> / <code>dialog</code> / <code>true</code></td>
+                  <td>Buttons, combobox triggers, menu items</td>
+                  <td>Activating this element will open a popup of the specified type. JAWS: "has popup". Use the specific type value (e.g., <code>"menu"</code>) over <code>"true"</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-multiselectable</code></td>
+                  <td><code>true</code> / <code>false</code></td>
+                  <td>Listbox, grid, tree, tablist</td>
+                  <td>Multiple items can be selected simultaneously. NVDA: "multiselect". Users expect Shift+click and Ctrl+click to work.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-multiline</code></td>
+                  <td><code>true</code> / <code>false</code></td>
+                  <td>Textbox</td>
+                  <td>The textbox accepts multiple lines (like a <code>&lt;textarea&gt;</code>). Changes Enter key behaviour — Enter inserts newline instead of submitting.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-orientation</code></td>
+                  <td><code>horizontal</code> / <code>vertical</code> / <code>undefined</code></td>
+                  <td>Slider, scrollbar, separator, listbox, tablist, toolbar, tree</td>
+                  <td>Direction of the widget — affects which arrow keys navigate it. Default is <code>horizontal</code> for tablist, <code>vertical</code> for tree.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-level</code></td>
+                  <td>Integer ≥ 1</td>
+                  <td>Heading, treeitem, row</td>
+                  <td>The hierarchical level of the element. Required when using <code>role="heading"</code> explicitly. Implicit in <code>&lt;h1&gt;–&lt;h6&gt;</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-valuemin</code></td>
+                  <td>Number</td>
+                  <td>Slider, spinbutton, scrollbar</td>
+                  <td>Minimum allowed value. Announces: "minimum 0".</td>
+                </tr>
+                <tr>
+                  <td><code>aria-valuemax</code></td>
+                  <td>Number</td>
+                  <td>Slider, spinbutton, scrollbar</td>
+                  <td>Maximum allowed value. Announces: "maximum 100".</td>
+                </tr>
+                <tr>
+                  <td><code>aria-valuenow</code></td>
+                  <td>Number</td>
+                  <td>Slider, spinbutton, scrollbar, progressbar</td>
+                  <td>Current numeric value. Announces with <code>aria-valuetext</code> if present.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-valuetext</code></td>
+                  <td>String</td>
+                  <td>Slider, spinbutton, scrollbar</td>
+                  <td>Human-readable alternative to <code>aria-valuenow</code>. Use when the number alone is insufficient — e.g., "Monday" for a day-of-week slider. Overrides <code>aria-valuenow</code> for announcement.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-modal</code></td>
+                  <td><code>true</code> / <code>false</code></td>
+                  <td>Dialog, alertdialog</td>
+                  <td>Indicates content outside the dialog is inert. Suppresses background content in NVDA's browse mode and VoiceOver. Not a substitute for proper focus trapping in JavaScript.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-autocomplete</code></td>
+                  <td><code>none</code> / <code>list</code> / <code>inline</code> / <code>both</code></td>
+                  <td>Combobox, textbox</td>
+                  <td>Whether and how autocomplete suggestions are provided. <code>list</code>: suggestions in a popup. <code>inline</code>: suggestions inserted into the input. <code>both</code>: both.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-placeholder</code></td>
+                  <td>String</td>
+                  <td>Textbox, searchbox</td>
+                  <td>ARIA equivalent of the HTML <code>placeholder</code> attribute for custom inputs. Announced when the field is empty. Never the sole accessible name.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-rowcount</code> / <code>aria-colcount</code></td>
+                  <td>Integer (-1 = unknown)</td>
+                  <td>Table, grid, treegrid</td>
+                  <td>Total number of rows/columns when the table is virtualised and not all rows are in the DOM. Use <code>-1</code> when count is unknown.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-rowindex</code> / <code>aria-colindex</code></td>
+                  <td>Integer ≥ 1</td>
+                  <td>Row, cell, gridcell, columnheader, rowheader</td>
+                  <td>Position within a virtualised table — required when <code>aria-rowcount</code> is set.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-setsize</code></td>
+                  <td>Integer (-1 = unknown)</td>
+                  <td>Listitem, option, treeitem, radio, tab</td>
+                  <td>Total number of items in the set. Required when items are virtualised and not all are in the DOM.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-posinset</code></td>
+                  <td>Integer ≥ 1</td>
+                  <td>Listitem, option, treeitem, radio, tab</td>
+                  <td>Position of the item within the set. Required when <code>aria-setsize</code> is set.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-sort</code></td>
+                  <td><code>ascending</code> / <code>descending</code> / <code>other</code> / <code>none</code></td>
+                  <td>Columnheader, rowheader</td>
+                  <td>Current sort direction of the column/row. Set on the active sort header only — others get <code>aria-sort="none"</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-keyshortcuts</code></td>
+                  <td>String (e.g., <code>"Alt+N"</code>)</td>
+                  <td>Any interactive element</td>
+                  <td>Keyboard shortcut(s) that activate or navigate to the element. AT may announce it; only use when the shortcut is actually implemented and visible somewhere in the UI.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-roledescription</code></td>
+                  <td>String</td>
+                  <td>Any element with a role</td>
+                  <td>Overrides the role name that AT announces — use to provide a domain-specific name for a custom widget (e.g., "Slide" for a carousel item). Use sparingly and with caution.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong>Virtualised tables require <code>aria-rowcount</code> + <code>aria-rowindex</code>.</strong>
+              If you render a large dataset with CDK virtual scroll (only 50 rows in the DOM out of 5,000),
+              you must set <code>aria-rowcount="5000"</code> on the table/grid and
+              <code>aria-rowindex</code> on each visible row. Without this, screen readers announce
+              "row 1 of 50" instead of "row 1 of 5,000".
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 3.9 Drag and Drop Properties ─────────────────────── -->
+        <section id="drag-drop" aria-labelledby="h-drag-drop">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">3.9</div>
+            <h2 id="h-drag-drop">Drag-and-Drop Properties</h2>
+          </div>
+
+          <p>
+            WAI-ARIA 1.2 provides two properties for communicating drag-and-drop state to AT.
+            However, these alone do not make drag-and-drop accessible — you must also provide
+            a <strong>keyboard-only alternative</strong> (e.g., move buttons, keyboard shortcut).
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="ARIA drag and drop properties">
+              <thead>
+                <tr>
+                  <th scope="col">Property</th>
+                  <th scope="col">Values</th>
+                  <th scope="col">Purpose</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>aria-grabbed</code></td>
+                  <td><code>true</code> / <code>false</code> / <code>undefined</code></td>
+                  <td>
+                    <strong>Deprecated in WAI-ARIA 1.1 — do not use.</strong>
+                    Previously indicated whether an element was grabbed for drag. Now use
+                    custom solutions with <code>aria-roledescription</code> and live announcements.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>aria-dropeffect</code></td>
+                  <td><code>copy</code> / <code>move</code> / <code>link</code> / <code>execute</code> / <code>popup</code> / <code>none</code></td>
+                  <td>
+                    <strong>Deprecated in WAI-ARIA 1.1 — do not use.</strong>
+                    Use live region announcements and keyboard alternatives instead.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Accessible Drag-and-Drop in Angular 21 (CDK)</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — Accessible drag-and-drop with keyboard fallback</span>
+            <pre>
+<span class="cmt">&lt;!-- Each draggable item has keyboard Move buttons --&gt;</span>
+<span class="tag-c">@for</span> (todo of todos(); track todo.id; let i = $index) {
+  <span class="tag-c">&lt;div</span>
+    <span class="atr">cdkDrag</span>
+    <span class="atr">role</span>=<span class="val">"listitem"</span>
+    <span class="atr">[attr.aria-label]</span>=<span class="val">"todo.title + ', item ' + (i + 1) + ' of ' + todos().length"</span><span class="tag-c">&gt;</span>
+
+    <span class="tag-c">&lt;span&gt;</span>{{ todo.title }}<span class="tag-c">&lt;/span&gt;</span>
+
+    <span class="cmt">&lt;!-- Keyboard-only move controls (visually hidden for mouse users) --&gt;</span>
+    <span class="tag-c">&lt;button</span>
+      <span class="atr">type</span>=<span class="val">"button"</span>
+      <span class="atr">class</span>=<span class="val">"sr-only focus:not-sr-only"</span>
+      <span class="atr">[disabled]</span>=<span class="val">"i === 0"</span>
+      <span class="atr">[attr.aria-label]</span>=<span class="val">"'Move up: ' + todo.title"</span>
+      <span class="atr">(click)</span>=<span class="val">"moveUp(i)"</span><span class="tag-c">&gt;</span>Move up<span class="tag-c">&lt;/button&gt;</span>
+
+    <span class="tag-c">&lt;button</span>
+      <span class="atr">type</span>=<span class="val">"button"</span>
+      <span class="atr">class</span>=<span class="val">"sr-only focus:not-sr-only"</span>
+      <span class="atr">[disabled]</span>=<span class="val">"i === todos().length - 1"</span>
+      <span class="atr">[attr.aria-label]</span>=<span class="val">"'Move down: ' + todo.title"</span>
+      <span class="atr">(click)</span>=<span class="val">"moveDown(i)"</span><span class="tag-c">&gt;</span>Move down<span class="tag-c">&lt;/button&gt;</span>
+  <span class="tag-c">&lt;/div&gt;</span>
+}
+</pre>
+          </div>
+
+          <div class="callout info">
+            <span class="callout-icon" aria-hidden="true">💡</span>
+            <p>
+              After a keyboard move, announce the new position using <code>LiveAnnouncer</code>:
+              <code>"Buy groceries moved to position 2 of 5"</code>. This is essential for
+              screen reader users to confirm the move succeeded.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 3.10 Angular 21 Patterns ─────────────────────────── -->
+        <section id="angular-patterns" aria-labelledby="h-ng-patterns">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">3.10</div>
+            <h2 id="h-ng-patterns">Angular 21 Patterns for ARIA Properties</h2>
+          </div>
+
+          <h3>The [attr.aria-*] binding pattern</h3>
+          <p>
+            In Angular, use <code>[attr.aria-*]</code> to bind ARIA properties dynamically.
+            This ensures the attribute is only present in the DOM when it has a value —
+            Angular removes attributes that resolve to <code>null</code> or <code>undefined</code>.
+          </p>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — Angular attribute binding for ARIA</span>
+            <pre>
+<span class="cmt">&lt;!-- aria-labelledby: reference a heading in the same template --&gt;</span>
+<span class="tag-c">&lt;section</span> <span class="atr">[attr.aria-labelledby]</span>=<span class="val">"sectionHeadingId()"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;h2</span> <span class="atr">[id]</span>=<span class="val">"sectionHeadingId()"</span><span class="tag-c">&gt;</span>{{ sectionTitle() }}<span class="tag-c">&lt;/h2&gt;</span>
+  ...
+<span class="tag-c">&lt;/section&gt;</span>
+
+<span class="cmt">&lt;!-- aria-controls: reference a panel by signal-derived ID --&gt;</span>
+<span class="tag-c">&lt;button</span>
+  <span class="atr">type</span>=<span class="val">"button"</span>
+  <span class="atr">[attr.aria-controls]</span>=<span class="val">"panelId"</span>
+  <span class="atr">[attr.aria-expanded]</span>=<span class="val">"isOpen()"</span>
+  <span class="atr">(click)</span>=<span class="val">"toggle()"</span><span class="tag-c">&gt;</span>
+  Filters
+<span class="tag-c">&lt;/button&gt;</span>
+
+<span class="cmt">&lt;!-- aria-sort: conditionally null (attribute removed) --&gt;</span>
+<span class="tag-c">&lt;th</span>
+  <span class="atr">scope</span>=<span class="val">"col"</span>
+  <span class="atr">[attr.aria-sort]</span>=<span class="val">"sortColumn() === 'title' ? sortDirection() : null"</span><span class="tag-c">&gt;</span>
+  Title
+<span class="tag-c">&lt;/th&gt;</span>
+<span class="cmt">&lt;!-- When sortColumn() !== 'title', aria-sort is not in the DOM --&gt;</span>
+</pre>
+          </div>
+
+          <h3>Generating stable IDs for ARIA relationships</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — Angular 21 stable ID pattern</span>
+            <pre>
+<span class="kw">import</span> { inject } <span class="kw">from</span> <span class="str">'@angular/core'</span><span class="op">;</span>
+
+<span class="cmt">// ✅ Angular 21: use the built-in IdGenerator for stable IDs</span>
+<span class="kw">import</span> { IdGenerator } <span class="kw">from</span> <span class="str">'@angular/cdk/a11y'</span><span class="op">;</span>
+
+<span class="fn">@Component</span>({ <span class="cmt">/* ... */</span> })
+<span class="kw">export class</span> <span class="typ">FormFieldComponent</span> {
+  <span class="kw">private</span> idGen <span class="op">=</span> inject(<span class="typ">IdGenerator</span>)<span class="op">;</span>
+
+  <span class="cmt">// Stable IDs that survive SSR hydration</span>
+  fieldId  <span class="op">=</span> <span class="kw">this</span>.idGen.getId()<span class="op">;</span>
+  hintId   <span class="op">=</span> <span class="kw">this</span>.idGen.getId()<span class="op">;</span>
+  errorId  <span class="op">=</span> <span class="kw">this</span>.idGen.getId()<span class="op">;</span>
+}
+</pre>
+          </div>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong>Never use <code>Math.random()</code> for ARIA IDs in SSR apps.</strong>
+              The server and client generate different random values, causing a hydration mismatch.
+              Use Angular CDK's <code>IdGenerator</code> or a counter-based approach that produces
+              the same IDs on both server and client.
+            </p>
+          </div>
+
+          <h3>Complete Form Field Component — all naming properties together</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — Angular 21 accessible form field</span>
+            <pre>
+<span class="tag-c">&lt;div</span> <span class="atr">class</span>=<span class="val">"form-field"</span><span class="tag-c">&gt;</span>
+
+  <span class="cmt">&lt;!-- Native label: primary accessible name --&gt;</span>
+  <span class="tag-c">&lt;label</span> <span class="atr">[for]</span>=<span class="val">"fieldId"</span><span class="tag-c">&gt;</span>
+    {{ label() }}
+    <span class="tag-c">@if</span> (required()) {
+      <span class="tag-c">&lt;span</span> <span class="atr">aria-hidden</span>=<span class="val">"true"</span><span class="tag-c">&gt;</span> *<span class="tag-c">&lt;/span&gt;</span>
+      <span class="tag-c">&lt;span</span> <span class="atr">class</span>=<span class="val">"sr-only"</span><span class="tag-c">&gt;</span>(required)<span class="tag-c">&lt;/span&gt;</span>
+    }
+  <span class="tag-c">&lt;/label&gt;</span>
+
+  <span class="cmt">&lt;!-- Input: wired to label, hint, and error --&gt;</span>
+  <span class="tag-c">&lt;input</span>
+    <span class="atr">[id]</span>=<span class="val">"fieldId"</span>
+    <span class="atr">[type]</span>=<span class="val">"type()"</span>
+    <span class="atr">[attr.aria-required]</span>=<span class="val">"required() || null"</span>
+    <span class="atr">[attr.aria-invalid]</span>=<span class="val">"hasError() ? 'true' : null"</span>
+    <span class="atr">[attr.aria-errormessage]</span>=<span class="val">"hasError() ? errorId : null"</span>
+    <span class="atr">[attr.aria-describedby]</span>=<span class="val">"hintId"</span><span class="tag-c">&gt;</span>
+
+  <span class="cmt">&lt;!-- Hint: always present, referenced by aria-describedby --&gt;</span>
+  <span class="tag-c">&lt;p</span> <span class="atr">[id]</span>=<span class="val">"hintId"</span> <span class="atr">class</span>=<span class="val">"hint"</span><span class="tag-c">&gt;</span>{{ hint() }}<span class="tag-c">&lt;/p&gt;</span>
+
+  <span class="cmt">&lt;!-- Error: always in DOM, empty when valid --&gt;</span>
+  <span class="tag-c">&lt;p</span>
+    <span class="atr">[id]</span>=<span class="val">"errorId"</span>
+    <span class="atr">aria-live</span>=<span class="val">"polite"</span>
+    <span class="atr">class</span>=<span class="val">"error"</span><span class="tag-c">&gt;</span>
+    {{ hasError() ? errorMessage() : '' }}
+  <span class="tag-c">&lt;/p&gt;</span>
+
+<span class="tag-c">&lt;/div&gt;</span>
+</pre>
+          </div>
+
+          <div class="callout success">
+            <span class="callout-icon" aria-hidden="true">✅</span>
+            <p>
+              <strong>Section 3 complete.</strong> You now understand every WAI-ARIA 1.2 property —
+              naming, description, relationships, widget configuration, and the Angular 21 patterns
+              for dynamic binding and stable ID generation. Section 4 covers ARIA States —
+              <code>aria-expanded</code>, <code>aria-checked</code>, <code>aria-selected</code>,
+              <code>aria-invalid</code>, <code>aria-busy</code>, and the rest of the dynamic
+              attributes that update as users interact.
+            </p>
+          </div>
+        </section>
+
+        <!-- ═══ BOTTOM NAVIGATION ════════════════════════════════════ -->
+        <nav class="bottom-nav" aria-label="Section navigation">
+          <a href="./aria-s2-roles.html">← Section 2: ARIA Roles</a>
+          <span style="font-size:0.78rem;color:var(--muted);text-align:center;flex:1;">
+            Section 3 of 9 — ARIA Properties
+          </span>
+          <a href="./aria-s4-states.html" aria-label="Section 4: ARIA States">
+            Section 4: States →
+          </a>
+        </nav>
+
+      </main>
+
+      <!-- ═══ FOOTER ════════════════════════════════════════════════ -->
+      <footer role="contentinfo">
+        <p>
+          ARIA Complete Guide · Section 3 · Angular 21 · WAI-ARIA 1.2 (W3C Rec, June 2023) ·
+          Updated May 2026 ·
+          <a href="https://www.w3.org/TR/wai-aria-1.2/" rel="noopener noreferrer">W3C WAI-ARIA 1.2 Spec</a> ·
+          <a href="https://www.w3.org/WAI/ARIA/apg/" rel="noopener noreferrer">ARIA Authoring Practices Guide</a>
+        </p>
+        <p style="margin-top:0.5rem;color:#374151;">
+          <a href="./aria-complete-guide.html">← Back to ARIA Guide Index</a> ·
+          <a href="./aria-s2-roles.html">← Section 2: Roles</a>
+        </p>
+      </footer>
+
+    </div><!-- /page-wrapper -->
+  </body>
+</html>

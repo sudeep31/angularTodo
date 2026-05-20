@@ -1,4 +1,5 @@
 import { Component, signal, computed, inject, input, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { Todo } from '../../interfaces/todo.interface';
 import { TodoApiService } from '../../services/todo-api.service';
 import { TodoItemComponent } from '../../components/todo-item/todo-item.component';
@@ -11,13 +12,18 @@ import { DeadlineTimerComponent } from '../dead-line/deadline-timer.component'
   styleUrl: './todo-list.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    'class': 'block w-full', // Removed max-w-2xl constraint and mx-auto centering
-    'role': 'main',
+    'class': 'block w-full',
+    // region (not main) — WCAG 1.3.6: the outer <main> in app.html is the only main landmark
+    'role': 'region',
     '[attr.aria-label]': 'ariaLabel()'
   }
 })
 export class TodoListComponent implements OnInit {
   private readonly todoApiService = inject(TodoApiService);
+  // LiveAnnouncer — CDK service that posts to an aria-live region so screen
+  // readers hear dynamic changes (add / delete / toggle / filter) that would
+  // otherwise be silent because the DOM updates happen outside focus.
+  private readonly liveAnnouncer = inject(LiveAnnouncer);
 
   // ── MFE Stats — input() signals (Angular 17+) ────────────────────────────
   // Angular Elements generates DOM property setters for input() signals,
@@ -111,6 +117,16 @@ export class TodoListComponent implements OnInit {
     return `Todo list with ${stats.total} items, ${stats.active} active, ${stats.completed} completed`;
   });
 
+  // Accessible label for the <ul> that reflects the active filter
+  protected readonly ariaListLabel = computed(() => {
+    const labels: Record<string, string> = {
+      all: 'All tasks',
+      active: 'Active tasks',
+      completed: 'Completed tasks',
+    };
+    return labels[this.filter()];
+  });
+
   protected readonly hasActiveTodos = computed(() =>
     this.todoStats().active > 0
   );
@@ -133,8 +149,9 @@ export class TodoListComponent implements OnInit {
       return;
     }
 
+    const addedTitle = form.title.trim();
     this.todoApiService.create({
-      title: form.title.trim(),
+      title: addedTitle,
       description: form.description.trim(),
       completed: false,
       priority: form.priority,
@@ -142,6 +159,7 @@ export class TodoListComponent implements OnInit {
       tags: []
     });
     this.resetForm();
+    this.liveAnnouncer.announce(`Task "${addedTitle}" added`, 'polite');
   }
 
   // Reactive form field updates with validation
@@ -323,12 +341,20 @@ export class TodoListComponent implements OnInit {
   onTodoToggled(todoId: string): void {
     const todo = this.todos().find(t => t.id === todoId);
     if (todo) {
-      this.todoApiService.update(todoId, { completed: !todo.completed });
+      const newState = !todo.completed;
+      this.todoApiService.update(todoId, { completed: newState });
+      this.liveAnnouncer.announce(
+        `“${todo.title}” marked as ${newState ? 'complete' : 'incomplete'}`,
+        'polite',
+      );
     }
   }
 
   onTodoDeleted(todoId: string): void {
+    const todo = this.todos().find(t => t.id === todoId);
+    const title = todo?.title ?? 'Task';
     this.todoApiService.delete(todoId);
+    this.liveAnnouncer.announce(`“${title}” deleted`, 'assertive');
   }
 
   onTodoEdited(updatedTodo: Todo): void {
@@ -337,15 +363,33 @@ export class TodoListComponent implements OnInit {
 
   onFilterChanged(filter: 'all' | 'active' | 'completed'): void {
     this.filter.set(filter);
+    const count = this.filteredTodos().length;
+    this.liveAnnouncer.announce(
+      `Showing ${count} ${filter} task${count === 1 ? '' : 's'}`,
+      'polite',
+    );
   }
 
   onClearCompleted(): void {
-    this.todos().filter(t => t.completed).forEach(t => this.todoApiService.delete(t.id));
+    const count = this.todoStats().completed;
+    this.todos()
+      .filter(t => t.completed)
+      .forEach(t => this.todoApiService.delete(t.id));
+    this.liveAnnouncer.announce(
+      `${count} completed task${count === 1 ? '' : 's'} cleared`,
+      'polite',
+    );
   }
 
   onToggleAll(): void {
     const allCompleted = this.todos().every(todo => todo.completed);
-    this.todos().forEach(todo => this.todoApiService.update(todo.id, { completed: !allCompleted }));
+    this.todos().forEach(todo =>
+      this.todoApiService.update(todo.id, { completed: !allCompleted }),
+    );
+    this.liveAnnouncer.announce(
+      allCompleted ? 'All tasks marked as incomplete' : 'All tasks marked as complete',
+      'polite',
+    );
   }
 
   /*

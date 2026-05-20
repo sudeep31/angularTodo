@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Section 9: Angular CDK A11y Primitives — ARIA Complete Guide</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg:            #0f172a;
+        --surface:       #1e293b;
+        --surface-2:     #273549;
+        --border:        #334155;
+        --primary:       #818cf8;
+        --primary-light: #a5b4fc;
+        --accent:        #34d399;
+        --warn:          #fbbf24;
+        --danger:        #f87171;
+        --purple:        #c084fc;
+        --cyan:          #67e8f9;
+        --text:          #e2e8f0;
+        --muted:         #94a3b8;
+        --code-bg:       #0d1117;
+        --font-sans:     'Segoe UI', system-ui, -apple-system, sans-serif;
+        --font-mono:     'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+        --radius:        0.75rem;
+        --radius-sm:     0.4rem;
+        --shadow:        0 4px 24px rgba(0,0,0,0.5);
+        --max-width:     960px;
+      }
+
+      html { scroll-behavior: smooth; }
+      body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.8; font-size: 1rem; }
+
+      .skip-link {
+        position: absolute; top: -100%; left: 1rem;
+        padding: 0.5rem 1rem; background: var(--primary); color: #0f172a;
+        font-weight: 700; border-radius: 0 0 var(--radius) var(--radius);
+        z-index: 9999; transition: top 0.2s; text-decoration: none;
+      }
+      .skip-link:focus { top: 0; }
+
+      .page-wrapper { max-width: var(--max-width); margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+
+      /* ─── Top Nav ───────────────────────────────────────────── */
+      .top-nav {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 0.75rem 1.25rem;
+        margin-bottom: 2rem; font-size: 0.85rem; gap: 1rem;
+      }
+      .top-nav a {
+        color: var(--primary-light); text-decoration: none;
+        padding: 0.3rem 0.75rem; border-radius: var(--radius-sm);
+        border: 1px solid var(--border); transition: border-color 0.15s, background 0.15s;
+        white-space: nowrap;
+      }
+      .top-nav a:hover { border-color: var(--primary); background: var(--surface-2); }
+      .top-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .top-nav .nav-center { font-size: 0.75rem; color: var(--muted); text-align: center; flex: 1; min-width: 0; }
+      .top-nav .nav-center strong { color: var(--primary-light); }
+
+      /* ─── Hero ──────────────────────────────────────────────── */
+      .hero {
+        background: linear-gradient(135deg, #0c1a2e 0%, #1e293b 50%, #1a1035 100%);
+        border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 3rem 2.5rem; margin-bottom: 2rem;
+        text-align: center; box-shadow: var(--shadow);
+      }
+      .hero-badge {
+        display: inline-block; background: rgba(129,140,248,0.15);
+        border: 1px solid var(--primary); color: var(--primary-light);
+        font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em;
+        text-transform: uppercase; padding: 0.3rem 1rem;
+        border-radius: 999px; margin-bottom: 1.25rem;
+      }
+      .hero h1 { font-size: clamp(1.75rem, 4vw, 2.8rem); font-weight: 800; line-height: 1.15; color: #fff; margin-bottom: 1rem; }
+      .hero h1 span { color: var(--accent); }
+      .hero h1 .section-num { color: var(--muted); font-size: 0.55em; font-weight: 600; display: block; margin-bottom: 0.25rem; }
+      .hero p { font-size: 1.05rem; color: var(--muted); max-width: 700px; margin: 0 auto 1rem; }
+      .hero-meta { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-top: 1.25rem; }
+      .hero-meta span { font-size: 0.78rem; color: var(--muted); display: flex; align-items: center; gap: 0.4rem; }
+      .hero-meta span strong { color: var(--accent); }
+
+      /* ─── TOC ───────────────────────────────────────────────── */
+      .toc {
+        background: var(--surface); border: 1px solid var(--border);
+        border-left: 4px solid var(--primary); border-radius: var(--radius);
+        padding: 1.5rem 2rem; margin-bottom: 3rem;
+      }
+      .toc-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--primary); margin-bottom: 1rem; }
+      .toc ol { padding-left: 1.5rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.3rem 2rem; }
+      .toc li { font-size: 0.875rem; }
+      .toc a { color: var(--muted); text-decoration: none; transition: color 0.15s; }
+      .toc a:hover, .toc a:focus { color: var(--primary-light); text-decoration: underline; }
+
+      /* ─── Sections ──────────────────────────────────────────── */
+      section { margin-bottom: 4.5rem; scroll-margin-top: 2rem; }
+      .section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+      .section-number { flex-shrink: 0; width: 2.25rem; height: 2.25rem; background: linear-gradient(135deg, var(--accent), #059669); color: #fff; font-size: 0.82rem; font-weight: 800; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+      h2 { font-size: 1.55rem; font-weight: 800; color: #fff; }
+      h3 { font-size: 1.1rem; font-weight: 700; color: var(--primary-light); margin: 2.25rem 0 0.75rem; }
+      h4 { font-size: 0.9rem; font-weight: 700; color: var(--accent); margin: 1.5rem 0 0.5rem; text-transform: uppercase; letter-spacing: 0.07em; }
+      p { margin-bottom: 1rem; color: var(--text); }
+      p:last-child { margin-bottom: 0; }
+      ul, ol { padding-left: 1.5rem; margin: 0.75rem 0; }
+      li { margin-bottom: 0.4rem; color: var(--text); font-size: 0.95rem; }
+      strong { color: #fff; }
+      em { color: var(--warn); font-style: italic; }
+      code { font-family: var(--font-mono); font-size: 0.82em; background: var(--surface-2); border: 1px solid var(--border); padding: 0.15em 0.45em; border-radius: var(--radius-sm); color: var(--primary-light); }
+
+      /* ─── Code Block ────────────────────────────────────────── */
+      .code-block {
+        background: var(--code-bg); border: 1px solid var(--border);
+        border-radius: var(--radius); margin: 1.25rem 0;
+        overflow: hidden;
+      }
+      .code-block-label {
+        background: var(--surface); padding: 0.5rem 1.25rem;
+        font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
+        text-transform: uppercase; color: var(--muted);
+        border-bottom: 1px solid var(--border); display: flex;
+        justify-content: space-between; align-items: center;
+      }
+      .code-block pre { padding: 1.25rem 1.5rem; overflow-x: auto; font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.7; }
+      .kw  { color: #c792ea; }
+      .fn  { color: #82aaff; }
+      .str { color: #c3e88d; }
+      .cmt { color: #546e7a; font-style: italic; }
+      .typ { color: #ffcb6b; }
+      .op  { color: #89ddff; }
+      .num { color: #f78c6c; }
+      .tag-c { color: #f07178; }
+      .atr  { color: #ffcb6b; }
+      .val  { color: #c3e88d; }
+
+      /* ─── Callouts ──────────────────────────────────────────── */
+      .callout { display: flex; gap: 0.75rem; padding: 1rem 1.25rem; border-radius: var(--radius); margin: 1.25rem 0; border: 1px solid; font-size: 0.9rem; }
+      .callout-icon { font-size: 1.25rem; flex-shrink: 0; line-height: 1.5; margin-top: 0.1rem; }
+      .callout p { margin: 0; color: inherit; line-height: 1.7; }
+      .callout.info    { background: rgba(129,140,248,0.08); border-color: rgba(129,140,248,0.3); color: var(--primary-light); }
+      .callout.warn    { background: rgba(251,191,36,0.08);  border-color: rgba(251,191,36,0.3);  color: var(--warn); }
+      .callout.success { background: rgba(52,211,153,0.08);  border-color: rgba(52,211,153,0.3);  color: var(--accent); }
+      .callout.danger  { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.3); color: var(--danger); }
+      .callout.purple  { background: rgba(192,132,252,0.08); border-color: rgba(192,132,252,0.3); color: var(--purple); }
+
+      /* ─── Primitive Card ────────────────────────────────────── */
+      .prim-card {
+        background: var(--surface); border: 1px solid var(--border);
+        border-left: 4px solid var(--accent);
+        border-radius: var(--radius); margin: 1.5rem 0; overflow: hidden;
+      }
+      .prim-card-head {
+        background: rgba(52,211,153,0.07);
+        padding: 1rem 1.5rem; display: flex;
+        align-items: flex-start; justify-content: space-between;
+        gap: 1rem; flex-wrap: wrap;
+        border-bottom: 1px solid var(--border);
+      }
+      .prim-name { font-size: 1.05rem; font-weight: 700; color: #fff; font-family: var(--font-mono); }
+      .prim-pkg  { font-size: 0.78rem; color: var(--muted); margin-top: 0.25rem; }
+      .prim-tag  {
+        font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em;
+        text-transform: uppercase; padding: 0.2rem 0.65rem;
+        border-radius: 999px; border: 1px solid; white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .tag-service   { background: rgba(129,140,248,0.12); color: var(--primary);  border-color: rgba(129,140,248,0.3); }
+      .tag-directive { background: rgba(52,211,153,0.12);  color: var(--accent);   border-color: rgba(52,211,153,0.3); }
+      .tag-module    { background: rgba(192,132,252,0.12); color: var(--purple);   border-color: rgba(192,132,252,0.3); }
+      .tag-detect    { background: rgba(251,191,36,0.12);  color: var(--warn);     border-color: rgba(251,191,36,0.3); }
+
+      .prim-body { padding: 1.25rem 1.5rem; font-size: 0.9rem; color: var(--muted); line-height: 1.7; }
+      .prim-body strong { color: #fff; }
+      .prim-body p { color: var(--muted); }
+
+      /* ─── Tables ─────────────────────────────────────────────── */
+      .table-wrapper { overflow-x: auto; margin: 1.25rem 0; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+      thead th { background: var(--surface); color: var(--primary-light); font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.75rem 1rem; text-align: left; border-bottom: 2px solid var(--border); }
+      tbody td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; line-height: 1.6; }
+      tbody tr:hover td { background: var(--surface); }
+
+      /* ─── Bottom Nav ─────────────────────────────────────────── */
+      .bottom-nav { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 2rem; margin-top: 4rem; gap: 1rem; flex-wrap: wrap; }
+      .bottom-nav a { color: var(--primary-light); text-decoration: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.875rem; transition: border-color 0.15s, background 0.15s; display: flex; align-items: center; gap: 0.4rem; }
+      .bottom-nav a:hover { border-color: var(--primary); background: var(--surface); }
+      .bottom-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+      /* ─── Completion Banner ──────────────────────────────────── */
+      .completion-banner {
+        background: linear-gradient(135deg, rgba(52,211,153,0.1) 0%, rgba(129,140,248,0.1) 100%);
+        border: 1px solid rgba(52,211,153,0.3);
+        border-radius: var(--radius); padding: 2.5rem;
+        text-align: center; margin: 3rem 0;
+      }
+      .completion-banner h3 { font-size: 1.4rem; color: var(--accent); margin-bottom: 0.75rem; }
+      .completion-banner p { color: var(--muted); font-size: 0.95rem; }
+      .section-links { display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem; }
+      .section-links a { color: var(--primary-light); text-decoration: none; padding: 0.4rem 1rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.82rem; transition: border-color 0.15s, background 0.15s; }
+      .section-links a:hover { border-color: var(--primary); background: var(--surface); }
+
+      /* ─── Footer ────────────────────────────────────────────── */
+      footer { border-top: 1px solid var(--border); padding: 2rem 0 0; text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 3rem; }
+      footer a { color: var(--primary-light); text-decoration: none; }
+      footer a:hover { text-decoration: underline; }
+    </style>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <div class="page-wrapper">
+
+      <!-- ═══ TOP NAV ═══════════════════════════════════════════════ -->
+      <nav class="top-nav" aria-label="Document navigation">
+        <a href="./aria-s8-antipatterns.html">← Section 8</a>
+        <div class="nav-center">
+          <strong>Section 9 of 9</strong> — Angular CDK A11y Primitives
+        </div>
+        <a href="./aria-complete-guide.html">Index →</a>
+      </nav>
+
+      <!-- ═══ HERO ══════════════════════════════════════════════════ -->
+      <header role="banner">
+        <div class="hero">
+          <div class="hero-badge">Section 9 · Angular CDK · A11y Module · May 2026</div>
+          <h1>
+            <span class="section-num">Section 9 of 9</span>
+            Angular CDK <span>A11y Primitives</span>
+          </h1>
+          <p>
+            The complete reference for <strong>FocusTrap</strong>,
+            <strong>LiveAnnouncer</strong>, <strong>FocusMonitor</strong>,
+            <strong>HighContrastModeDetector</strong>, <strong>CdkListbox</strong>,
+            and <strong>CdkMenu</strong> — built-in Angular CDK accessibility toolkit
+            with signal-based Angular 21 usage patterns.
+          </p>
+          <div class="hero-meta">
+            <span>📦 Package: <strong>@angular/cdk/a11y</strong></span>
+            <span>🚀 Angular: <strong>21</strong></span>
+            <span>✅ Signals: <strong>fully integrated</strong></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ═══ TOC ════════════════════════════════════════════════════ -->
+      <nav aria-label="Section contents">
+        <div class="toc">
+          <div class="toc-title">In This Section</div>
+          <ol>
+            <li><a href="#s9-1">9.1 — A11yModule Overview</a></li>
+            <li><a href="#s9-2">9.2 — FocusTrap &amp; cdkTrapFocus</a></li>
+            <li><a href="#s9-3">9.3 — LiveAnnouncer</a></li>
+            <li><a href="#s9-4">9.4 — FocusMonitor</a></li>
+            <li><a href="#s9-5">9.5 — HighContrastModeDetector</a></li>
+            <li><a href="#s9-6">9.6 — CdkListbox</a></li>
+            <li><a href="#s9-7">9.7 — CdkMenu &amp; CdkMenuBar</a></li>
+            <li><a href="#s9-8">9.8 — ActiveDescendantKeyManager</a></li>
+            <li><a href="#s9-9">9.9 — CDK A11y Primitives Summary Table</a></li>
+          </ol>
+        </div>
+      </nav>
+
+      <!-- ═══ MAIN ═══════════════════════════════════════════════════ -->
+      <main id="main-content">
+
+        <!-- ─── 9.1 A11yModule Overview ───────────────────────────── -->
+        <section id="s9-1" aria-labelledby="h9-1">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">9.1</div>
+            <h2 id="h9-1">A11yModule Overview</h2>
+          </div>
+
+          <p>
+            Angular CDK's <code>@angular/cdk/a11y</code> module provides battle-tested,
+            spec-compliant accessibility primitives that you should use instead of building
+            focus traps, live region announcements, and keyboard navigation from scratch.
+          </p>
+
+          <div class="callout success">
+            <span class="callout-icon" aria-hidden="true">✅</span>
+            <p>
+              <strong>Angular 21 — standalone, no NgModule needed.</strong>
+              All CDK A11y directives and services are importable directly:
+              <code>import { cdkTrapFocus, LiveAnnouncer } from '@angular/cdk/a11y'</code>.
+              No <code>A11yModule</code> import required in Angular 21 standalone components.
+            </p>
+          </div>
+
+          <h3>Installation</h3>
+          <div class="code-block">
+            <div class="code-block-label">Terminal</div>
+            <pre>ng add @angular/cdk</pre>
+          </div>
+
+          <h3>Core Services &amp; Directives</h3>
+          <div class="table-wrapper">
+            <table aria-label="CDK A11y primitives overview">
+              <thead>
+                <tr>
+                  <th scope="col">Primitive</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Purpose</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>cdkTrapFocus</code></td>
+                  <td>Directive</td>
+                  <td>Trap keyboard focus inside a container (modal dialogs)</td>
+                </tr>
+                <tr>
+                  <td><code>FocusTrapFactory</code></td>
+                  <td>Service</td>
+                  <td>Programmatically create / destroy focus traps</td>
+                </tr>
+                <tr>
+                  <td><code>LiveAnnouncer</code></td>
+                  <td>Service</td>
+                  <td>Announce messages to screen readers via live region</td>
+                </tr>
+                <tr>
+                  <td><code>FocusMonitor</code></td>
+                  <td>Service</td>
+                  <td>Track focus origin (mouse, keyboard, touch, programmatic)</td>
+                </tr>
+                <tr>
+                  <td><code>HighContrastModeDetector</code></td>
+                  <td>Service</td>
+                  <td>Detect Windows high contrast / forced colors mode</td>
+                </tr>
+                <tr>
+                  <td><code>CdkListbox</code> / <code>CdkOption</code></td>
+                  <td>Directive</td>
+                  <td>Accessible listbox with roving tabindex, keyboard nav</td>
+                </tr>
+                <tr>
+                  <td><code>CdkMenu</code> / <code>CdkMenuItem</code></td>
+                  <td>Directive</td>
+                  <td>Accessible menu and menu bar patterns (APG compliant)</td>
+                </tr>
+                <tr>
+                  <td><code>ActiveDescendantKeyManager</code></td>
+                  <td>Service</td>
+                  <td>Manage keyboard navigation for aria-activedescendant patterns</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ─── 9.2 FocusTrap ─────────────────────────────────────── -->
+        <section id="s9-2" aria-labelledby="h9-2">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">9.2</div>
+            <h2 id="h9-2">FocusTrap &amp; cdkTrapFocus</h2>
+          </div>
+
+          <div class="prim-card">
+            <div class="prim-card-head">
+              <div>
+                <div class="prim-name">cdkTrapFocus</div>
+                <div class="prim-pkg">@angular/cdk/a11y · Directive</div>
+              </div>
+              <span class="prim-tag tag-directive">Directive</span>
+            </div>
+            <div class="prim-body">
+              <p>
+                Traps <kbd>Tab</kbd> and <kbd>Shift+Tab</kbd> keyboard navigation inside
+                a container element. Essential for modal dialogs, drawers, and any overlay
+                that must contain focus. Use <code>cdkTrapFocusAutoCapture</code> to move
+                focus into the trap immediately on initialization.
+              </p>
+            </div>
+          </div>
+
+          <div class="code-block">
+            <div class="code-block-label">HTML — modal dialog with focus trap</div>
+            <pre><span class="tag-c">&lt;div</span>
+  <span class="atr">role</span>=<span class="val">"dialog"</span>
+  <span class="atr">aria-modal</span>=<span class="val">"true"</span>
+  <span class="atr">[attr.aria-labelledby]</span>=<span class="val">"dialogTitleId()"</span>
+  <span class="atr">cdkTrapFocus</span>
+  <span class="atr">cdkTrapFocusAutoCapture</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;h2</span> <span class="atr">[id]</span>=<span class="val">"dialogTitleId()"</span><span class="tag-c">&gt;</span>Confirm Deletion<span class="tag-c">&lt;/h2&gt;</span>
+  <span class="tag-c">&lt;p</span><span class="tag-c">&gt;</span>Are you sure you want to delete this todo?<span class="tag-c">&lt;/p&gt;</span>
+  <span class="tag-c">&lt;button</span> <span class="atr">type</span>=<span class="val">"button"</span> <span class="atr">(click)</span>=<span class="val">"confirm()"</span><span class="tag-c">&gt;</span>Delete<span class="tag-c">&lt;/button&gt;</span>
+  <span class="tag-c">&lt;button</span> <span class="atr">type</span>=<span class="val">"button"</span> <span class="atr">(click)</span>=<span class="val">"cancel()"</span><span class="tag-c">&gt;</span>Cancel<span class="tag-c">&lt;/button&gt;</span>
+<span class="tag-c">&lt;/div&gt;</span></pre>
+          </div>
+
+          <div class="code-block">
+            <div class="code-block-label">TypeScript — programmatic FocusTrap with signals</div>
+            <pre><span class="kw">import</span> { <span class="typ">Component</span>, <span class="fn">inject</span>, <span class="fn">signal</span>, <span class="fn">effect</span>, <span class="typ">ElementRef</span>, <span class="fn">viewChild</span> } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+<span class="kw">import</span> { <span class="typ">FocusTrapFactory</span>, <span class="typ">FocusTrap</span> } <span class="kw">from</span> <span class="str">'@angular/cdk/a11y'</span>;
+
+@<span class="fn">Component</span>({ <span class="atr">selector</span>: <span class="str">'app-drawer'</span>, <span class="atr">standalone</span>: <span class="kw">true</span>, <span class="cmt">/* ... */</span> })
+<span class="kw">export class</span> <span class="typ">DrawerComponent</span> {
+  <span class="kw">private</span> <span class="fn">focusTrapFactory</span> = <span class="fn">inject</span>(<span class="typ">FocusTrapFactory</span>);
+  <span class="kw">private</span> <span class="fn">drawerRef</span> = <span class="fn">viewChild</span>&lt;<span class="typ">ElementRef</span>&gt;(<span class="str">'drawerPanel'</span>);
+  <span class="kw">private</span> <span class="fn">focusTrap</span>: <span class="typ">FocusTrap</span> | <span class="kw">null</span> = <span class="kw">null</span>;
+  <span class="kw">readonly</span> <span class="fn">isOpen</span> = <span class="fn">signal</span>(<span class="kw">false</span>);
+
+  <span class="fn">constructor</span>() {
+    <span class="fn">effect</span>(() =&gt; {
+      <span class="kw">if</span> (<span class="kw">this</span>.<span class="fn">isOpen</span>()) {
+        <span class="kw">this</span>.<span class="fn">focusTrap</span> = <span class="kw">this</span>.<span class="fn">focusTrapFactory</span>.<span class="fn">create</span>(<span class="kw">this</span>.<span class="fn">drawerRef</span>()!.<span class="fn">nativeElement</span>);
+        <span class="kw">this</span>.<span class="fn">focusTrap</span>.<span class="fn">focusInitialElementWhenReady</span>();
+      } <span class="kw">else</span> {
+        <span class="kw">this</span>.<span class="fn">focusTrap</span>?.<span class="fn">destroy</span>();
+        <span class="kw">this</span>.<span class="fn">focusTrap</span> = <span class="kw">null</span>;
+      }
+    });
+  }
+}</pre>
+          </div>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong>iOS VoiceOver caveat:</strong> <code>cdkTrapFocus</code> traps DOM focus
+              (keyboard), but VoiceOver cursor is independent. Add <code>aria-modal="true"</code>
+              on the dialog element and set <code>[inert]</code> on background content to prevent
+              VoiceOver users from swiping outside the modal.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 9.3 LiveAnnouncer ──────────────────────────────────── -->
+        <section id="s9-3" aria-labelledby="h9-3">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">9.3</div>
+            <h2 id="h9-3">LiveAnnouncer</h2>
+          </div>
+
+          <div class="prim-card">
+            <div class="prim-card-head">
+              <div>
+                <div class="prim-name">LiveAnnouncer</div>
+                <div class="prim-pkg">@angular/cdk/a11y · Service (injectable)</div>
+              </div>
+              <span class="prim-tag tag-service">Service</span>
+            </div>
+            <div class="prim-body">
+              <p>
+                Announces messages to screen readers via an invisible live region that CDK
+                manages globally. Preferred over custom live regions because CDK handles the
+                timing, DOM management, and cross-browser quirks automatically.
+              </p>
+            </div>
+          </div>
+
+          <div class="code-block">
+            <div class="code-block-label">TypeScript — announce with politeness and optional clear</div>
+            <pre><span class="kw">import</span> { <span class="fn">inject</span>, <span class="typ">Component</span> } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+<span class="kw">import</span> { <span class="typ">LiveAnnouncer</span> } <span class="kw">from</span> <span class="str">'@angular/cdk/a11y'</span>;
+
+@<span class="fn">Component</span>({ <span class="cmt">/* ... */</span> })
+<span class="kw">export class</span> <span class="typ">TodoListComponent</span> {
+  <span class="kw">private</span> <span class="fn">announcer</span> = <span class="fn">inject</span>(<span class="typ">LiveAnnouncer</span>);
+
+  <span class="fn">addTodo</span>(text: <span class="typ">string</span>) {
+    <span class="cmt">// ... add logic ...</span>
+    <span class="kw">this</span>.<span class="fn">announcer</span>.<span class="fn">announce</span>(<span class="str">`Todo added: </span>${text}<span class="str">`</span>, <span class="str">'polite'</span>);
+  }
+
+  <span class="fn">deleteTodo</span>(text: <span class="typ">string</span>) {
+    <span class="cmt">// ... delete logic ...</span>
+    <span class="kw">this</span>.<span class="fn">announcer</span>.<span class="fn">announce</span>(<span class="str">`Todo deleted: </span>${text}<span class="str">`</span>, <span class="str">'assertive'</span>);
+  }
+
+  <span class="fn">onSearchResults</span>(count: <span class="typ">number</span>) {
+    <span class="kw">this</span>.<span class="fn">announcer</span>.<span class="fn">announce</span>(
+      count === <span class="num">0</span> ? <span class="str">'No results found'</span> : <span class="str">`</span>${count}<span class="str"> results found`</span>,
+      <span class="str">'polite'</span>,
+      <span class="num">300</span> <span class="cmt">// duration in ms before CDK clears the region</span>
+    );
+  }
+}</pre>
+          </div>
+
+          <h3>Route Change Announcements</h3>
+          <div class="code-block">
+            <div class="code-block-label">TypeScript — custom TitleStrategy for SPA navigation</div>
+            <pre><span class="kw">import</span> { <span class="fn">inject</span>, <span class="typ">Injectable</span> } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+<span class="kw">import</span> { <span class="typ">TitleStrategy</span>, <span class="typ">RouterStateSnapshot</span> } <span class="kw">from</span> <span class="str">'@angular/router'</span>;
+<span class="kw">import</span> { <span class="typ">Title</span> } <span class="kw">from</span> <span class="str">'@angular/platform-browser'</span>;
+<span class="kw">import</span> { <span class="typ">LiveAnnouncer</span> } <span class="kw">from</span> <span class="str">'@angular/cdk/a11y'</span>;
+
+@<span class="fn">Injectable</span>({ <span class="atr">providedIn</span>: <span class="str">'root'</span> })
+<span class="kw">export class</span> <span class="typ">A11yTitleStrategy</span> <span class="kw">extends</span> <span class="typ">TitleStrategy</span> {
+  <span class="kw">private</span> <span class="fn">title</span> = <span class="fn">inject</span>(<span class="typ">Title</span>);
+  <span class="kw">private</span> <span class="fn">announcer</span> = <span class="fn">inject</span>(<span class="typ">LiveAnnouncer</span>);
+
+  <span class="kw">override</span> <span class="fn">updateTitle</span>(snapshot: <span class="typ">RouterStateSnapshot</span>): <span class="kw">void</span> {
+    <span class="kw">const</span> pageTitle = <span class="kw">this</span>.<span class="fn">buildTitle</span>(snapshot) ?? <span class="str">'Angular App'</span>;
+    <span class="kw">this</span>.<span class="fn">title</span>.<span class="fn">setTitle</span>(pageTitle);
+    <span class="kw">this</span>.<span class="fn">announcer</span>.<span class="fn">announce</span>(<span class="str">`Navigated to: </span>${pageTitle}<span class="str">`</span>, <span class="str">'polite'</span>);
+  }
+}</pre>
+          </div>
+          <div class="code-block">
+            <div class="code-block-label">TypeScript — app.config.ts provider</div>
+            <pre><span class="kw">import</span> { <span class="typ">TitleStrategy</span> } <span class="kw">from</span> <span class="str">'@angular/router'</span>;
+<span class="kw">import</span> { <span class="typ">A11yTitleStrategy</span> } <span class="kw">from</span> <span class="str">'./a11y-title.strategy'</span>;
+
+<span class="kw">export const</span> <span class="fn">appConfig</span> = {
+  <span class="fn">providers</span>: [
+    { <span class="fn">provide</span>: <span class="typ">TitleStrategy</span>, <span class="fn">useClass</span>: <span class="typ">A11yTitleStrategy</span> }
+  ]
+};</pre>
+          </div>
+        </section>
+
+        <!-- ─── 9.4 FocusMonitor ───────────────────────────────────── -->
+        <section id="s9-4" aria-labelledby="h9-4">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">9.4</div>
+            <h2 id="h9-4">FocusMonitor</h2>
+          </div>
+
+          <div class="prim-card">
+            <div class="prim-card-head">
+              <div>
+                <div class="prim-name">FocusMonitor</div>
+                <div class="prim-pkg">@angular/cdk/a11y · Service (injectable)</div>
+              </div>
+              <span class="prim-tag tag-service">Service</span>
+            </div>
+            <div class="prim-body">
+              <p>
+                Tracks how an element received focus — <strong>keyboard</strong>,
+                <strong>mouse</strong>, <strong>touch</strong>, or <strong>program</strong>.
+                This is the correct way to implement the <code>:focus-visible</code>
+                behaviour in Angular components. The CDK automatically applies CSS classes
+                (<code>cdk-focused</code>, <code>cdk-keyboard-focused</code>, etc.)
+                to monitored elements.
+              </p>
+            </div>
+          </div>
+
+          <div class="code-block">
+            <div class="code-block-label">TypeScript — signal-based focus origin</div>
+            <pre><span class="kw">import</span> { <span class="fn">inject</span>, <span class="typ">Component</span>, <span class="fn">signal</span>, <span class="typ">OnDestroy</span>, <span class="fn">viewChild</span>, <span class="typ">ElementRef</span> } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+<span class="kw">import</span> { <span class="typ">FocusMonitor</span>, <span class="typ">FocusOrigin</span> } <span class="kw">from</span> <span class="str">'@angular/cdk/a11y'</span>;
+
+@<span class="fn">Component</span>({ <span class="cmt">/* standalone, OnPush, ... */</span> })
+<span class="kw">export class</span> <span class="typ">CustomButtonComponent</span> <span class="kw">implements</span> <span class="typ">OnDestroy</span> {
+  <span class="kw">private</span> <span class="fn">focusMonitor</span> = <span class="fn">inject</span>(<span class="typ">FocusMonitor</span>);
+  <span class="kw">private</span> <span class="fn">buttonRef</span> = <span class="fn">viewChild</span>&lt;<span class="typ">ElementRef</span>&gt;(<span class="str">'btn'</span>);
+  <span class="kw">readonly</span> <span class="fn">focusOrigin</span> = <span class="fn">signal</span>&lt;<span class="typ">FocusOrigin</span>&gt;(<span class="kw">null</span>);
+
+  <span class="fn">ngAfterViewInit</span>() {
+    <span class="kw">this</span>.<span class="fn">focusMonitor</span>.<span class="fn">monitor</span>(<span class="kw">this</span>.<span class="fn">buttonRef</span>()!.<span class="fn">nativeElement</span>)
+      .<span class="fn">subscribe</span>(origin =&gt; <span class="kw">this</span>.<span class="fn">focusOrigin</span>.<span class="fn">set</span>(origin));
+  }
+
+  <span class="fn">ngOnDestroy</span>() {
+    <span class="kw">this</span>.<span class="fn">focusMonitor</span>.<span class="fn">stopMonitoring</span>(<span class="kw">this</span>.<span class="fn">buttonRef</span>()!.<span class="fn">nativeElement</span>);
+  }
+}</pre>
+          </div>
+
+          <div class="code-block">
+            <div class="code-block-label">HTML — conditionally show visible focus ring</div>
+            <pre><span class="tag-c">&lt;button</span>
+  #btn
+  <span class="atr">type</span>=<span class="val">"button"</span>
+  <span class="atr">[class.keyboard-focus]</span>=<span class="val">"focusOrigin() === 'keyboard'"</span><span class="tag-c">&gt;</span>
+  Save Todo
+<span class="tag-c">&lt;/button&gt;</span></pre>
+          </div>
+
+          <div class="callout info">
+            <span class="callout-icon" aria-hidden="true">ℹ️</span>
+            <p>
+              CDK automatically adds <code>cdk-focused</code> and
+              <code>cdk-keyboard-focused</code> CSS classes to monitored elements.
+              You can style <code>.cdk-keyboard-focused</code> in your CSS instead of
+              managing it manually in the component template.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 9.5 HighContrastModeDetector ─────────────────────── -->
+        <section id="s9-5" aria-labelledby="h9-5">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">9.5</div>
+            <h2 id="h9-5">HighContrastModeDetector</h2>
+          </div>
+
+          <div class="prim-card">
+            <div class="prim-card-head">
+              <div>
+                <div class="prim-name">HighContrastModeDetector</div>
+                <div class="prim-pkg">@angular/cdk/a11y · Service (injectable)</div>
+              </div>
+              <span class="prim-tag tag-detect">Detection</span>
+            </div>
+            <div class="prim-body">
+              <p>
+                Detects whether the user is running <strong>Windows High Contrast Mode</strong>
+                (now called <em>Forced Colors Mode</em> in the CSS spec). Returns
+                <code>'black-on-white'</code>, <code>'white-on-black'</code>, or
+                <code>'none'</code>. Use this to conditionally add high-contrast-safe
+                styles in components that rely on colour to convey meaning.
+              </p>
+            </div>
+          </div>
+
+          <div class="code-block">
+            <div class="code-block-label">TypeScript</div>
+            <pre><span class="kw">import</span> { <span class="fn">inject</span>, <span class="typ">Component</span> } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+<span class="kw">import</span> { <span class="typ">HighContrastModeDetector</span> } <span class="kw">from</span> <span class="str">'@angular/cdk/a11y'</span>;
+
+@<span class="fn">Component</span>({ <span class="cmt">/* ... */</span> })
+<span class="kw">export class</span> <span class="typ">StatusBadgeComponent</span> {
+  <span class="kw">private</span> <span class="fn">hcDetector</span> = <span class="fn">inject</span>(<span class="typ">HighContrastModeDetector</span>);
+  <span class="kw">readonly</span> <span class="fn">isHighContrast</span> = <span class="kw">this</span>.<span class="fn">hcDetector</span>.<span class="fn">getHighContrastMode</span>() !== <span class="str">'none'</span>;
+}</pre>
+          </div>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong>Prefer CSS forced-colors media query over JS detection</strong> when
+              possible. Use <code>@media (forced-colors: active)</code> in your CSS to ensure
+              components remain usable in High Contrast Mode. The JS detector is useful for
+              conditionally rendering alternative text-based indicators where colour alone
+              carries meaning.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 9.6 CdkListbox ────────────────────────────────────── -->
+        <section id="s9-6" aria-labelledby="h9-6">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">9.6</div>
+            <h2 id="h9-6">CdkListbox</h2>
+          </div>
+
+          <div class="prim-card">
+            <div class="prim-card-head">
+              <div>
+                <div class="prim-name">CdkListbox / CdkOption</div>
+                <div class="prim-pkg">@angular/cdk/listbox · Directive</div>
+              </div>
+              <span class="prim-tag tag-directive">Directive</span>
+            </div>
+            <div class="prim-body">
+              <p>
+                A fully accessible listbox implementation — handles roving tabindex,
+                <kbd>Arrow</kbd> key navigation, <kbd>Home</kbd>/<kbd>End</kbd>,
+                <kbd>Space</kbd> selection, and <code>aria-selected</code> state management
+                automatically. Supports both single and multi-select modes.
+              </p>
+            </div>
+          </div>
+
+          <div class="code-block">
+            <div class="code-block-label">TypeScript — import</div>
+            <pre><span class="kw">import</span> { <span class="typ">CdkListbox</span>, <span class="typ">CdkOption</span> } <span class="kw">from</span> <span class="str">'@angular/cdk/listbox'</span>;
+
+@<span class="fn">Component</span>({
+  <span class="fn">imports</span>: [<span class="typ">CdkListbox</span>, <span class="typ">CdkOption</span>],
+  <span class="fn">changeDetection</span>: <span class="typ">ChangeDetectionStrategy</span>.<span class="fn">OnPush</span>,
+})</pre>
+          </div>
+
+          <div class="code-block">
+            <div class="code-block-label">HTML — single-select listbox</div>
+            <pre><span class="tag-c">&lt;ul</span>
+  <span class="atr">cdkListbox</span>
+  <span class="atr">aria-label</span>=<span class="val">"Select priority"</span>
+  <span class="atr">[cdkListboxValue]</span>=<span class="val">"selectedPriority()"</span>
+  <span class="atr">(cdkListboxValueChange)</span>=<span class="val">"selectedPriority.set($event.value)"</span><span class="tag-c">&gt;</span>
+  @for (option of priorities(); track option.value) {
+    <span class="tag-c">&lt;li</span>
+      <span class="atr">cdkOption</span>
+      <span class="atr">[cdkOptionValue]</span>=<span class="val">"option.value"</span><span class="tag-c">&gt;</span>
+      {{ option.label }}
+    <span class="tag-c">&lt;/li&gt;</span>
+  }
+<span class="tag-c">&lt;/ul&gt;</span></pre>
+          </div>
+
+          <div class="callout success">
+            <span class="callout-icon" aria-hidden="true">✅</span>
+            <p>
+              <code>CdkListbox</code> automatically applies
+              <code>role="listbox"</code> and <code>role="option"</code>,
+              manages <code>aria-selected</code>, and implements the full
+              APG Listbox keyboard contract. You get full ARIA compliance
+              with zero manual ARIA attribute management.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 9.7 CdkMenu ───────────────────────────────────────── -->
+        <section id="s9-7" aria-labelledby="h9-7">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">9.7</div>
+            <h2 id="h9-7">CdkMenu &amp; CdkMenuBar</h2>
+          </div>
+
+          <div class="prim-card">
+            <div class="prim-card-head">
+              <div>
+                <div class="prim-name">CdkMenu / CdkMenuItem / CdkMenuBar</div>
+                <div class="prim-pkg">@angular/cdk/menu · Directive</div>
+              </div>
+              <span class="prim-tag tag-directive">Directive</span>
+            </div>
+            <div class="prim-body">
+              <p>
+                Full APG Menu pattern implementation — handles
+                <code>role="menu"</code>, <code>role="menuitem"</code>,
+                <code>role="menubar"</code>, <code>aria-haspopup</code>,
+                <code>aria-expanded</code>, arrow key navigation, Escape to close,
+                and sub-menu support. Use <code>CdkMenuTriggerFor</code> to connect
+                a trigger button to its menu panel.
+              </p>
+            </div>
+          </div>
+
+          <div class="code-block">
+            <div class="code-block-label">TypeScript — import</div>
+            <pre><span class="kw">import</span> {
+  <span class="typ">CdkMenu</span>, <span class="typ">CdkMenuItem</span>, <span class="typ">CdkMenuTriggerFor</span>, <span class="typ">CdkMenuBar</span>
+} <span class="kw">from</span> <span class="str">'@angular/cdk/menu'</span>;</pre>
+          </div>
+
+          <div class="code-block">
+            <div class="code-block-label">HTML — context menu trigger + panel</div>
+            <pre><span class="tag-c">&lt;button</span>
+  <span class="atr">type</span>=<span class="val">"button"</span>
+  <span class="atr">[cdkMenuTriggerFor]</span>=<span class="val">"actionsMenu"</span>
+  <span class="atr">aria-label</span>=<span class="val">"Todo actions"</span><span class="tag-c">&gt;</span>
+  Actions ▾
+<span class="tag-c">&lt;/button&gt;</span>
+
+<span class="tag-c">&lt;ng-template</span> #actionsMenu<span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;div</span> <span class="atr">cdkMenu</span><span class="tag-c">&gt;</span>
+    <span class="tag-c">&lt;button</span> <span class="atr">cdkMenuItem</span> <span class="atr">(click)</span>=<span class="val">"editTodo()"</span><span class="tag-c">&gt;</span>Edit<span class="tag-c">&lt;/button&gt;</span>
+    <span class="tag-c">&lt;button</span> <span class="atr">cdkMenuItem</span> <span class="atr">(click)</span>=<span class="val">"duplicateTodo()"</span><span class="tag-c">&gt;</span>Duplicate<span class="tag-c">&lt;/button&gt;</span>
+    <span class="tag-c">&lt;button</span> <span class="atr">cdkMenuItem</span> <span class="atr">(click)</span>=<span class="val">"deleteTodo()"</span><span class="tag-c">&gt;</span>Delete<span class="tag-c">&lt;/button&gt;</span>
+  <span class="tag-c">&lt;/div&gt;</span>
+<span class="tag-c">&lt;/ng-template&gt;</span></pre>
+          </div>
+
+          <div class="callout success">
+            <span class="callout-icon" aria-hidden="true">✅</span>
+            <p>
+              <code>CdkMenuTriggerFor</code> automatically manages
+              <code>aria-haspopup="menu"</code> and <code>aria-expanded</code>
+              on the trigger button. <code>CdkMenu</code> manages all keyboard
+              navigation and Escape handling — zero manual event listeners needed.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 9.8 ActiveDescendantKeyManager ───────────────────── -->
+        <section id="s9-8" aria-labelledby="h9-8">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">9.8</div>
+            <h2 id="h9-8">ActiveDescendantKeyManager</h2>
+          </div>
+
+          <div class="prim-card">
+            <div class="prim-card-head">
+              <div>
+                <div class="prim-name">ActiveDescendantKeyManager</div>
+                <div class="prim-pkg">@angular/cdk/a11y · Service class</div>
+              </div>
+              <span class="prim-tag tag-service">Service</span>
+            </div>
+            <div class="prim-body">
+              <p>
+                Manages keyboard navigation for <code>aria-activedescendant</code> patterns —
+                where the parent container holds focus and <code>aria-activedescendant</code>
+                points to the currently active child item. Used for combobox autocomplete
+                dropdowns, search suggestion lists, and other composite widgets where the
+                input field (not the options) must maintain DOM focus.
+              </p>
+            </div>
+          </div>
+
+          <div class="code-block">
+            <div class="code-block-label">TypeScript — combobox with ActiveDescendantKeyManager</div>
+            <pre><span class="kw">import</span> { <span class="fn">inject</span>, <span class="typ">Component</span>, <span class="fn">signal</span>, <span class="fn">viewChildren</span>, <span class="typ">QueryList</span> } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+<span class="kw">import</span> { <span class="typ">ActiveDescendantKeyManager</span>, <span class="typ">Highlightable</span> } <span class="kw">from</span> <span class="str">'@angular/cdk/a11y'</span>;
+
+<span class="cmt">// 1. Options must implement Highlightable</span>
+@<span class="fn">Component</span>({ <span class="fn">selector</span>: <span class="str">'[app-option]'</span>, <span class="cmt">/* ... */</span> })
+<span class="kw">export class</span> <span class="typ">OptionComponent</span> <span class="kw">implements</span> <span class="typ">Highlightable</span> {
+  <span class="kw">readonly</span> <span class="fn">isActive</span> = <span class="fn">signal</span>(<span class="kw">false</span>);
+  <span class="fn">setActiveStyles</span>()   { <span class="kw">this</span>.<span class="fn">isActive</span>.<span class="fn">set</span>(<span class="kw">true</span>);  }
+  <span class="fn">setInactiveStyles</span>() { <span class="kw">this</span>.<span class="fn">isActive</span>.<span class="fn">set</span>(<span class="kw">false</span>); }
+}
+
+<span class="cmt">// 2. Parent manages key navigation</span>
+@<span class="fn">Component</span>({ <span class="cmt">/* ... */</span> })
+<span class="kw">export class</span> <span class="typ">AutocompleteComponent</span> {
+  <span class="kw">readonly</span> <span class="fn">options</span> = <span class="fn">viewChildren</span>(<span class="typ">OptionComponent</span>);
+  <span class="kw">private</span> <span class="fn">keyManager</span>!: <span class="typ">ActiveDescendantKeyManager</span>&lt;<span class="typ">OptionComponent</span>&gt;;
+
+  <span class="fn">ngAfterViewInit</span>() {
+    <span class="kw">this</span>.<span class="fn">keyManager</span> = <span class="kw">new</span> <span class="typ">ActiveDescendantKeyManager</span>(<span class="kw">this</span>.<span class="fn">options</span>())
+      .<span class="fn">withWrap</span>().<span class="fn">withTypeAhead</span>();
+  }
+
+  <span class="fn">onKeydown</span>(e: <span class="typ">KeyboardEvent</span>) {
+    <span class="kw">this</span>.<span class="fn">keyManager</span>.<span class="fn">onKeydown</span>(e);
+  }
+
+  <span class="fn">getActiveOptionId</span>(): <span class="typ">string</span> | <span class="kw">undefined</span> {
+    <span class="kw">return</span> <span class="kw">this</span>.<span class="fn">keyManager</span>.<span class="fn">activeItem</span>?.<span class="fn">id</span>;
+  }
+}</pre>
+          </div>
+        </section>
+
+        <!-- ─── 9.9 Summary Table ─────────────────────────────────── -->
+        <section id="s9-9" aria-labelledby="h9-9">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">9.9</div>
+            <h2 id="h9-9">CDK A11y Primitives Summary Table</h2>
+          </div>
+
+          <div class="table-wrapper">
+            <table aria-label="CDK A11y primitives summary with ARIA patterns and use cases">
+              <thead>
+                <tr>
+                  <th scope="col">Primitive</th>
+                  <th scope="col">Import Path</th>
+                  <th scope="col">ARIA Pattern</th>
+                  <th scope="col">When to Use</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>cdkTrapFocus</code></td>
+                  <td><code>@angular/cdk/a11y</code></td>
+                  <td>Modal Dialog, Drawer</td>
+                  <td>Any overlay that must contain keyboard focus</td>
+                </tr>
+                <tr>
+                  <td><code>FocusTrapFactory</code></td>
+                  <td><code>@angular/cdk/a11y</code></td>
+                  <td>Programmatic focus trap</td>
+                  <td>When <code>cdkTrapFocus</code> directive is insufficient (dynamic overlays)</td>
+                </tr>
+                <tr>
+                  <td><code>LiveAnnouncer</code></td>
+                  <td><code>@angular/cdk/a11y</code></td>
+                  <td>ARIA Live Regions</td>
+                  <td>Route changes, dynamic updates, notifications, search result counts</td>
+                </tr>
+                <tr>
+                  <td><code>FocusMonitor</code></td>
+                  <td><code>@angular/cdk/a11y</code></td>
+                  <td>Focus Visible / :focus-visible</td>
+                  <td>Custom components needing keyboard vs mouse focus styling differentiation</td>
+                </tr>
+                <tr>
+                  <td><code>HighContrastModeDetector</code></td>
+                  <td><code>@angular/cdk/a11y</code></td>
+                  <td>Forced Colors Mode</td>
+                  <td>Components using colour-only indicators that must adapt to Windows HC Mode</td>
+                </tr>
+                <tr>
+                  <td><code>CdkListbox</code> / <code>CdkOption</code></td>
+                  <td><code>@angular/cdk/listbox</code></td>
+                  <td>Listbox (APG)</td>
+                  <td>Single or multi-select custom list replacements</td>
+                </tr>
+                <tr>
+                  <td><code>CdkMenu</code> / <code>CdkMenuItem</code></td>
+                  <td><code>@angular/cdk/menu</code></td>
+                  <td>Menu / Menu Bar (APG)</td>
+                  <td>Context menus, action menus, navigation menu bars</td>
+                </tr>
+                <tr>
+                  <td><code>ActiveDescendantKeyManager</code></td>
+                  <td><code>@angular/cdk/a11y</code></td>
+                  <td>Combobox / Autocomplete</td>
+                  <td>Widgets where focus stays on input and <code>aria-activedescendant</code> tracks active option</td>
+                </tr>
+                <tr>
+                  <td><code>ListKeyManager</code></td>
+                  <td><code>@angular/cdk/a11y</code></td>
+                  <td>Roving Tabindex</td>
+                  <td>Custom composite widgets where actual DOM focus moves between items</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Guide Completion Banner -->
+          <div class="completion-banner" role="region" aria-labelledby="completion-heading">
+            <h3 id="completion-heading">🎉 ARIA Complete Guide — All 9 Sections</h3>
+            <p>
+              You have reached the end of the Angular ARIA Complete Guide.
+              All sections cover WAI-ARIA 1.2, Angular 21, and tested AT behaviour.
+            </p>
+            <div class="section-links">
+              <a href="./aria-s1-foundation.html">S1: Foundation</a>
+              <a href="./aria-s2-roles.html">S2: Roles</a>
+              <a href="./aria-s3-properties.html">S3: Properties</a>
+              <a href="./aria-s4-states.html">S4: States</a>
+              <a href="./aria-s5-live-regions.html">S5: Live Regions</a>
+              <a href="./aria-s6-custom-patterns.html">S6: Custom Patterns</a>
+              <a href="./aria-s7-screen-readers.html">S7: Screen Readers</a>
+              <a href="./aria-s8-antipatterns.html">S8: Anti-patterns</a>
+              <a href="./aria-complete-guide.html">← Index</a>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══ BOTTOM NAVIGATION ════════════════════════════════════ -->
+        <nav class="bottom-nav" aria-label="Section navigation">
+          <a href="./aria-s8-antipatterns.html">← Section 8: Anti-patterns</a>
+          <span style="font-size:0.78rem;color:var(--muted);text-align:center;flex:1;">
+            Section 9 of 9 — Angular CDK A11y Primitives
+          </span>
+          <a href="./aria-complete-guide.html">← Back to Index</a>
+        </nav>
+
+      </main>
+
+      <!-- ═══ FOOTER ════════════════════════════════════════════════ -->
+      <footer role="contentinfo">
+        <p>
+          ARIA Complete Guide · Section 9 · Updated May 2026 ·
+          <a href="https://material.angular.io/cdk/a11y/overview" rel="noopener noreferrer">Angular CDK A11y Docs</a> ·
+          <a href="https://www.w3.org/WAI/ARIA/apg/" rel="noopener noreferrer">ARIA Authoring Practices Guide</a>
+        </p>
+        <p style="margin-top:0.5rem;">
+          <a href="./aria-complete-guide.html">← Back to ARIA Guide Index</a> ·
+          <a href="./aria-s8-antipatterns.html">← Section 8: Anti-patterns</a>
+        </p>
+      </footer>
+
+    </div><!-- /page-wrapper -->
+  </body>
+</html>

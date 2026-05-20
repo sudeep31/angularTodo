@@ -21,8 +21,9 @@
     }
 
     <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-      <!-- Priority badge -->
+      <!-- Priority badge — aria-label makes meaning explicit for AT regardless of colour — WCAG 1.4.1 -->
       <span
+        [attr.aria-label]="todo().priority + ' priority'"
         class="px-2 py-0.5 rounded-full font-medium"
         [class.bg-red-100]="todo().priority === 'high'"
         [class.text-red-700]="todo().priority === 'high'"
@@ -54,16 +55,17 @@
       (click)="onEdit()"
       [disabled]="disabled()"
       class="p-1.5 text-gray-400 hover:text-blue-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-40"
-      aria-label="Edit todo">
-      ✏️
+      [attr.aria-label]="'Edit: ' + todo().title">
+      <!-- aria-hidden prevents the emoji from being read alongside the aria-label -->
+      <span aria-hidden="true">&#x270F;&#xFE0F;</span>
     </button>
     <button
       type="button"
       (click)="onDelete()"
       [disabled]="disabled()"
       class="p-1.5 text-gray-400 hover:text-red-600 rounded focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors disabled:opacity-40"
-      aria-label="Delete todo">
-      🗑️
+      [attr.aria-label]="'Delete: ' + todo().title">
+      <span aria-hidden="true">&#x1F5D1;&#xFE0F;</span>
     </button>
   </div>
 </div>

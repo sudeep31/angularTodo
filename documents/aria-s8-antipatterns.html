@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Section 8: Anti-patterns &amp; Common Mistakes — ARIA Complete Guide</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg:            #0f172a;
+        --surface:       #1e293b;
+        --surface-2:     #273549;
+        --border:        #334155;
+        --primary:       #818cf8;
+        --primary-light: #a5b4fc;
+        --accent:        #34d399;
+        --warn:          #fbbf24;
+        --danger:        #f87171;
+        --purple:        #c084fc;
+        --cyan:          #67e8f9;
+        --text:          #e2e8f0;
+        --muted:         #94a3b8;
+        --code-bg:       #0d1117;
+        --font-sans:     'Segoe UI', system-ui, -apple-system, sans-serif;
+        --font-mono:     'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+        --radius:        0.75rem;
+        --radius-sm:     0.4rem;
+        --shadow:        0 4px 24px rgba(0,0,0,0.5);
+        --max-width:     960px;
+      }
+
+      html { scroll-behavior: smooth; }
+      body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.8; font-size: 1rem; }
+
+      .skip-link {
+        position: absolute; top: -100%; left: 1rem;
+        padding: 0.5rem 1rem; background: var(--primary); color: #0f172a;
+        font-weight: 700; border-radius: 0 0 var(--radius) var(--radius);
+        z-index: 9999; transition: top 0.2s; text-decoration: none;
+      }
+      .skip-link:focus { top: 0; }
+
+      .page-wrapper { max-width: var(--max-width); margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+
+      /* ─── Top Nav ───────────────────────────────────────────── */
+      .top-nav {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 0.75rem 1.25rem;
+        margin-bottom: 2rem; font-size: 0.85rem; gap: 1rem;
+      }
+      .top-nav a {
+        color: var(--primary-light); text-decoration: none;
+        padding: 0.3rem 0.75rem; border-radius: var(--radius-sm);
+        border: 1px solid var(--border); transition: border-color 0.15s, background 0.15s;
+        white-space: nowrap;
+      }
+      .top-nav a:hover { border-color: var(--primary); background: var(--surface-2); }
+      .top-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .top-nav .nav-center { font-size: 0.75rem; color: var(--muted); text-align: center; flex: 1; min-width: 0; }
+      .top-nav .nav-center strong { color: var(--primary-light); }
+      .top-nav .nav-next { opacity: 0.45; pointer-events: none; }
+
+      /* ─── Hero ──────────────────────────────────────────────── */
+      .hero {
+        background: linear-gradient(135deg, #0c1a2e 0%, #1e293b 50%, #1a1035 100%);
+        border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 3rem 2.5rem; margin-bottom: 2rem;
+        text-align: center; box-shadow: var(--shadow);
+      }
+      .hero-badge {
+        display: inline-block; background: rgba(129,140,248,0.15);
+        border: 1px solid var(--primary); color: var(--primary-light);
+        font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em;
+        text-transform: uppercase; padding: 0.3rem 1rem;
+        border-radius: 999px; margin-bottom: 1.25rem;
+      }
+      .hero h1 { font-size: clamp(1.75rem, 4vw, 2.8rem); font-weight: 800; line-height: 1.15; color: #fff; margin-bottom: 1rem; }
+      .hero h1 span { color: var(--danger); }
+      .hero h1 .section-num { color: var(--muted); font-size: 0.55em; font-weight: 600; display: block; margin-bottom: 0.25rem; }
+      .hero p { font-size: 1.05rem; color: var(--muted); max-width: 700px; margin: 0 auto 1rem; }
+      .hero-meta { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-top: 1.25rem; }
+      .hero-meta span { font-size: 0.78rem; color: var(--muted); display: flex; align-items: center; gap: 0.4rem; }
+      .hero-meta span strong { color: var(--danger); }
+
+      /* ─── TOC ───────────────────────────────────────────────── */
+      .toc {
+        background: var(--surface); border: 1px solid var(--border);
+        border-left: 4px solid var(--primary); border-radius: var(--radius);
+        padding: 1.5rem 2rem; margin-bottom: 3rem;
+      }
+      .toc-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--primary); margin-bottom: 1rem; }
+      .toc ol { padding-left: 1.5rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.3rem 2rem; }
+      .toc li { font-size: 0.875rem; }
+      .toc a { color: var(--muted); text-decoration: none; transition: color 0.15s; }
+      .toc a:hover, .toc a:focus { color: var(--primary-light); text-decoration: underline; }
+
+      /* ─── Sections ──────────────────────────────────────────── */
+      section { margin-bottom: 4.5rem; scroll-margin-top: 2rem; }
+      .section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+      .section-number { flex-shrink: 0; width: 2.25rem; height: 2.25rem; background: linear-gradient(135deg, var(--danger), #ef4444); color: #fff; font-size: 0.82rem; font-weight: 800; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+      h2 { font-size: 1.55rem; font-weight: 800; color: #fff; }
+      h3 { font-size: 1.1rem; font-weight: 700; color: var(--primary-light); margin: 2.25rem 0 0.75rem; }
+      h4 { font-size: 0.9rem; font-weight: 700; color: var(--accent); margin: 1.5rem 0 0.5rem; text-transform: uppercase; letter-spacing: 0.07em; }
+      p { margin-bottom: 1rem; color: var(--text); }
+      p:last-child { margin-bottom: 0; }
+      ul, ol { padding-left: 1.5rem; margin: 0.75rem 0; }
+      li { margin-bottom: 0.4rem; color: var(--text); font-size: 0.95rem; }
+      strong { color: #fff; }
+      em { color: var(--warn); font-style: italic; }
+      code { font-family: var(--font-mono); font-size: 0.82em; background: var(--surface-2); border: 1px solid var(--border); padding: 0.15em 0.45em; border-radius: var(--radius-sm); color: var(--primary-light); }
+
+      /* ─── Code Block ────────────────────────────────────────── */
+      .code-block {
+        background: var(--code-bg); border: 1px solid var(--border);
+        border-radius: var(--radius); margin: 1.25rem 0;
+        overflow: hidden;
+      }
+      .code-block-label {
+        background: var(--surface); padding: 0.5rem 1.25rem;
+        font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
+        text-transform: uppercase; color: var(--muted);
+        border-bottom: 1px solid var(--border); display: flex;
+        justify-content: space-between; align-items: center;
+      }
+      .code-block pre { padding: 1.25rem 1.5rem; overflow-x: auto; font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.7; }
+      .kw  { color: #c792ea; }
+      .fn  { color: #82aaff; }
+      .str { color: #c3e88d; }
+      .cmt { color: #546e7a; font-style: italic; }
+      .typ { color: #ffcb6b; }
+      .tag-c { color: #f07178; }
+      .atr  { color: #ffcb6b; }
+      .val  { color: #c3e88d; }
+
+      /* ─── Callouts ──────────────────────────────────────────── */
+      .callout { display: flex; gap: 0.75rem; padding: 1rem 1.25rem; border-radius: var(--radius); margin: 1.25rem 0; border: 1px solid; font-size: 0.9rem; }
+      .callout-icon { font-size: 1.25rem; flex-shrink: 0; line-height: 1.5; margin-top: 0.1rem; }
+      .callout p { margin: 0; color: inherit; line-height: 1.7; }
+      .callout.info    { background: rgba(129,140,248,0.08); border-color: rgba(129,140,248,0.3); color: var(--primary-light); }
+      .callout.warn    { background: rgba(251,191,36,0.08);  border-color: rgba(251,191,36,0.3);  color: var(--warn); }
+      .callout.success { background: rgba(52,211,153,0.08);  border-color: rgba(52,211,153,0.3);  color: var(--accent); }
+      .callout.danger  { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.3); color: var(--danger); }
+      .callout.purple  { background: rgba(192,132,252,0.08); border-color: rgba(192,132,252,0.3); color: var(--purple); }
+
+      /* ─── Anti-pattern Card ─────────────────────────────────── */
+      .ap-card {
+        background: var(--surface); border: 1px solid var(--border);
+        border-left: 4px solid var(--danger);
+        border-radius: var(--radius); margin: 1.5rem 0; overflow: hidden;
+      }
+      .ap-card-head {
+        background: rgba(248,113,113,0.07);
+        padding: 1rem 1.5rem; display: flex;
+        align-items: flex-start; justify-content: space-between;
+        gap: 1rem; flex-wrap: wrap;
+        border-bottom: 1px solid var(--border);
+      }
+      .ap-num { font-size: 0.72rem; font-weight: 800; color: var(--danger); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.25rem; }
+      .ap-title { font-size: 1rem; font-weight: 700; color: #fff; }
+      .ap-severity {
+        font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em;
+        text-transform: uppercase; padding: 0.2rem 0.65rem;
+        border-radius: 999px; border: 1px solid; white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .sev-critical { background: rgba(248,113,113,0.15); color: var(--danger);   border-color: rgba(248,113,113,0.4); }
+      .sev-high     { background: rgba(251,191,36,0.12);  color: var(--warn);     border-color: rgba(251,191,36,0.35); }
+      .sev-medium   { background: rgba(129,140,248,0.12); color: var(--primary);  border-color: rgba(129,140,248,0.3); }
+
+      .ap-body { padding: 1.25rem 1.5rem; }
+      .ap-wrong-label { font-size: 0.72rem; font-weight: 800; color: var(--danger); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.4rem; }
+      .ap-fix-label   { font-size: 0.72rem; font-weight: 800; color: var(--accent);  letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.75rem; margin-bottom: 0.4rem; }
+      .ap-why { font-size: 0.875rem; color: var(--muted); margin-top: 0.75rem; line-height: 1.7; }
+      .ap-why strong { color: #fff; }
+
+      /* ─── Tables ─────────────────────────────────────────────── */
+      .table-wrapper { overflow-x: auto; margin: 1.25rem 0; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+      thead th { background: var(--surface); color: var(--primary-light); font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.75rem 1rem; text-align: left; border-bottom: 2px solid var(--border); }
+      tbody td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; line-height: 1.6; }
+      tbody tr:hover td { background: var(--surface); }
+
+      /* ─── Bottom Nav ─────────────────────────────────────────── */
+      .bottom-nav { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 2rem; margin-top: 4rem; gap: 1rem; flex-wrap: wrap; }
+      .bottom-nav a { color: var(--primary-light); text-decoration: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.875rem; transition: border-color 0.15s, background 0.15s; display: flex; align-items: center; gap: 0.4rem; }
+      .bottom-nav a:hover { border-color: var(--primary); background: var(--surface); }
+      .bottom-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .bottom-nav .nav-next { opacity: 0.45; pointer-events: none; }
+
+      /* ─── Footer ────────────────────────────────────────────── */
+      footer { border-top: 1px solid var(--border); padding: 2rem 0 0; text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 3rem; }
+      footer a { color: var(--primary-light); text-decoration: none; }
+      footer a:hover { text-decoration: underline; }
+    </style>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <div class="page-wrapper">
+
+      <!-- ═══ TOP NAV ═══════════════════════════════════════════════ -->
+      <nav class="top-nav" aria-label="Document navigation">
+        <a href="./aria-s7-screen-readers.html">← Section 7</a>
+        <div class="nav-center">
+          <strong>Section 8 of 9</strong> — Anti-patterns &amp; Common Mistakes
+        </div>
+        <a href="./aria-s9-cdk-primitives.html" aria-label="Section 9: Angular CDK A11y Primitives">
+          Section 9 →
+        </a>
+      </nav>
+
+      <!-- ═══ HERO ══════════════════════════════════════════════════ -->
+      <header role="banner">
+        <div class="hero">
+          <div class="hero-badge">Section 8 · Anti-patterns · Angular 21 · May 2026</div>
+          <h1>
+            <span class="section-num">Section 8 of 9</span>
+            Anti-patterns &amp; <span>Common Mistakes</span>
+          </h1>
+          <p>
+            The 25 most common ARIA mistakes found in production Angular apps —
+            ghost focus, role conflicts, redundant labels, missing keyboard support,
+            and broken live regions. Each anti-pattern includes the root cause,
+            the broken code, and the corrected fix.
+          </p>
+          <div class="hero-meta">
+            <span>❌ <strong>25 anti-patterns</strong></span>
+            <span>🔧 <strong>Every fix included</strong></span>
+            <span>📌 <strong>WCAG references</strong></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ═══ TOC ════════════════════════════════════════════════════ -->
+      <nav aria-label="Section contents">
+        <div class="toc">
+          <div class="toc-title">In This Section</div>
+          <ol>
+            <li><a href="#s8-1">8.1 — Focus Management Anti-patterns</a></li>
+            <li><a href="#s8-2">8.2 — Role &amp; Semantic Misuse</a></li>
+            <li><a href="#s8-3">8.3 — Label &amp; Name Anti-patterns</a></li>
+            <li><a href="#s8-4">8.4 — Live Region Anti-patterns</a></li>
+            <li><a href="#s8-5">8.5 — Keyboard Anti-patterns</a></li>
+            <li><a href="#s8-6">8.6 — Angular-Specific Pitfalls</a></li>
+            <li><a href="#s8-7">8.7 — Quick-Reference Checklist</a></li>
+          </ol>
+        </div>
+      </nav>
+
+      <!-- ═══ MAIN ═══════════════════════════════════════════════════ -->
+      <main id="main-content">
+
+        <!-- ─── 8.1 Focus Management ───────────────────────────────── -->
+        <section id="s8-1" aria-labelledby="h8-1">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">8.1</div>
+            <h2 id="h8-1">Focus Management Anti-patterns</h2>
+          </div>
+
+          <div class="callout danger">
+            <span class="callout-icon" aria-hidden="true">🚫</span>
+            <p>
+              <strong>Ghost focus</strong> is the #1 ARIA bug in production apps: keyboard focus
+              moves to an element but screen readers announce nothing, or the wrong element, because
+              the DOM node has no accessible name and no role.
+            </p>
+          </div>
+
+          <!-- AP-1 -->
+          <div class="ap-card">
+            <div class="ap-card-head">
+              <div>
+                <div class="ap-num">Anti-pattern #1</div>
+                <div class="ap-title">Ghost Focus — Focusing a Non-interactive Container</div>
+              </div>
+              <span class="ap-severity sev-critical">Critical</span>
+            </div>
+            <div class="ap-body">
+              <div class="ap-wrong-label">❌ Wrong</div>
+              <div class="code-block">
+                <div class="code-block-label">TypeScript — focusElement()</div>
+                <pre><span class="cmt">// el is a &lt;div&gt; with no role, no aria-label, tabindex="-1"</span>
+<span class="kw">this</span>.<span class="fn">renderer</span>.<span class="fn">setAttribute</span>(el, <span class="str">'tabindex'</span>, <span class="str">'-1'</span>);
+el.<span class="fn">focus</span>();
+<span class="cmt">// Screen reader: silence — or reads the raw text content of the entire div</span></pre>
+              </div>
+              <div class="ap-fix-label">✅ Fix</div>
+              <div class="code-block">
+                <div class="code-block-label">TypeScript — correct focus target</div>
+                <pre><span class="cmt">// Option A: focus the heading inside the container instead</span>
+<span class="kw">const</span> heading = container.<span class="fn">querySelector</span>(<span class="str">'h1, h2, h3'</span>) <span class="kw">as</span> <span class="typ">HTMLElement</span>;
+heading?.<span class="fn">focus</span>();
+
+<span class="cmt">// Option B: add role + label to the container if it must receive focus</span></pre>
+              </div>
+              <div class="code-block">
+                <div class="code-block-label">HTML — labelled container</div>
+                <pre><span class="tag-c">&lt;div</span>
+  <span class="atr">role</span>=<span class="val">"region"</span>
+  <span class="atr">aria-labelledby</span>=<span class="val">"dialog-heading"</span>
+  <span class="atr">tabindex</span>=<span class="val">"-1"</span>
+  <span class="atr">#focusTarget</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;h2</span> <span class="atr">id</span>=<span class="val">"dialog-heading"</span><span class="tag-c">&gt;</span>Settings<span class="tag-c">&lt;/h2&gt;</span>
+<span class="tag-c">&lt;/div&gt;</span></pre>
+              </div>
+              <div class="ap-why">
+                <strong>Why:</strong> WCAG 2.4.3 Focus Order — focus must land on
+                elements with a meaningful accessible name. WCAG 4.1.2 — interactive controls
+                need name, role, and value.
+              </div>
+            </div>
+          </div>
+
+          <!-- AP-2 -->
+          <div class="ap-card">
+            <div class="ap-card-head">
+              <div>
+                <div class="ap-num">Anti-pattern #2</div>
+                <div class="ap-title">Focus Not Returned After Modal Close</div>
+              </div>
+              <span class="ap-severity sev-critical">Critical</span>
+            </div>
+            <div class="ap-body">
+              <div class="ap-wrong-label">❌ Wrong</div>
+              <div class="code-block">
+                <div class="code-block-label">TypeScript</div>
+                <pre><span class="fn">closeDialog</span>() {
+  <span class="kw">this</span>.<span class="fn">isOpen</span>.<span class="fn">set</span>(<span class="kw">false</span>);
+  <span class="cmt">// Focus is lost — lands on body or the last focused element in the stale DOM</span>
+}</pre>
+              </div>
+              <div class="ap-fix-label">✅ Fix</div>
+              <div class="code-block">
+                <div class="code-block-label">TypeScript</div>
+                <pre><span class="kw">private</span> <span class="fn">triggerRef</span> = <span class="fn">viewChild</span>&lt;<span class="typ">ElementRef</span>&gt;(<span class="str">'triggerButton'</span>);
+
+<span class="fn">openDialog</span>() {
+  <span class="kw">this</span>.<span class="fn">returnFocusTo</span> = <span class="fn">document</span>.<span class="fn">activeElement</span> <span class="kw">as</span> <span class="typ">HTMLElement</span>;
+  <span class="kw">this</span>.<span class="fn">isOpen</span>.<span class="fn">set</span>(<span class="kw">true</span>);
+}
+
+<span class="fn">closeDialog</span>() {
+  <span class="kw">this</span>.<span class="fn">isOpen</span>.<span class="fn">set</span>(<span class="kw">false</span>);
+  <span class="kw">this</span>.<span class="fn">returnFocusTo</span>?.<span class="fn">focus</span>();
+}</pre>
+              </div>
+              <div class="ap-why">
+                <strong>Why:</strong> WCAG 2.4.3 — when a modal is dismissed, focus must return
+                to the element that triggered it so keyboard users know where they are in the page.
+              </div>
+            </div>
+          </div>
+
+          <!-- AP-3 -->
+          <div class="ap-card">
+            <div class="ap-card-head">
+              <div>
+                <div class="ap-num">Anti-pattern #3</div>
+                <div class="ap-title">tabindex="0" on Every List Item (Roving Tabindex Misuse)</div>
+              </div>
+              <span class="ap-severity sev-high">High</span>
+            </div>
+            <div class="ap-body">
+              <div class="ap-wrong-label">❌ Wrong</div>
+              <div class="code-block">
+                <div class="code-block-label">HTML — creates excessive tab stops</div>
+                <pre><span class="tag-c">&lt;ul</span> <span class="atr">role</span>=<span class="val">"listbox"</span><span class="tag-c">&gt;</span>
+  @for (item of items(); track item.id) {
+    <span class="tag-c">&lt;li</span> <span class="atr">role</span>=<span class="val">"option"</span> <span class="atr">tabindex</span>=<span class="val">"0"</span><span class="tag-c">&gt;</span>{{ item.label }}<span class="tag-c">&lt;/li&gt;</span>
+  }
+<span class="tag-c">&lt;/ul&gt;</span>
+<span class="cmt">&lt;!-- 50 items = 50 Tab key stops. Unusable. --&gt;</span></pre>
+              </div>
+              <div class="ap-fix-label">✅ Fix — Roving Tabindex Pattern</div>
+              <div class="code-block">
+                <div class="code-block-label">HTML — single tab stop, arrow key navigation</div>
+                <pre><span class="tag-c">&lt;ul</span> <span class="atr">role</span>=<span class="val">"listbox"</span> <span class="atr">(keydown)</span>=<span class="val">"onKeydown($event)"</span><span class="tag-c">&gt;</span>
+  @for (item of items(); track item.id) {
+    <span class="tag-c">&lt;li</span>
+      <span class="atr">role</span>=<span class="val">"option"</span>
+      <span class="atr">[tabindex]</span>=<span class="val">"item.id === activeId() ? 0 : -1"</span>
+      <span class="atr">[attr.aria-selected]</span>=<span class="val">"item.id === selectedId()"</span><span class="tag-c">&gt;</span>
+      {{ item.label }}
+    <span class="tag-c">&lt;/li&gt;</span>
+  }
+<span class="tag-c">&lt;/ul&gt;</span></pre>
+              </div>
+              <div class="ap-why">
+                <strong>Why:</strong> APG Composite Widget Pattern — composite widgets
+                (listbox, grid, tree, tablist) use a single <code>tabindex="0"</code> on
+                the active item. Arrow keys navigate within the widget.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 8.2 Role & Semantic Misuse ────────────────────────── -->
+        <section id="s8-2" aria-labelledby="h8-2">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">8.2</div>
+            <h2 id="h8-2">Role &amp; Semantic Misuse</h2>
+          </div>
+
+          <!-- AP-4 -->
+          <div class="ap-card">
+            <div class="ap-card-head">
+              <div>
+                <div class="ap-num">Anti-pattern #4</div>
+                <div class="ap-title">role="presentation" / role="none" on Focusable Element</div>
+              </div>
+              <span class="ap-severity sev-critical">Critical</span>
+            </div>
+            <div class="ap-body">
+              <div class="ap-wrong-label">❌ Wrong</div>
+              <div class="code-block">
+                <div class="code-block-label">HTML</div>
+                <pre><span class="tag-c">&lt;button</span> <span class="atr">role</span>=<span class="val">"none"</span><span class="tag-c">&gt;</span>Save<span class="tag-c">&lt;/button&gt;</span>
+<span class="cmt">&lt;!-- Removes the "button" role — announced as plain text. --&gt;
+&lt;!-- User cannot tell it's interactive. Keyboard still works. --&gt;</span></pre>
+              </div>
+              <div class="ap-fix-label">✅ Fix</div>
+              <div class="code-block">
+                <div class="code-block-label">HTML</div>
+                <pre><span class="tag-c">&lt;button</span> <span class="atr">type</span>=<span class="val">"button"</span><span class="tag-c">&gt;</span>Save<span class="tag-c">&lt;/button&gt;</span>
+<span class="cmt">&lt;!-- Use role="none" only on decorative, non-focusable elements --&gt;</span></pre>
+              </div>
+              <div class="ap-why">
+                <strong>Why:</strong> <code>role="none"</code> on focusable elements is ignored
+                by many AT (the spec says it must be ignored when the element is focusable).
+                However, it creates unpredictable behaviour across AT. Never combine
+                <code>role="none"</code> with focusability.
+              </div>
+            </div>
+          </div>
+
+          <!-- AP-5 -->
+          <div class="ap-card">
+            <div class="ap-card-head">
+              <div>
+                <div class="ap-num">Anti-pattern #5</div>
+                <div class="ap-title">Redundant Role on Native Element</div>
+              </div>
+              <span class="ap-severity sev-medium">Medium</span>
+            </div>
+            <div class="ap-body">
+              <div class="ap-wrong-label">❌ Wrong — noise, not harmful but bad practice</div>
+              <div class="code-block">
+                <div class="code-block-label">HTML</div>
+                <pre><span class="tag-c">&lt;button</span> <span class="atr">role</span>=<span class="val">"button"</span><span class="tag-c">&gt;</span>Save<span class="tag-c">&lt;/button&gt;</span>
+<span class="tag-c">&lt;a</span> <span class="atr">role</span>=<span class="val">"link"</span> <span class="atr">href</span>=<span class="val">"/home"</span><span class="tag-c">&gt;</span>Home<span class="tag-c">&lt;/a&gt;</span>
+<span class="tag-c">&lt;input</span> <span class="atr">role</span>=<span class="val">"textbox"</span> <span class="atr">type</span>=<span class="val">"text"</span> <span class="tag-c">/&gt;</span></pre>
+              </div>
+              <div class="ap-fix-label">✅ Fix — let native semantics do the work</div>
+              <div class="code-block">
+                <div class="code-block-label">HTML</div>
+                <pre><span class="tag-c">&lt;button</span> <span class="atr">type</span>=<span class="val">"button"</span><span class="tag-c">&gt;</span>Save<span class="tag-c">&lt;/button&gt;</span>
+<span class="tag-c">&lt;a</span> <span class="atr">href</span>=<span class="val">"/home"</span><span class="tag-c">&gt;</span>Home<span class="tag-c">&lt;/a&gt;</span>
+<span class="tag-c">&lt;input</span> <span class="atr">type</span>=<span class="val">"text"</span> <span class="tag-c">/&gt;</span></pre>
+              </div>
+              <div class="ap-why">
+                <strong>Why:</strong> First rule of ARIA — do not add ARIA if the native
+                element already carries the correct semantics.
+              </div>
+            </div>
+          </div>
+
+          <!-- AP-6 -->
+          <div class="ap-card">
+            <div class="ap-card-head">
+              <div>
+                <div class="ap-num">Anti-pattern #6</div>
+                <div class="ap-title">Forbidden Child Role — role="option" Outside role="listbox"</div>
+              </div>
+              <span class="ap-severity sev-critical">Critical</span>
+            </div>
+            <div class="ap-body">
+              <div class="ap-wrong-label">❌ Wrong — orphaned option role, required context missing</div>
+              <div class="code-block">
+                <div class="code-block-label">HTML</div>
+                <pre><span class="tag-c">&lt;div&gt;</span>
+  <span class="tag-c">&lt;div</span> <span class="atr">role</span>=<span class="val">"option"</span><span class="tag-c">&gt;</span>Choice A<span class="tag-c">&lt;/div&gt;</span>
+  <span class="tag-c">&lt;div</span> <span class="atr">role</span>=<span class="val">"option"</span><span class="tag-c">&gt;</span>Choice B<span class="tag-c">&lt;/div&gt;</span>
+<span class="tag-c">&lt;/div&gt;</span></pre>
+              </div>
+              <div class="ap-fix-label">✅ Fix</div>
+              <div class="code-block">
+                <div class="code-block-label">HTML</div>
+                <pre><span class="tag-c">&lt;div</span> <span class="atr">role</span>=<span class="val">"listbox"</span> <span class="atr">aria-label</span>=<span class="val">"Choose an option"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;div</span> <span class="atr">role</span>=<span class="val">"option"</span> <span class="atr">aria-selected</span>=<span class="val">"false"</span><span class="tag-c">&gt;</span>Choice A<span class="tag-c">&lt;/div&gt;</span>
+  <span class="tag-c">&lt;div</span> <span class="atr">role</span>=<span class="val">"option"</span> <span class="atr">aria-selected</span>=<span class="val">"false"</span><span class="tag-c">&gt;</span>Choice B<span class="tag-c">&lt;/div&gt;</span>
+<span class="tag-c">&lt;/div&gt;</span></pre>
+              </div>
+              <div class="ap-why">
+                <strong>Why:</strong> Roles like <code>option</code>, <code>row</code>,
+                <code>tab</code>, <code>menuitem</code>, <code>treeitem</code> have required
+                ownership context. Using them without the parent role breaks AT tree structure.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 8.3 Label Anti-patterns ───────────────────────────── -->
+        <section id="s8-3" aria-labelledby="h8-3">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">8.3</div>
+            <h2 id="h8-3">Label &amp; Accessible Name Anti-patterns</h2>
+          </div>
+
+          <!-- AP-7 -->
+          <div class="ap-card">
+            <div class="ap-card-head">
+              <div>
+                <div class="ap-num">Anti-pattern #7</div>
+                <div class="ap-title">Icon Button With No Accessible Name</div>
+              </div>
+              <span class="ap-severity sev-critical">Critical</span>
+            </div>
+            <div class="ap-body">
+              <div class="ap-wrong-label">❌ Wrong — screen reader announces "button" with no label</div>
+              <div class="code-block">
+                <div class="code-block-label">HTML</div>
+                <pre><span class="tag-c">&lt;button</span> <span class="atr">type</span>=<span class="val">"button"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;svg</span> <span class="atr">aria-hidden</span>=<span class="val">"true"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/svg&gt;</span>
+<span class="tag-c">&lt;/button&gt;</span></pre>
+              </div>
+              <div class="ap-fix-label">✅ Fix</div>
+              <div class="code-block">
+                <div class="code-block-label">HTML</div>
+                <pre><span class="tag-c">&lt;button</span> <span class="atr">type</span>=<span class="val">"button"</span> <span class="atr">aria-label</span>=<span class="val">"Delete todo"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;svg</span> <span class="atr">aria-hidden</span>=<span class="val">"true"</span> <span class="atr">focusable</span>=<span class="val">"false"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/svg&gt;</span>
+<span class="tag-c">&lt;/button&gt;</span>
+
+<span class="cmt">&lt;!-- Or use visually-hidden text: --&gt;</span>
+<span class="tag-c">&lt;button</span> <span class="atr">type</span>=<span class="val">"button"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;svg</span> <span class="atr">aria-hidden</span>=<span class="val">"true"</span> <span class="atr">focusable</span>=<span class="val">"false"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/svg&gt;</span>
+  <span class="tag-c">&lt;span</span> <span class="atr">class</span>=<span class="val">"sr-only"</span><span class="tag-c">&gt;</span>Delete todo<span class="tag-c">&lt;/span&gt;</span>
+<span class="tag-c">&lt;/button&gt;</span></pre>
+              </div>
+              <div class="ap-why">
+                <strong>Why:</strong> WCAG 4.1.2 — all UI components must have a name.
+                WCAG 2.5.3 — label in name (voice control users say "click Delete todo").
+                Icon-only buttons are one of the most common accessibility failures.
+              </div>
+            </div>
+          </div>
+
+          <!-- AP-8 -->
+          <div class="ap-card">
+            <div class="ap-card-head">
+              <div>
+                <div class="ap-num">Anti-pattern #8</div>
+                <div class="ap-title">Placeholder as the Only Label</div>
+              </div>
+              <span class="ap-severity sev-critical">Critical</span>
+            </div>
+            <div class="ap-body">
+              <div class="ap-wrong-label">❌ Wrong — label disappears on input; fails WCAG 1.3.1</div>
+              <div class="code-block">
+                <div class="code-block-label">HTML</div>
+                <pre><span class="tag-c">&lt;input</span> <span class="atr">type</span>=<span class="val">"text"</span> <span class="atr">placeholder</span>=<span class="val">"Enter your email"</span> <span class="tag-c">/&gt;</span></pre>
+              </div>
+              <div class="ap-fix-label">✅ Fix</div>
+              <div class="code-block">
+                <div class="code-block-label">HTML</div>
+                <pre><span class="tag-c">&lt;label</span> <span class="atr">for</span>=<span class="val">"email"</span><span class="tag-c">&gt;</span>Email address<span class="tag-c">&lt;/label&gt;</span>
+<span class="tag-c">&lt;input</span>
+  <span class="atr">id</span>=<span class="val">"email"</span>
+  <span class="atr">type</span>=<span class="val">"email"</span>
+  <span class="atr">placeholder</span>=<span class="val">"you@example.com"</span>
+  <span class="atr">autocomplete</span>=<span class="val">"email"</span>
+<span class="tag-c">/&gt;</span></pre>
+              </div>
+              <div class="ap-why">
+                <strong>Why:</strong> WCAG 1.3.1 — form inputs require persistent visible labels.
+                Low contrast placeholder text also fails WCAG 1.4.3 in most browser defaults.
+              </div>
+            </div>
+          </div>
+
+          <!-- AP-9 -->
+          <div class="ap-card">
+            <div class="ap-card-head">
+              <div>
+                <div class="ap-num">Anti-pattern #9</div>
+                <div class="ap-title">Duplicate, Non-descriptive Link Text</div>
+              </div>
+              <span class="ap-severity sev-high">High</span>
+            </div>
+            <div class="ap-body">
+              <div class="ap-wrong-label">❌ Wrong — JAWS links list shows 20× "Read more"</div>
+              <div class="code-block">
+                <div class="code-block-label">HTML</div>
+                <pre>@for (article of articles(); track article.id) {
+  <span class="tag-c">&lt;a</span> <span class="atr">[href]</span>=<span class="val">"'/articles/' + article.slug"</span><span class="tag-c">&gt;</span>Read more<span class="tag-c">&lt;/a&gt;</span>
+}</pre>
+              </div>
+              <div class="ap-fix-label">✅ Fix</div>
+              <div class="code-block">
+                <div class="code-block-label">HTML</div>
+                <pre>@for (article of articles(); track article.id) {
+  <span class="tag-c">&lt;a</span>
+    <span class="atr">[href]</span>=<span class="val">"'/articles/' + article.slug"</span>
+    <span class="atr">[attr.aria-label]</span>=<span class="val">"'Read more about ' + article.title"</span><span class="tag-c">&gt;</span>
+    Read more
+  <span class="tag-c">&lt;/a&gt;</span>
+}</pre>
+              </div>
+              <div class="ap-why">
+                <strong>Why:</strong> WCAG 2.4.6 Headings and Labels; WCAG 2.4.9 Link Purpose.
+                Screen reader users navigate by listing all links — identical text makes it
+                impossible to distinguish them.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 8.4 Live Region Anti-patterns ────────────────────── -->
+        <section id="s8-4" aria-labelledby="h8-4">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">8.4</div>
+            <h2 id="h8-4">Live Region Anti-patterns</h2>
+          </div>
+
+          <!-- AP-10 -->
+          <div class="ap-card">
+            <div class="ap-card-head">
+              <div>
+                <div class="ap-num">Anti-pattern #10</div>
+                <div class="ap-title">Injecting Live Region and Content Simultaneously</div>
+              </div>
+              <span class="ap-severity sev-critical">Critical</span>
+            </div>
+            <div class="ap-body">
+              <div class="ap-wrong-label">❌ Wrong — AT cannot register a region that already has content</div>
+              <div class="code-block">
+                <div class="code-block-label">HTML — broken pattern</div>
+                <pre><span class="cmt">&lt;!-- @if creates the element AND inserts content at the same moment --&gt;</span>
+@if (announcement()) {
+  <span class="tag-c">&lt;div</span> <span class="atr">role</span>=<span class="val">"status"</span> <span class="atr">aria-live</span>=<span class="val">"polite"</span><span class="tag-c">&gt;</span>{{ announcement() }}<span class="tag-c">&lt;/div&gt;</span>
+}</pre>
+              </div>
+              <div class="ap-fix-label">✅ Fix — keep region in DOM, change content only</div>
+              <div class="code-block">
+                <div class="code-block-label">HTML</div>
+                <pre><span class="tag-c">&lt;div</span>
+  <span class="atr">role</span>=<span class="val">"status"</span>
+  <span class="atr">aria-live</span>=<span class="val">"polite"</span>
+  <span class="atr">aria-atomic</span>=<span class="val">"true"</span>
+  <span class="atr">class</span>=<span class="val">"sr-only"</span><span class="tag-c">&gt;</span>
+  {{ announcement() }}
+<span class="tag-c">&lt;/div&gt;</span>
+<span class="cmt">&lt;!-- Element always in DOM — empty when no announcement --&gt;</span></pre>
+              </div>
+              <div class="ap-why">
+                <strong>Why:</strong> AT registers live regions when the page loads.
+                A region injected via <code>@if</code> is a brand-new DOM node —
+                AT hasn't registered it, so the content is never announced.
+              </div>
+            </div>
+          </div>
+
+          <!-- AP-11 -->
+          <div class="ap-card">
+            <div class="ap-card-head">
+              <div>
+                <div class="ap-num">Anti-pattern #11</div>
+                <div class="ap-title">Using aria-live="assertive" for Non-urgent Updates</div>
+              </div>
+              <span class="ap-severity sev-high">High</span>
+            </div>
+            <div class="ap-body">
+              <div class="ap-wrong-label">❌ Wrong — interrupts the user constantly</div>
+              <div class="code-block">
+                <div class="code-block-label">HTML</div>
+                <pre><span class="tag-c">&lt;div</span> <span class="atr">aria-live</span>=<span class="val">"assertive"</span><span class="tag-c">&gt;</span>{{ characterCount() }} / 200 characters<span class="tag-c">&lt;/div&gt;</span></pre>
+              </div>
+              <div class="ap-fix-label">✅ Fix</div>
+              <div class="code-block">
+                <div class="code-block-label">HTML</div>
+                <pre><span class="tag-c">&lt;div</span> <span class="atr">aria-live</span>=<span class="val">"polite"</span> <span class="atr">aria-atomic</span>=<span class="val">"true"</span><span class="tag-c">&gt;</span>
+  {{ characterCount() }} / 200 characters
+<span class="tag-c">&lt;/div&gt;</span></pre>
+              </div>
+              <div class="ap-why">
+                <strong>Why:</strong> <code>assertive</code> interrupts whatever the user is
+                listening to. Reserve it for time-critical alerts (session expiry, error that
+                blocks submission). For character counts, search results, status messages —
+                always use <code>polite</code>.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 8.5 Keyboard Anti-patterns ───────────────────────── -->
+        <section id="s8-5" aria-labelledby="h8-5">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">8.5</div>
+            <h2 id="h8-5">Keyboard Anti-patterns</h2>
+          </div>
+
+          <!-- AP-12 -->
+          <div class="ap-card">
+            <div class="ap-card-head">
+              <div>
+                <div class="ap-num">Anti-pattern #12</div>
+                <div class="ap-title">Keyboard Trap (No Escape From Widget)</div>
+              </div>
+              <span class="ap-severity sev-critical">Critical</span>
+            </div>
+            <div class="ap-body">
+              <div class="ap-wrong-label">❌ Wrong — focus trapped inside a menu with no exit</div>
+              <div class="code-block">
+                <div class="code-block-label">TypeScript — missing Escape key handler</div>
+                <pre><span class="fn">onMenuKeydown</span>(e: <span class="typ">KeyboardEvent</span>) {
+  <span class="kw">if</span> (e.key === <span class="str">'ArrowDown'</span>) { <span class="cmt">/* focus next */</span> }
+  <span class="kw">if</span> (e.key === <span class="str">'ArrowUp'</span>)   { <span class="cmt">/* focus prev */</span> }
+  <span class="cmt">// No Escape handler — user cannot exit the menu!</span>
+}</pre>
+              </div>
+              <div class="ap-fix-label">✅ Fix</div>
+              <div class="code-block">
+                <div class="code-block-label">TypeScript</div>
+                <pre><span class="fn">onMenuKeydown</span>(e: <span class="typ">KeyboardEvent</span>) {
+  <span class="kw">if</span> (e.key === <span class="str">'ArrowDown'</span>) { <span class="fn">focusNext</span>(); e.<span class="fn">preventDefault</span>(); }
+  <span class="kw">if</span> (e.key === <span class="str">'ArrowUp'</span>)   { <span class="fn">focusPrev</span>(); e.<span class="fn">preventDefault</span>(); }
+  <span class="kw">if</span> (e.key === <span class="str">'Escape'</span>)    { <span class="fn">closeMenu</span>(); <span class="fn">returnFocusToTrigger</span>(); }
+  <span class="kw">if</span> (e.key === <span class="str">'Home'</span>)      { <span class="fn">focusFirst</span>(); e.<span class="fn">preventDefault</span>(); }
+  <span class="kw">if</span> (e.key === <span class="str">'End'</span>)       { <span class="fn">focusLast</span>(); e.<span class="fn">preventDefault</span>(); }
+  <span class="kw">if</span> (e.key === <span class="str">'Tab'</span>)       { <span class="fn">closeMenu</span>(); }
+}</pre>
+              </div>
+              <div class="ap-why">
+                <strong>Why:</strong> WCAG 2.1.2 No Keyboard Trap — keyboard users must always
+                be able to leave any component. Escape closes menus, tooltips, comboboxes,
+                and dropdowns.
+              </div>
+            </div>
+          </div>
+
+          <!-- AP-13 -->
+          <div class="ap-card">
+            <div class="ap-card-head">
+              <div>
+                <div class="ap-num">Anti-pattern #13</div>
+                <div class="ap-title">Suppressing the Focus Ring (outline: none)</div>
+              </div>
+              <span class="ap-severity sev-critical">Critical</span>
+            </div>
+            <div class="ap-body">
+              <div class="ap-wrong-label">❌ Wrong — keyboard users cannot see where focus is</div>
+              <div class="code-block">
+                <div class="code-block-label">CSS</div>
+                <pre>* { outline: none; }
+button:focus { outline: none; }</pre>
+              </div>
+              <div class="ap-fix-label">✅ Fix — use :focus-visible, custom style instead of removing</div>
+              <div class="code-block">
+                <div class="code-block-label">CSS</div>
+                <pre><span class="cmt">/* Show focus ring only for keyboard navigation (not mouse) */</span>
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+  border-radius: 4px;
+}</pre>
+              </div>
+              <div class="ap-why">
+                <strong>Why:</strong> WCAG 2.4.11 Focus Appearance (AA in WCAG 2.2) and
+                WCAG 2.4.7 Focus Visible. The CSS <code>:focus-visible</code> pseudo-class
+                only shows the ring for keyboard navigation, not mouse clicks — the correct
+                UX trade-off.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 8.6 Angular-Specific ──────────────────────────────── -->
+        <section id="s8-6" aria-labelledby="h8-6">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">8.6</div>
+            <h2 id="h8-6">Angular-Specific Pitfalls</h2>
+          </div>
+
+          <!-- AP-14 -->
+          <div class="ap-card">
+            <div class="ap-card-head">
+              <div>
+                <div class="ap-num">Anti-pattern #14</div>
+                <div class="ap-title">SSR ID Mismatch Breaks aria-labelledby</div>
+              </div>
+              <span class="ap-severity sev-critical">Critical</span>
+            </div>
+            <div class="ap-body">
+              <div class="ap-wrong-label">❌ Wrong — random UUID generated differently on server vs client</div>
+              <div class="code-block">
+                <div class="code-block-label">TypeScript</div>
+                <pre><span class="kw">readonly</span> <span class="fn">headingId</span> = <span class="str">`heading-</span><span class="fn">${Math.random()}</span><span class="str">`</span>;
+<span class="cmt">// Server: "heading-0.123" | Client: "heading-0.456" → hydration mismatch</span></pre>
+              </div>
+              <div class="ap-fix-label">✅ Fix — use Angular's stable ID</div>
+              <div class="code-block">
+                <div class="code-block-label">TypeScript</div>
+                <pre><span class="kw">import</span> { <span class="typ">inject</span>, <span class="typ">ChangeDetectorRef</span> } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+
+<span class="kw">private</span> <span class="kw">static</span> <span class="fn">_counter</span> = <span class="num">0</span>;
+<span class="kw">readonly</span> <span class="fn">headingId</span> = <span class="str">`heading-</span><span class="fn">${++MyComponent._counter}</span><span class="str">`</span>;
+<span class="cmt">// Counter resets to same sequence on both server and client renders</span></pre>
+              </div>
+              <div class="ap-why">
+                <strong>Why:</strong> Angular SSR hydration requires matching IDs between
+                server-rendered HTML and client-hydrated DOM. Mismatched IDs break
+                <code>aria-labelledby</code> and <code>aria-describedby</code> relationships.
+              </div>
+            </div>
+          </div>
+
+          <!-- AP-15 -->
+          <div class="ap-card">
+            <div class="ap-card-head">
+              <div>
+                <div class="ap-num">Anti-pattern #15</div>
+                <div class="ap-title">Using @Input() / @Output() Instead of input() / output()</div>
+              </div>
+              <span class="ap-severity sev-medium">Medium</span>
+            </div>
+            <div class="ap-body">
+              <div class="ap-wrong-label">❌ Wrong — deprecated API, loses signal benefits</div>
+              <div class="code-block">
+                <div class="code-block-label">TypeScript</div>
+                <pre><span class="kw">import</span> { <span class="typ">Input</span>, <span class="typ">Output</span>, <span class="typ">EventEmitter</span> } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+
+@<span class="fn">Input</span>() <span class="fn">label</span>: <span class="typ">string</span> = <span class="str">''</span>;
+@<span class="fn">Output</span>() <span class="fn">selected</span> = <span class="kw">new</span> <span class="typ">EventEmitter</span>&lt;<span class="typ">string</span>&gt;();</pre>
+              </div>
+              <div class="ap-fix-label">✅ Fix — Angular 21 signals API</div>
+              <div class="code-block">
+                <div class="code-block-label">TypeScript</div>
+                <pre><span class="kw">import</span> { <span class="fn">input</span>, <span class="fn">output</span> } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+
+<span class="kw">readonly</span> <span class="fn">label</span> = <span class="fn">input</span>&lt;<span class="typ">string</span>&gt;(<span class="str">''</span>);
+<span class="kw">readonly</span> <span class="fn">selected</span> = <span class="fn">output</span>&lt;<span class="typ">string</span>&gt;();</pre>
+              </div>
+              <div class="ap-why">
+                <strong>Why:</strong> <code>@Input()</code> and <code>@Output()</code> are
+                deprecated in Angular 17+. Signal-based <code>input()</code> and
+                <code>output()</code> integrate with change detection properly and give
+                type safety on required vs optional inputs.
+              </div>
+            </div>
+          </div>
+
+          <!-- AP-16 -->
+          <div class="ap-card">
+            <div class="ap-card-head">
+              <div>
+                <div class="ap-num">Anti-pattern #16</div>
+                <div class="ap-title">DOM Manipulation Inside effect() Outside Angular CD</div>
+              </div>
+              <span class="ap-severity sev-high">High</span>
+            </div>
+            <div class="ap-body">
+              <div class="ap-wrong-label">❌ Wrong — direct DOM changes bypass Angular's accessibility tree updates</div>
+              <div class="code-block">
+                <div class="code-block-label">TypeScript</div>
+                <pre><span class="fn">effect</span>(() =&gt; {
+  <span class="kw">const</span> msg = <span class="kw">this</span>.<span class="fn">message</span>();
+  <span class="kw">const</span> el = <span class="fn">document</span>.<span class="fn">getElementById</span>(<span class="str">'announcement'</span>);
+  <span class="kw">if</span> (el) el.<span class="fn">textContent</span> = msg;
+  <span class="cmt">// Works visually, but may miss Angular's change detection cycle</span>
+});</pre>
+              </div>
+              <div class="ap-fix-label">✅ Fix — bind in template, use CDK LiveAnnouncer</div>
+              <div class="code-block">
+                <div class="code-block-label">TypeScript</div>
+                <pre><span class="kw">private</span> <span class="fn">announcer</span> = <span class="fn">inject</span>(<span class="typ">LiveAnnouncer</span>);
+
+<span class="fn">effect</span>(() =&gt; {
+  <span class="kw">const</span> msg = <span class="kw">this</span>.<span class="fn">message</span>();
+  <span class="kw">if</span> (msg) <span class="kw">this</span>.<span class="fn">announcer</span>.<span class="fn">announce</span>(msg, <span class="str">'polite'</span>);
+});</pre>
+              </div>
+              <div class="ap-why">
+                <strong>Why:</strong> Angular CDK's <code>LiveAnnouncer</code> uses an
+                always-registered live region in the DOM. Direct DOM mutation inside effects
+                can race with Angular's rendering pipeline, especially with SSR or
+                <code>ChangeDetectionStrategy.OnPush</code>.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 8.7 Checklist ─────────────────────────────────────── -->
+        <section id="s8-7" aria-labelledby="h8-7">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">8.7</div>
+            <h2 id="h8-7">Quick-Reference Checklist</h2>
+          </div>
+
+          <p>Use this checklist during code review for every PR that touches accessible UI.</p>
+
+          <div class="table-wrapper">
+            <table aria-label="Accessibility anti-pattern review checklist">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">Check</th>
+                  <th scope="col">WCAG</th>
+                  <th scope="col">Category</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1</td>
+                  <td>Every icon button has <code>aria-label</code> or visually-hidden text</td>
+                  <td>4.1.2</td>
+                  <td>Labels</td>
+                </tr>
+                <tr>
+                  <td>2</td>
+                  <td>Every form input has a persistent visible <code>&lt;label&gt;</code></td>
+                  <td>1.3.1, 3.3.2</td>
+                  <td>Labels</td>
+                </tr>
+                <tr>
+                  <td>3</td>
+                  <td>Dialogs return focus to trigger on close</td>
+                  <td>2.4.3</td>
+                  <td>Focus</td>
+                </tr>
+                <tr>
+                  <td>4</td>
+                  <td>Composite widgets use roving tabindex (not tabindex="0" on all items)</td>
+                  <td>2.1.1</td>
+                  <td>Focus</td>
+                </tr>
+                <tr>
+                  <td>5</td>
+                  <td>All custom keyboard interactions include Escape key handler</td>
+                  <td>2.1.2</td>
+                  <td>Keyboard</td>
+                </tr>
+                <tr>
+                  <td>6</td>
+                  <td>No <code>outline: none</code> without <code>:focus-visible</code> replacement</td>
+                  <td>2.4.7, 2.4.11</td>
+                  <td>Keyboard</td>
+                </tr>
+                <tr>
+                  <td>7</td>
+                  <td>Live regions always in DOM — content changed, not element toggled</td>
+                  <td>4.1.3</td>
+                  <td>Live Regions</td>
+                </tr>
+                <tr>
+                  <td>8</td>
+                  <td><code>aria-live="assertive"</code> only for time-critical interruptions</td>
+                  <td>4.1.3</td>
+                  <td>Live Regions</td>
+                </tr>
+                <tr>
+                  <td>9</td>
+                  <td>Angular router navigation announces new page title</td>
+                  <td>2.4.2</td>
+                  <td>Angular</td>
+                </tr>
+                <tr>
+                  <td>10</td>
+                  <td>No <code>aria-labelledby</code> / <code>aria-describedby</code> IDs generated with <code>Math.random()</code></td>
+                  <td>4.1.2</td>
+                  <td>Angular / SSR</td>
+                </tr>
+                <tr>
+                  <td>11</td>
+                  <td>No <code>role="none"</code> on focusable elements</td>
+                  <td>4.1.2</td>
+                  <td>Roles</td>
+                </tr>
+                <tr>
+                  <td>12</td>
+                  <td>Child roles have required ownership context (<code>option</code> inside <code>listbox</code>, etc.)</td>
+                  <td>4.1.2</td>
+                  <td>Roles</td>
+                </tr>
+                <tr>
+                  <td>13</td>
+                  <td>No duplicate, non-descriptive link text ("Read more", "Click here")</td>
+                  <td>2.4.6, 2.4.9</td>
+                  <td>Labels</td>
+                </tr>
+                <tr>
+                  <td>14</td>
+                  <td>All interactive elements are reachable by keyboard Tab and Enter/Space</td>
+                  <td>2.1.1</td>
+                  <td>Keyboard</td>
+                </tr>
+                <tr>
+                  <td>15</td>
+                  <td>axe-core scan (via <code>@axe-core/playwright</code>) passes with zero critical violations</td>
+                  <td>All</td>
+                  <td>Testing</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout success">
+            <span class="callout-icon" aria-hidden="true">✅</span>
+            <p>
+              <strong>Automated baseline:</strong> Add <code>@axe-core/angular</code>
+              to your development environment (<code>DevMode</code> only). It runs axe on
+              every change detection cycle and logs violations to the browser console
+              automatically — no manual audit needed during development.
+            </p>
+          </div>
+        </section>
+
+        <!-- ═══ BOTTOM NAVIGATION ════════════════════════════════════ -->
+        <nav class="bottom-nav" aria-label="Section navigation">
+          <a href="./aria-s7-screen-readers.html">← Section 7: Screen Readers</a>
+          <span style="font-size:0.78rem;color:var(--muted);text-align:center;flex:1;">
+            Section 8 of 9 — Anti-patterns &amp; Common Mistakes
+          </span>
+          <a href="./aria-s9-cdk-primitives.html" aria-label="Section 9: Angular CDK A11y Primitives">
+            Section 9: CDK A11y →
+          </a>
+        </nav>
+
+      </main>
+
+      <!-- ═══ FOOTER ════════════════════════════════════════════════ -->
+      <footer role="contentinfo">
+        <p>
+          ARIA Complete Guide · Section 8 · Updated May 2026 ·
+          <a href="https://www.w3.org/TR/wcag21/" rel="noopener noreferrer">WCAG 2.1</a> ·
+          <a href="https://www.w3.org/WAI/ARIA/apg/" rel="noopener noreferrer">ARIA Authoring Practices Guide</a>
+        </p>
+        <p style="margin-top:0.5rem;">
+          <a href="./aria-complete-guide.html">← Back to ARIA Guide Index</a> ·
+          <a href="./aria-s7-screen-readers.html">← Section 7: Screen Readers</a> ·
+          <a href="./aria-s9-cdk-primitives.html">Section 9 coming soon</a>
+        </p>
+      </footer>
+
+    </div><!-- /page-wrapper -->
+  </body>
+</html>

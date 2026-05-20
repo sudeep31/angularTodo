@@ -1,0 +1,13 @@
+{
+  "pdf_options": {
+    "format": "A4",
+    "margin": {
+      "top": "15mm",
+      "bottom": "15mm",
+      "left": "15mm",
+      "right": "15mm"
+    },
+    "printBackground": true
+  },
+  "stylesheet": ["C:\\ComponentLiabery\\docs\\pdf-styles.css"]
+}

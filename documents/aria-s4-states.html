@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Section 4: ARIA States — ARIA Complete Guide</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg:            #0f172a;
+        --surface:       #1e293b;
+        --surface-2:     #273549;
+        --border:        #334155;
+        --primary:       #818cf8;
+        --primary-light: #a5b4fc;
+        --accent:        #34d399;
+        --warn:          #fbbf24;
+        --danger:        #f87171;
+        --purple:        #c084fc;
+        --cyan:          #67e8f9;
+        --text:          #e2e8f0;
+        --muted:         #94a3b8;
+        --code-bg:       #0d1117;
+        --font-sans:     'Segoe UI', system-ui, -apple-system, sans-serif;
+        --font-mono:     'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+        --radius:        0.75rem;
+        --radius-sm:     0.4rem;
+        --shadow:        0 4px 24px rgba(0,0,0,0.5);
+        --max-width:     960px;
+      }
+
+      html { scroll-behavior: smooth; }
+      body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.8; font-size: 1rem; }
+
+      .skip-link {
+        position: absolute; top: -100%; left: 1rem;
+        padding: 0.5rem 1rem; background: var(--primary); color: #0f172a;
+        font-weight: 700; border-radius: 0 0 var(--radius) var(--radius);
+        z-index: 9999; transition: top 0.2s; text-decoration: none;
+      }
+      .skip-link:focus { top: 0; }
+
+      .page-wrapper { max-width: var(--max-width); margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+
+      /* ─── Top Nav ───────────────────────────────────────────── */
+      .top-nav {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 0.75rem 1.25rem;
+        margin-bottom: 2rem; font-size: 0.85rem; gap: 1rem;
+      }
+      .top-nav a {
+        color: var(--primary-light); text-decoration: none;
+        padding: 0.3rem 0.75rem; border-radius: var(--radius-sm);
+        border: 1px solid var(--border); transition: border-color 0.15s, background 0.15s;
+        white-space: nowrap;
+      }
+      .top-nav a:hover { border-color: var(--primary); background: var(--surface-2); }
+      .top-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .top-nav .nav-center { font-size: 0.75rem; color: var(--muted); text-align: center; flex: 1; min-width: 0; }
+      .top-nav .nav-center strong { color: var(--primary-light); }
+      .top-nav .nav-next { opacity: 0.45; pointer-events: none; }
+
+      /* ─── Hero ──────────────────────────────────────────────── */
+      .hero {
+        background: linear-gradient(135deg, #0c1a2e 0%, #1e293b 50%, #1a1035 100%);
+        border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 3rem 2.5rem; margin-bottom: 2rem;
+        text-align: center; box-shadow: var(--shadow);
+      }
+      .hero-badge {
+        display: inline-block; background: rgba(129,140,248,0.15);
+        border: 1px solid var(--primary); color: var(--primary-light);
+        font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em;
+        text-transform: uppercase; padding: 0.3rem 1rem;
+        border-radius: 999px; margin-bottom: 1.25rem;
+      }
+      .hero h1 { font-size: clamp(1.75rem, 4vw, 2.8rem); font-weight: 800; line-height: 1.15; color: #fff; margin-bottom: 1rem; }
+      .hero h1 span { color: var(--primary-light); }
+      .hero h1 .section-num { color: var(--muted); font-size: 0.55em; font-weight: 600; display: block; margin-bottom: 0.25rem; }
+      .hero p { font-size: 1.05rem; color: var(--muted); max-width: 700px; margin: 0 auto 1rem; }
+      .hero-meta { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-top: 1.25rem; }
+      .hero-meta span { font-size: 0.78rem; color: var(--muted); display: flex; align-items: center; gap: 0.4rem; }
+      .hero-meta span strong { color: var(--accent); }
+
+      /* ─── TOC ───────────────────────────────────────────────── */
+      .toc {
+        background: var(--surface); border: 1px solid var(--border);
+        border-left: 4px solid var(--primary); border-radius: var(--radius);
+        padding: 1.5rem 2rem; margin-bottom: 3rem;
+      }
+      .toc-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--primary); margin-bottom: 1rem; }
+      .toc ol { padding-left: 1.5rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.3rem 2rem; }
+      .toc li { font-size: 0.875rem; }
+      .toc a { color: var(--muted); text-decoration: none; transition: color 0.15s; }
+      .toc a:hover, .toc a:focus { color: var(--primary-light); text-decoration: underline; }
+
+      /* ─── Sections ──────────────────────────────────────────── */
+      section { margin-bottom: 4.5rem; scroll-margin-top: 2rem; }
+      .section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+      .section-number { flex-shrink: 0; width: 2.25rem; height: 2.25rem; background: linear-gradient(135deg, var(--primary), #6366f1); color: #fff; font-size: 0.82rem; font-weight: 800; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+      h2 { font-size: 1.55rem; font-weight: 800; color: #fff; }
+      h3 { font-size: 1.1rem; font-weight: 700; color: var(--primary-light); margin: 2.25rem 0 0.75rem; }
+      h4 { font-size: 0.9rem; font-weight: 700; color: var(--accent); margin: 1.5rem 0 0.5rem; text-transform: uppercase; letter-spacing: 0.07em; }
+      p { margin-bottom: 1rem; color: var(--text); }
+      p:last-child { margin-bottom: 0; }
+      ul, ol { padding-left: 1.5rem; margin: 0.75rem 0; }
+      li { margin-bottom: 0.4rem; color: var(--text); font-size: 0.95rem; }
+      strong { color: #fff; }
+      em { color: var(--warn); font-style: italic; }
+      code { font-family: var(--font-mono); font-size: 0.82em; background: var(--surface-2); border: 1px solid var(--border); padding: 0.15em 0.45em; border-radius: var(--radius-sm); color: var(--primary-light); }
+      kbd { font-family: var(--font-mono); font-size: 0.78em; background: var(--surface-2); border: 1px solid var(--border); border-bottom: 2px solid var(--border); padding: 0.15em 0.45em; border-radius: var(--radius-sm); color: var(--text); }
+
+      /* ─── Callouts ──────────────────────────────────────────── */
+      .callout { display: flex; gap: 0.75rem; padding: 1rem 1.25rem; border-radius: var(--radius); margin: 1.25rem 0; border: 1px solid; font-size: 0.9rem; }
+      .callout-icon { font-size: 1.25rem; flex-shrink: 0; line-height: 1.5; margin-top: 0.1rem; }
+      .callout p { margin: 0; color: inherit; line-height: 1.7; }
+      .callout.info    { background: rgba(129,140,248,0.08); border-color: rgba(129,140,248,0.3); color: var(--primary-light); }
+      .callout.warn    { background: rgba(251,191,36,0.08);  border-color: rgba(251,191,36,0.3);  color: var(--warn); }
+      .callout.success { background: rgba(52,211,153,0.08);  border-color: rgba(52,211,153,0.3);  color: var(--accent); }
+      .callout.danger  { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.3); color: var(--danger); }
+      .callout.purple  { background: rgba(192,132,252,0.08); border-color: rgba(192,132,252,0.3); color: var(--purple); }
+
+      /* ─── Code Blocks ───────────────────────────────────────── */
+      .code-block { background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; overflow-x: auto; margin: 1.25rem 0; position: relative; }
+      .code-block .lang-tag { position: absolute; top: 0.6rem; right: 0.75rem; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); background: var(--surface); padding: 0.15rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+      pre { font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.75; color: #e2e8f0; white-space: pre; }
+      .kw  { color: #c792ea; } .fn  { color: #82aaff; } .str { color: #c3e88d; }
+      .cmt { color: #546e7a; font-style: italic; } .typ { color: #ffcb6b; }
+      .tag-c { color: #f07178; } .atr { color: #ffcb6b; } .val { color: #c3e88d; }
+      .op  { color: #89ddff; } .num { color: #f78c6c; }
+
+      /* ─── State Reference Card ──────────────────────────────── */
+      .state-card {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 1.5rem;
+        margin: 1.5rem 0;
+      }
+      .state-card-head {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;
+        padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);
+      }
+      .state-card-head code { font-size: 1rem; color: var(--cyan); }
+      .state-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+      .state-tag {
+        display: inline-block; font-size: 0.68rem; font-weight: 700;
+        letter-spacing: 0.07em; text-transform: uppercase;
+        padding: 0.15rem 0.55rem; border-radius: 999px;
+      }
+      .tag-bool    { background: rgba(103,232,249,0.12); color: var(--cyan);    border: 1px solid rgba(103,232,249,0.3); }
+      .tag-tristate{ background: rgba(192,132,252,0.12); color: var(--purple);  border: 1px solid rgba(192,132,252,0.3); }
+      .tag-token   { background: rgba(52,211,153,0.12);  color: var(--accent);  border: 1px solid rgba(52,211,153,0.3); }
+      .tag-integer { background: rgba(251,191,36,0.12);  color: var(--warn);    border: 1px solid rgba(251,191,36,0.3); }
+
+      .state-values {
+        display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;
+      }
+      .val-pill {
+        font-family: var(--font-mono); font-size: 0.78rem;
+        padding: 0.2rem 0.6rem; border-radius: 999px;
+        border: 1px solid var(--border); background: var(--surface-2);
+        color: var(--text);
+      }
+      .val-pill.active  { border-color: var(--accent); color: var(--accent); background: rgba(52,211,153,0.08); }
+      .val-pill.default { border-color: var(--muted); color: var(--muted); }
+
+      .state-body { font-size: 0.9rem; color: var(--muted); line-height: 1.7; margin-bottom: 0.75rem; }
+      .state-body strong { color: #fff; }
+      .state-rule { font-size: 0.82rem; background: var(--surface-2); border-left: 3px solid var(--primary); padding: 0.6rem 1rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 0.75rem; color: var(--text); }
+      .state-rule strong { color: var(--primary-light); }
+      .state-announce { font-size: 0.8rem; background: var(--code-bg); border: 1px solid var(--border); border-left: 3px solid var(--purple); padding: 0.6rem 1rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 0.75rem; color: var(--purple); font-style: italic; }
+
+      /* ─── Comparison Grid ─────────────────────────────────────── */
+      .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+      @media (max-width: 640px) { .compare-grid { grid-template-columns: 1fr; } }
+      .compare-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+      .compare-card.good { border-top: 3px solid var(--accent); }
+      .compare-card.bad  { border-top: 3px solid var(--danger); }
+      .compare-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.75rem; }
+      .compare-card.good .compare-label { color: var(--accent); }
+      .compare-card.bad  .compare-label { color: var(--danger); }
+
+      /* ─── Tables ─────────────────────────────────────────────── */
+      .table-wrapper { overflow-x: auto; margin: 1.25rem 0; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+      thead th { background: var(--surface); color: var(--primary-light); font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.75rem 1rem; text-align: left; border-bottom: 2px solid var(--border); }
+      tbody td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; line-height: 1.6; }
+      tbody tr:hover td { background: var(--surface); }
+
+      /* ─── Bottom Nav ─────────────────────────────────────────── */
+      .bottom-nav { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 2rem; margin-top: 4rem; gap: 1rem; flex-wrap: wrap; }
+      .bottom-nav a { color: var(--primary-light); text-decoration: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.875rem; transition: border-color 0.15s, background 0.15s; display: flex; align-items: center; gap: 0.4rem; }
+      .bottom-nav a:hover { border-color: var(--primary); background: var(--surface); }
+      .bottom-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .bottom-nav .nav-next { opacity: 0.45; pointer-events: none; }
+
+      /* ─── Footer ────────────────────────────────────────────── */
+      footer { border-top: 1px solid var(--border); padding: 2rem 0 0; text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 3rem; }
+      footer a { color: var(--primary-light); text-decoration: none; }
+      footer a:hover { text-decoration: underline; }
+    </style>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <div class="page-wrapper">
+
+      <!-- ═══ TOP NAV ═══════════════════════════════════════════════ -->
+      <nav class="top-nav" aria-label="Document navigation">
+        <a href="./aria-s3-properties.html">← Section 3</a>
+        <div class="nav-center">
+          <strong>Section 4 of 9</strong> — ARIA States
+        </div>
+        <a href="./aria-s5-live-regions.html" aria-label="Section 5: Live Regions">
+          Section 5 →
+        </a>
+      </nav>
+
+      <!-- ═══ HERO ══════════════════════════════════════════════════ -->
+      <header role="banner">
+        <div class="hero">
+          <div class="hero-badge">Section 4 · WAI-ARIA 1.2 · Angular 21 · May 2026</div>
+          <h1>
+            <span class="section-num">Section 4 of 9</span>
+            ARIA <span>States</span>
+          </h1>
+          <p>
+            Dynamic ARIA states that reflect the <em>current condition</em> of an element —
+            updated as users interact. Covers <code>aria-expanded</code>, <code>aria-checked</code>,
+            <code>aria-selected</code>, <code>aria-pressed</code>, <code>aria-invalid</code>,
+            <code>aria-busy</code>, <code>aria-disabled</code>, <code>aria-hidden</code>,
+            and <code>aria-current</code> with Angular 21 signal patterns.
+          </p>
+          <div class="hero-meta">
+            <span>📋 Spec: <strong>WAI-ARIA 1.2 (W3C Rec)</strong></span>
+            <span>🔧 Framework: <strong>Angular 21</strong></span>
+            <span>📅 Updated: <strong>May 2026</strong></span>
+            <span>🎯 Target: <strong>WCAG 2.1 AA</strong></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ═══ TABLE OF CONTENTS ═════════════════════════════════════ -->
+      <nav aria-label="Section 4 contents">
+        <div class="toc">
+          <p class="toc-title">In this section</p>
+          <ol>
+            <li><a href="#states-overview">4.1 — States vs Properties (recap)</a></li>
+            <li><a href="#aria-expanded">4.2 — aria-expanded</a></li>
+            <li><a href="#aria-checked">4.3 — aria-checked (incl. mixed)</a></li>
+            <li><a href="#aria-selected">4.4 — aria-selected</a></li>
+            <li><a href="#aria-pressed">4.5 — aria-pressed</a></li>
+            <li><a href="#aria-invalid">4.6 — aria-invalid</a></li>
+            <li><a href="#aria-busy">4.7 — aria-busy</a></li>
+            <li><a href="#aria-disabled">4.8 — aria-disabled vs disabled</a></li>
+            <li><a href="#aria-hidden">4.9 — aria-hidden</a></li>
+            <li><a href="#aria-current">4.10 — aria-current</a></li>
+            <li><a href="#angular-patterns">4.11 — Angular 21 Signal Patterns</a></li>
+            <li><a href="#state-matrix">4.12 — Screen Reader Announcement Matrix</a></li>
+          </ol>
+        </div>
+      </nav>
+
+      <!-- ═══ MAIN CONTENT ══════════════════════════════════════════ -->
+      <main id="main-content">
+
+        <!-- ─── 4.1 States Overview ───────────────────────────────── -->
+        <section id="states-overview" aria-labelledby="h-states-overview">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">4.1</div>
+            <h2 id="h-states-overview">States vs Properties — Recap</h2>
+          </div>
+
+          <p>
+            As established in Section 3, ARIA attributes divide into two categories.
+            <strong>States</strong> are the dynamic half — they change at runtime in response to
+            user interaction, data loading, or validation. The accessibility tree reflects every
+            state change immediately, triggering a screen reader announcement or updating the
+            AT's internal model of the page.
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="ARIA state types and their value formats">
+              <thead>
+                <tr>
+                  <th scope="col">Type</th>
+                  <th scope="col">Values</th>
+                  <th scope="col">States in this section</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Boolean</strong></td>
+                  <td><code>true</code> / <code>false</code></td>
+                  <td><code>aria-expanded</code>, <code>aria-selected</code>, <code>aria-busy</code>, <code>aria-hidden</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Tristate</strong></td>
+                  <td><code>true</code> / <code>false</code> / <code>mixed</code></td>
+                  <td><code>aria-checked</code>, <code>aria-pressed</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Token</strong></td>
+                  <td>One of a defined set of string values</td>
+                  <td><code>aria-invalid</code> (<code>grammar</code>/<code>spelling</code>/<code>true</code>/<code>false</code>), <code>aria-current</code> (<code>page</code>/<code>step</code>/…)</td>
+                </tr>
+                <tr>
+                  <td><strong>Token or Boolean</strong></td>
+                  <td>Either a token string or <code>true</code>/<code>false</code></td>
+                  <td><code>aria-disabled</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout info">
+            <span class="callout-icon" aria-hidden="true">💡</span>
+            <p>
+              <strong>Key Angular principle:</strong> always use <code>[attr.aria-*]</code> bindings.
+              When the bound expression returns <code>null</code>, Angular removes the attribute
+              entirely from the DOM — the correct behaviour for a state that is "not applicable"
+              (e.g., <code>aria-expanded</code> on an element that never has a popup).
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 4.2 aria-expanded ─────────────────────────────────── -->
+        <section id="aria-expanded" aria-labelledby="h-expanded">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">4.2</div>
+            <h2 id="h-expanded"><code>aria-expanded</code></h2>
+          </div>
+
+          <div class="state-card">
+            <div class="state-card-head">
+              <code>aria-expanded</code>
+              <div class="state-meta">
+                <span class="state-tag tag-bool">Boolean</span>
+              </div>
+            </div>
+            <div class="state-values" aria-label="Allowed values">
+              <span class="val-pill active">true — expanded</span>
+              <span class="val-pill">false — collapsed</span>
+              <span class="val-pill default">absent — no popup / not applicable</span>
+            </div>
+            <p class="state-body">
+              Indicates whether a disclosure widget, accordion panel, tree node, or menu is
+              <strong>currently expanded</strong> (its controlled content is visible).
+              Set on the <em>trigger</em> (button/header), not on the controlled panel.
+            </p>
+            <div class="state-rule">
+              <strong>Pair with <code>aria-controls</code></strong> so AT can navigate from trigger to panel:
+              <code>aria-controls="panel-id"</code>
+            </div>
+            <div class="state-announce">
+              NVDA / JAWS: "collapsed" when false, "expanded" when true.
+              VoiceOver: "collapsed" / "expanded" appended to the button name.
+            </div>
+          </div>
+
+          <h3>Applies to</h3>
+          <ul>
+            <li><strong>Disclosure button / accordion</strong> — toggles a panel below</li>
+            <li><strong>Combobox</strong> — indicates whether the suggestion listbox is open</li>
+            <li><strong>Tree node</strong> — indicates whether children are shown</li>
+            <li><strong>Navigation menu button</strong> — indicates whether a submenu is open</li>
+          </ul>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong>Do not set <code>aria-expanded</code> on elements that have no
+              collapsible content.</strong> A button that opens a modal uses
+              <code>aria-haspopup="dialog"</code> — not <code>aria-expanded</code>.
+              A navigation link that leads to a new page does not use either.
+              Absent is the correct value when the concept doesn't apply.
+            </p>
+          </div>
+
+          <h3>Angular 21 — Disclosure / Accordion</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">TypeScript + HTML</span>
+            <pre>
+<span class="fn">@Component</span>({
+  selector<span class="op">:</span> <span class="str">'app-accordion-item'</span>,
+  changeDetection<span class="op">:</span> ChangeDetectionStrategy.OnPush,
+  template<span class="op">:</span> <span class="str">`
+    &lt;h3&gt;
+      &lt;button
+        type="button"
+        [id]="headingId"
+        [attr.aria-expanded]="isOpen()"
+        [attr.aria-controls]="panelId"
+        (click)="toggle()"&gt;
+        {{ title() }}
+        &lt;svg aria-hidden="true" [class.rotate-180]="isOpen()"&gt;...&lt;/svg&gt;
+      &lt;/button&gt;
+    &lt;/h3&gt;
+
+    &lt;div
+      [id]="panelId"
+      role="region"
+      [attr.aria-labelledby]="headingId"
+      [hidden]="!isOpen()"&gt;
+      &lt;ng-content /&gt;
+    &lt;/div&gt;
+  `</span>,
+})
+<span class="kw">export class</span> <span class="typ">AccordionItemComponent</span> {
+  title  <span class="op">=</span> input.required<span class="op">&lt;</span><span class="typ">string</span><span class="op">&gt;</span>()<span class="op">;</span>
+  isOpen <span class="op">=</span> signal(<span class="kw">false</span>)<span class="op">;</span>
+
+  <span class="kw">private</span> idGen <span class="op">=</span> inject(<span class="typ">IdGenerator</span>)<span class="op">;</span>
+  headingId <span class="op">=</span> <span class="kw">this</span>.idGen.getId()<span class="op">;</span>
+  panelId   <span class="op">=</span> <span class="kw">this</span>.idGen.getId()<span class="op">;</span>
+
+  toggle() { <span class="kw">this</span>.isOpen.update(v <span class="op">=&gt;</span> <span class="op">!</span>v)<span class="op">;</span> }
+}
+</pre>
+          </div>
+
+          <div class="callout info">
+            <span class="callout-icon" aria-hidden="true">💡</span>
+            <p>
+              Use <code>[hidden]</code> (not <code>*ngIf</code> / <code>@if</code>) to hide the panel.
+              <code>[hidden]</code> keeps the element in the DOM so <code>aria-controls</code> can
+              always resolve its target. <code>@if</code> removes the element — the target of
+              <code>aria-controls</code> disappears, confusing AT.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 4.3 aria-checked ──────────────────────────────────── -->
+        <section id="aria-checked" aria-labelledby="h-checked">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">4.3</div>
+            <h2 id="h-checked"><code>aria-checked</code></h2>
+          </div>
+
+          <div class="state-card">
+            <div class="state-card-head">
+              <code>aria-checked</code>
+              <div class="state-meta">
+                <span class="state-tag tag-tristate">Tristate</span>
+              </div>
+            </div>
+            <div class="state-values">
+              <span class="val-pill active">true — checked</span>
+              <span class="val-pill">false — unchecked</span>
+              <span class="val-pill">mixed — indeterminate</span>
+            </div>
+            <p class="state-body">
+              Represents the <strong>checked state</strong> of a checkbox, radio button, or
+              checkbox-like custom widget. The <code>mixed</code> value is the ARIA equivalent
+              of the HTML <code>indeterminate</code> property on a native checkbox — used when a
+              "select all" checkbox controls a group where some but not all are checked.
+            </p>
+            <div class="state-rule">
+              <strong>On native <code>&lt;input type="checkbox"&gt;</code></strong> — do not add
+              <code>aria-checked</code>. The browser exposes the native checked state automatically.
+              Only use on custom elements with <code>role="checkbox"</code> or <code>role="menuitemcheckbox"</code>.
+            </div>
+            <div class="state-announce">
+              NVDA: "checked" / "not checked" / "partially checked".
+              JAWS: "checked" / "unchecked" / "partially checked".
+              VoiceOver: "checked" / "unchecked" / "mixed".
+            </div>
+          </div>
+
+          <h3>The <code>mixed</code> / indeterminate pattern</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">TypeScript + HTML — "Select all" with indeterminate state</span>
+            <pre>
+<span class="fn">@Component</span>({
+  selector<span class="op">:</span> <span class="str">'app-todo-list'</span>,
+  changeDetection<span class="op">:</span> ChangeDetectionStrategy.OnPush,
+  template<span class="op">:</span> <span class="str">`
+    &lt;!-- Native checkbox — use indeterminate property, not aria-checked --&gt;
+    &lt;label&gt;
+      &lt;input
+        type="checkbox"
+        [checked]="allChecked()"
+        [indeterminate]="someChecked()"
+        (change)="toggleAll($event)"&gt;
+      Select all todos
+    &lt;/label&gt;
+
+    &lt;!-- Custom checkbox widget (role="checkbox") --&gt;
+    &lt;div
+      role="checkbox"
+      tabindex="0"
+      [attr.aria-checked]="checkedState()"
+      (click)="toggleAll()"
+      (keydown.space)="toggleAll(); $event.preventDefault()"&gt;
+      Select all todos
+    &lt;/div&gt;
+  `</span>,
+})
+<span class="kw">export class</span> <span class="typ">TodoListComponent</span> {
+  todos <span class="op">=</span> signal<span class="op">&lt;</span><span class="typ">Todo</span>[]<span class="op">&gt;</span>([])<span class="op">;</span>
+
+  allChecked  <span class="op">=</span> computed(() <span class="op">=&gt;</span> <span class="kw">this</span>.todos().every(t <span class="op">=&gt;</span> t.completed))<span class="op">;</span>
+  noneChecked <span class="op">=</span> computed(() <span class="op">=&gt;</span> <span class="kw">this</span>.todos().every(t <span class="op">=&gt;</span> <span class="op">!</span>t.completed))<span class="op">;</span>
+  someChecked <span class="op">=</span> computed(() <span class="op">=&gt;</span> <span class="op">!</span><span class="kw">this</span>.allChecked() <span class="op">&amp;&amp;</span> <span class="op">!</span><span class="kw">this</span>.noneChecked())<span class="op">;</span>
+
+  <span class="cmt">// For the custom role="checkbox" widget</span>
+  checkedState <span class="op">=</span> computed(<span class="op">()</span> <span class="op">=&gt;</span> {
+    <span class="kw">if</span> (<span class="kw">this</span>.allChecked())  <span class="kw">return</span> <span class="str">'true'</span><span class="op">;</span>
+    <span class="kw">if</span> (<span class="kw">this</span>.someChecked()) <span class="kw">return</span> <span class="str">'mixed'</span><span class="op">;</span>
+    <span class="kw">return</span> <span class="str">'false'</span><span class="op">;</span>
+  })<span class="op">;</span>
+
+  toggleAll(event<span class="op">?:</span> Event) { <span class="cmt">/* toggle all todos */</span> }
+}
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 4.4 aria-selected ─────────────────────────────────── -->
+        <section id="aria-selected" aria-labelledby="h-selected">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">4.4</div>
+            <h2 id="h-selected"><code>aria-selected</code></h2>
+          </div>
+
+          <div class="state-card">
+            <div class="state-card-head">
+              <code>aria-selected</code>
+              <div class="state-meta">
+                <span class="state-tag tag-bool">Boolean</span>
+              </div>
+            </div>
+            <div class="state-values">
+              <span class="val-pill active">true — selected</span>
+              <span class="val-pill">false — not selected</span>
+              <span class="val-pill default">absent — selection not applicable</span>
+            </div>
+            <p class="state-body">
+              Indicates that an option, tab, row, or grid cell is <strong>currently selected</strong>.
+              Unlike <code>aria-checked</code> (which is for checkboxes), <code>aria-selected</code>
+              is for selection in widgets like listboxes, tabs, tree views, and grids.
+            </p>
+            <div class="state-rule">
+              <strong>In a tablist:</strong> set <code>aria-selected="true"</code> on the active tab,
+              <code>aria-selected="false"</code> on all others. The active tab's panel must be shown;
+              all other panels must be hidden.
+            </div>
+            <div class="state-rule">
+              <strong>aria-selected vs aria-checked:</strong>
+              Use <code>aria-selected</code> in selection widgets (listbox, tree, grid, tablist).
+              Use <code>aria-checked</code> in checkbox-like widgets.
+              Never mix them on the same element.
+            </div>
+            <div class="state-announce">
+              NVDA / JAWS: "selected" appended to the item name. VoiceOver: "selected" added to announcement.
+            </div>
+          </div>
+
+          <h3>Angular 21 — Tab component</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — Accessible tabs with aria-selected</span>
+            <pre>
+<span class="tag-c">&lt;div</span> <span class="atr">role</span>=<span class="val">"tablist"</span> <span class="atr">aria-label</span>=<span class="val">"Todo filters"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">@for</span> (tab of tabs(); track tab.id; let i = $index) {
+    <span class="tag-c">&lt;button</span>
+      <span class="atr">role</span>=<span class="val">"tab"</span>
+      <span class="atr">[id]</span>=<span class="val">"'tab-' + tab.id"</span>
+      <span class="atr">[attr.aria-selected]</span>=<span class="val">"activeTab() === tab.id"</span>
+      <span class="atr">[attr.aria-controls]</span>=<span class="val">"'panel-' + tab.id"</span>
+      <span class="atr">[tabindex]</span>=<span class="val">"activeTab() === tab.id ? 0 : -1"</span>
+      <span class="atr">(click)</span>=<span class="val">"activateTab(tab.id)"</span>
+      <span class="atr">(keydown)</span>=<span class="val">"onTabKeydown($event, i)"</span><span class="tag-c">&gt;</span>
+      {{ tab.label }}
+    <span class="tag-c">&lt;/button&gt;</span>
+  }
+<span class="tag-c">&lt;/div&gt;</span>
+
+<span class="tag-c">@for</span> (tab of tabs(); track tab.id) {
+  <span class="tag-c">&lt;div</span>
+    <span class="atr">role</span>=<span class="val">"tabpanel"</span>
+    <span class="atr">[id]</span>=<span class="val">"'panel-' + tab.id"</span>
+    <span class="atr">[attr.aria-labelledby]</span>=<span class="val">"'tab-' + tab.id"</span>
+    <span class="atr">tabindex</span>=<span class="val">"0"</span>
+    <span class="atr">[hidden]</span>=<span class="val">"activeTab() !== tab.id"</span><span class="tag-c">&gt;</span>
+    ...panel content...
+  <span class="tag-c">&lt;/div&gt;</span>
+}
+</pre>
+          </div>
+
+          <div class="callout info">
+            <span class="callout-icon" aria-hidden="true">💡</span>
+            <p>
+              Tabs use <strong>roving tabindex</strong>: only the active tab has <code>tabindex="0"</code>;
+              all others have <code>tabindex="-1"</code>. Arrow keys move focus within the tablist;
+              <kbd>Tab</kbd> moves to the panel. Implement <code>onTabKeydown</code> to handle
+              <kbd>←</kbd>/<kbd>→</kbd> for horizontal tabs, <kbd>↑</kbd>/<kbd>↓</kbd> for vertical.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 4.5 aria-pressed ──────────────────────────────────── -->
+        <section id="aria-pressed" aria-labelledby="h-pressed">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">4.5</div>
+            <h2 id="h-pressed"><code>aria-pressed</code></h2>
+          </div>
+
+          <div class="state-card">
+            <div class="state-card-head">
+              <code>aria-pressed</code>
+              <div class="state-meta">
+                <span class="state-tag tag-tristate">Tristate</span>
+              </div>
+            </div>
+            <div class="state-values">
+              <span class="val-pill active">true — pressed / on</span>
+              <span class="val-pill">false — not pressed / off</span>
+              <span class="val-pill">mixed — partially pressed</span>
+              <span class="val-pill default">absent — not a toggle button</span>
+            </div>
+            <p class="state-body">
+              Turns a <code>&lt;button&gt;</code> into a <strong>toggle button</strong> — announcing
+              whether it is currently in the "on" or "off" state. Common for Bold/Italic toolbar
+              buttons, theme toggles, mute buttons, and filter toggles.
+            </p>
+            <div class="state-rule">
+              <strong>aria-pressed vs aria-checked:</strong> Use <code>aria-pressed</code> on
+              <code>role="button"</code> elements. Use <code>aria-checked</code> on
+              <code>role="checkbox"</code>. They signal different interaction models to AT.
+            </div>
+            <div class="state-rule">
+              <strong>aria-pressed="mixed"</strong> is valid but rarely useful. It is for a toggle
+              that controls a group where the state is partially applied (e.g., a Bold button when
+              selected text has mixed bold/non-bold formatting).
+            </div>
+            <div class="state-announce">
+              NVDA: "pressed" / "not pressed" appended to button name.
+              JAWS: "pressed" / "not pressed".
+              VoiceOver: "selected" (for true) / nothing (for false) — note VoiceOver inconsistency.
+            </div>
+          </div>
+
+          <h3>Angular 21 — Toggle button pattern</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — aria-pressed toggle button</span>
+            <pre>
+<span class="cmt">&lt;!-- Theme toggle --&gt;</span>
+<span class="tag-c">&lt;button</span>
+  <span class="atr">type</span>=<span class="val">"button"</span>
+  <span class="atr">[attr.aria-pressed]</span>=<span class="val">"isDarkMode()"</span>
+  <span class="atr">[attr.aria-label]</span>=<span class="val">"isDarkMode() ? 'Switch to light mode' : 'Switch to dark mode'"</span>
+  <span class="atr">(click)</span>=<span class="val">"toggleDarkMode()"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;svg</span> <span class="atr">aria-hidden</span>=<span class="val">"true"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/svg&gt;</span>
+<span class="tag-c">&lt;/button&gt;</span>
+
+<span class="cmt">&lt;!-- Filter toggle button --&gt;</span>
+<span class="tag-c">&lt;button</span>
+  <span class="atr">type</span>=<span class="val">"button"</span>
+  <span class="atr">[attr.aria-pressed]</span>=<span class="val">"showCompleted()"</span>
+  <span class="atr">(click)</span>=<span class="val">"toggleCompleted()"</span><span class="tag-c">&gt;</span>
+  Show completed
+<span class="tag-c">&lt;/button&gt;</span>
+<span class="cmt">&lt;!-- "Show completed, toggle button, not pressed" / "pressed" --&gt;</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 4.6 aria-invalid ──────────────────────────────────── -->
+        <section id="aria-invalid" aria-labelledby="h-invalid">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">4.6</div>
+            <h2 id="h-invalid"><code>aria-invalid</code></h2>
+          </div>
+
+          <div class="state-card">
+            <div class="state-card-head">
+              <code>aria-invalid</code>
+              <div class="state-meta">
+                <span class="state-tag tag-token">Token</span>
+              </div>
+            </div>
+            <div class="state-values">
+              <span class="val-pill">false — valid (default)</span>
+              <span class="val-pill active">true — invalid</span>
+              <span class="val-pill">grammar — grammar error</span>
+              <span class="val-pill">spelling — spelling error</span>
+            </div>
+            <p class="state-body">
+              Signals that the value entered by the user does not pass validation.
+              Must be set <em>after</em> the user has had a chance to enter a value — never
+              on first render. Always paired with <code>aria-errormessage</code> (or
+              <code>aria-describedby</code> pointing to an error element) so AT can read the
+              specific error.
+            </p>
+            <div class="state-rule">
+              <strong>Do not set <code>aria-invalid="false"</code> explicitly</strong> — the default
+              is false when the attribute is absent. Setting it to false adds noise to the DOM.
+              Use <code>null</code> to remove the attribute when the field is valid.
+            </div>
+            <div class="state-announce">
+              NVDA: "invalid entry" announced on focus when aria-invalid="true".
+              JAWS: "invalid entry" on focus, then reads the error message.
+              VoiceOver: announces the error message from aria-errormessage / aria-describedby.
+            </div>
+          </div>
+
+          <h3>Angular 21 — Reactive forms integration</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — Form state → aria-invalid with signals</span>
+            <pre>
+<span class="fn">@Component</span>({
+  selector<span class="op">:</span> <span class="str">'app-todo-form'</span>,
+  changeDetection<span class="op">:</span> ChangeDetectionStrategy.OnPush,
+  template<span class="op">:</span> <span class="str">`
+    &lt;form [formGroup]="form" (ngSubmit)="submit()"&gt;
+      &lt;label [for]="titleId"&gt;Todo title&lt;/label&gt;
+
+      &lt;input
+        [id]="titleId"
+        formControlName="title"
+        [attr.aria-invalid]="titleInvalid() ? 'true' : null"
+        [attr.aria-errormessage]="titleInvalid() ? titleErrorId : null"
+        [attr.aria-describedby]="titleHintId"&gt;
+
+      &lt;p [id]="titleHintId"&gt;Maximum 120 characters.&lt;/p&gt;
+
+      &lt;p
+        [id]="titleErrorId"
+        aria-live="polite"&gt;
+        {{ titleError() }}
+      &lt;/p&gt;
+    &lt;/form&gt;
+  `</span>,
+})
+<span class="kw">export class</span> <span class="typ">TodoFormComponent</span> {
+  <span class="kw">private</span> idGen   <span class="op">=</span> inject(<span class="typ">IdGenerator</span>)<span class="op">;</span>
+  titleId      <span class="op">=</span> <span class="kw">this</span>.idGen.getId()<span class="op">;</span>
+  titleHintId  <span class="op">=</span> <span class="kw">this</span>.idGen.getId()<span class="op">;</span>
+  titleErrorId <span class="op">=</span> <span class="kw">this</span>.idGen.getId()<span class="op">;</span>
+
+  form <span class="op">=</span> <span class="kw">new</span> <span class="typ">FormGroup</span>({
+    title<span class="op">:</span> <span class="kw">new</span> <span class="typ">FormControl</span>(<span class="str">''</span>, [Validators.required, Validators.maxLength(<span class="num">120</span>)]),
+  })<span class="op">;</span>
+
+  <span class="cmt">// Only show invalid state after the user has touched the field</span>
+  titleInvalid <span class="op">=</span> computed(() <span class="op">=&gt;</span> {
+    <span class="kw">const</span> ctrl <span class="op">=</span> <span class="kw">this</span>.form.controls.title<span class="op">;</span>
+    <span class="kw">return</span> ctrl.invalid <span class="op">&amp;&amp;</span> (ctrl.dirty <span class="op">||</span> ctrl.touched)<span class="op">;</span>
+  })<span class="op">;</span>
+
+  titleError <span class="op">=</span> computed(() <span class="op">=&gt;</span> {
+    <span class="kw">if</span> (<span class="op">!</span><span class="kw">this</span>.titleInvalid()) <span class="kw">return</span> <span class="str">''</span><span class="op">;</span>
+    <span class="kw">const</span> errs <span class="op">=</span> <span class="kw">this</span>.form.controls.title.errors<span class="op">;</span>
+    <span class="kw">if</span> (errs<span class="op">?.</span>[<span class="str">'required'</span>])   <span class="kw">return</span> <span class="str">'Title is required.'</span><span class="op">;</span>
+    <span class="kw">if</span> (errs<span class="op">?.</span>[<span class="str">'maxlength'</span>]) <span class="kw">return</span> <span class="str">'Title must be 120 characters or fewer.'</span><span class="op">;</span>
+    <span class="kw">return</span> <span class="str">'Title is invalid.'</span><span class="op">;</span>
+  })<span class="op">;</span>
+
+  submit() { <span class="cmt">/* validate & submit */</span> }
+}
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 4.7 aria-busy ─────────────────────────────────────── -->
+        <section id="aria-busy" aria-labelledby="h-busy">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">4.7</div>
+            <h2 id="h-busy"><code>aria-busy</code></h2>
+          </div>
+
+          <div class="state-card">
+            <div class="state-card-head">
+              <code>aria-busy</code>
+              <div class="state-meta">
+                <span class="state-tag tag-bool">Boolean</span>
+              </div>
+            </div>
+            <div class="state-values">
+              <span class="val-pill">false — content is complete (default)</span>
+              <span class="val-pill active">true — content is loading / updating</span>
+            </div>
+            <p class="state-body">
+              Tells AT to defer reading a region's content until loading is complete.
+              Set <code>aria-busy="true"</code> before updating a large portion of the DOM, then
+              set it back to <code>false</code> (or remove the attribute) when the update is done.
+              Prevents AT from reading partial or intermediate content mid-update.
+            </p>
+            <div class="state-rule">
+              <strong>Combine with a visible loading indicator</strong> using <code>role="status"</code>
+              or <code>aria-live="polite"</code> to announce when loading finishes. Screen readers
+              do not automatically announce when <code>aria-busy</code> transitions to false.
+            </div>
+            <div class="state-announce">
+              When aria-busy="true", AT suppresses updates to the region.
+              When aria-busy switches to false, AT reads the updated content.
+            </div>
+          </div>
+
+          <h3>Angular 21 — Loading list with aria-busy</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML</span>
+            <pre>
+<span class="tag-c">&lt;section</span>
+  <span class="atr">aria-labelledby</span>=<span class="val">"todo-list-heading"</span>
+  <span class="atr">[attr.aria-busy]</span>=<span class="val">"isLoading() ? 'true' : null"</span><span class="tag-c">&gt;</span>
+
+  <span class="tag-c">&lt;h2</span> <span class="atr">id</span>=<span class="val">"todo-list-heading"</span><span class="tag-c">&gt;</span>Your todos<span class="tag-c">&lt;/h2&gt;</span>
+
+  <span class="tag-c">@if</span> (isLoading()) {
+    <span class="tag-c">&lt;div</span> <span class="atr">role</span>=<span class="val">"status"</span> <span class="atr">aria-label</span>=<span class="val">"Loading todos"</span><span class="tag-c">&gt;</span>
+      <span class="tag-c">&lt;svg</span> <span class="atr">aria-hidden</span>=<span class="val">"true"</span> <span class="atr">class</span>=<span class="val">"animate-spin"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/svg&gt;</span>
+    <span class="tag-c">&lt;/div&gt;</span>
+  } <span class="tag-c">@else</span> {
+    <span class="tag-c">&lt;ul</span><span class="tag-c">&gt;</span>
+      <span class="tag-c">@for</span> (todo of todos(); track todo.id) {
+        <span class="tag-c">&lt;li&gt;</span>{{ todo.title }}<span class="tag-c">&lt;/li&gt;</span>
+      }
+    <span class="tag-c">&lt;/ul&gt;</span>
+
+    <span class="cmt">&lt;!-- Announce load completion to AT --&gt;</span>
+    <span class="tag-c">&lt;div</span> <span class="atr">role</span>=<span class="val">"status"</span> <span class="atr">class</span>=<span class="val">"sr-only"</span><span class="tag-c">&gt;</span>
+      {{ todos().length }} todos loaded.
+    <span class="tag-c">&lt;/div&gt;</span>
+  }
+<span class="tag-c">&lt;/section&gt;</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 4.8 aria-disabled ─────────────────────────────────── -->
+        <section id="aria-disabled" aria-labelledby="h-disabled">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">4.8</div>
+            <h2 id="h-disabled"><code>aria-disabled</code> vs <code>disabled</code></h2>
+          </div>
+
+          <div class="state-card">
+            <div class="state-card-head">
+              <code>aria-disabled</code>
+              <div class="state-meta">
+                <span class="state-tag tag-bool">Boolean</span>
+              </div>
+            </div>
+            <div class="state-values">
+              <span class="val-pill">false — enabled (default)</span>
+              <span class="val-pill active">true — disabled</span>
+            </div>
+            <p class="state-body">
+              Communicates that an element is <strong>disabled</strong> without removing it from
+              the tab order or preventing keyboard focus. This is the key difference from the
+              native HTML <code>disabled</code> attribute.
+            </p>
+          </div>
+
+          <div class="table-wrapper">
+            <table aria-label="Comparison of aria-disabled versus native disabled attribute">
+              <thead>
+                <tr>
+                  <th scope="col">Feature</th>
+                  <th scope="col"><code>disabled</code> (HTML)</th>
+                  <th scope="col"><code>aria-disabled="true"</code></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Focusable with <kbd>Tab</kbd></td>
+                  <td>No — removed from tab order</td>
+                  <td>Yes — still focusable</td>
+                </tr>
+                <tr>
+                  <td>Announced by AT</td>
+                  <td>Yes — "dimmed" / "unavailable"</td>
+                  <td>Yes — "dimmed" / "unavailable"</td>
+                </tr>
+                <tr>
+                  <td>Mouse click fires event</td>
+                  <td>No</td>
+                  <td>Yes — you must block it in JS</td>
+                </tr>
+                <tr>
+                  <td>Form submits value</td>
+                  <td>No — excluded from submission</td>
+                  <td>Yes — included in submission</td>
+                </tr>
+                <tr>
+                  <td>Can display tooltip on hover/focus</td>
+                  <td>No — focus removed, tooltip inaccessible</td>
+                  <td>Yes — element is focusable so tooltip works</td>
+                </tr>
+                <tr>
+                  <td>Use on native form controls</td>
+                  <td>Preferred</td>
+                  <td>Only when you need to keep focus / show tooltip</td>
+                </tr>
+                <tr>
+                  <td>Use on custom widgets</td>
+                  <td>N/A</td>
+                  <td>Required — native disabled not applicable</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>When to use <code>aria-disabled</code> instead of <code>disabled</code></h3>
+          <ul>
+            <li>A <strong>tooltip explains why</strong> the button is disabled — you need the button to remain focusable so keyboard users can discover the tooltip</li>
+            <li><strong>Custom composite widgets</strong> like <code>role="button"</code> on a <code>&lt;div&gt;</code> — the native attribute has no effect</li>
+            <li><strong>Menu items</strong> in a dropdown — AT should be able to navigate to them to read "unavailable"</li>
+          </ul>
+
+          <div class="compare-grid">
+            <div class="compare-card good">
+              <p class="compare-label">✓ Use aria-disabled (keep focusable)</p>
+              <div class="code-block" style="margin:0">
+                <pre>
+<span class="cmt">&lt;!-- Keeps focus + tooltip accessible --&gt;</span>
+<span class="tag-c">&lt;button</span>
+  <span class="atr">type</span>=<span class="val">"button"</span>
+  <span class="atr">[attr.aria-disabled]</span>=<span class="val">"!canSubmit()"</span>
+  <span class="atr">[attr.aria-describedby]</span>=<span class="val">"submit-tip"</span>
+  <span class="atr">(click)</span>=<span class="val">"canSubmit() && submit()"</span><span class="tag-c">&gt;</span>
+  Save
+<span class="tag-c">&lt;/button&gt;</span>
+<span class="tag-c">&lt;div</span> <span class="atr">role</span>=<span class="val">"tooltip"</span> <span class="atr">id</span>=<span class="val">"submit-tip"</span><span class="tag-c">&gt;</span>
+  Complete all required fields
+<span class="tag-c">&lt;/div&gt;</span></pre>
+              </div>
+            </div>
+            <div class="compare-card bad">
+              <p class="compare-label">✗ Native disabled (tooltip lost)</p>
+              <div class="code-block" style="margin:0">
+                <pre>
+<span class="cmt">&lt;!-- Keyboard user cannot reach tooltip --&gt;</span>
+<span class="tag-c">&lt;button</span>
+  <span class="atr">type</span>=<span class="val">"button"</span>
+  <span class="atr">[disabled]</span>=<span class="val">"!canSubmit()"</span>
+  <span class="atr">[attr.aria-describedby]</span>=<span class="val">"submit-tip"</span><span class="tag-c">&gt;</span>
+  Save
+<span class="tag-c">&lt;/button&gt;</span>
+<span class="cmt">&lt;!-- Button not focusable -- tip never announced --&gt;</span>
+<span class="tag-c">&lt;div</span> <span class="atr">role</span>=<span class="val">"tooltip"</span> <span class="atr">id</span>=<span class="val">"submit-tip"</span><span class="tag-c">&gt;</span>
+  Complete all required fields
+<span class="tag-c">&lt;/div&gt;</span></pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 4.9 aria-hidden ───────────────────────────────────── -->
+        <section id="aria-hidden" aria-labelledby="h-hidden">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">4.9</div>
+            <h2 id="h-hidden"><code>aria-hidden</code></h2>
+          </div>
+
+          <div class="state-card">
+            <div class="state-card-head">
+              <code>aria-hidden</code>
+              <div class="state-meta">
+                <span class="state-tag tag-bool">Boolean</span>
+              </div>
+            </div>
+            <div class="state-values">
+              <span class="val-pill">absent / false — visible to AT</span>
+              <span class="val-pill active">true — hidden from AT</span>
+            </div>
+            <p class="state-body">
+              Removes an element and all its descendants from the accessibility tree.
+              The element remains <strong>visually present</strong> — only AT is excluded.
+              This is the ARIA equivalent of <code>display:none</code> for the accessibility tree only.
+            </p>
+            <div class="state-rule">
+              <strong>Common legitimate uses:</strong>
+              decorative icons (<code>&lt;svg aria-hidden="true"&gt;</code>),
+              repeated visual elements that add noise (dividers, decorative images),
+              duplicate content that would be read twice (off-screen clones).
+            </div>
+          </div>
+
+          <div class="callout danger">
+            <span class="callout-icon" aria-hidden="true">🚫</span>
+            <p>
+              <strong>Never put <code>aria-hidden="true"</code> on a focusable element.</strong>
+              A button or link that is hidden from AT but focusable creates an invisible interactive
+              element — keyboard users Tab to it but hear nothing. The element appears to be a
+              ghost in the tab order. Always remove <code>tabindex</code> or use <code>display:none</code>
+              / <code>visibility:hidden</code> if the element should be fully excluded from interaction.
+            </p>
+          </div>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong><code>aria-hidden</code> does not prevent keyboard focus.</strong>
+              If an element is inside an <code>aria-hidden="true"</code> container,
+              keyboard users can still Tab to any focusable descendants — they will just hear silence.
+              Use a <code>FocusTrap</code> or <code>inert</code> attribute to also block focus.
+            </p>
+          </div>
+
+          <h3>The <code>inert</code> attribute (modern alternative)</h3>
+          <p>
+            HTML's <code>inert</code> attribute (widely supported since 2023) both removes
+            elements from the accessibility tree AND prevents keyboard focus and pointer events.
+            It is the correct tool for making background content inert behind a modal:
+          </p>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — inert vs aria-hidden</span>
+            <pre>
+<span class="cmt">&lt;!-- ✓ Modal open: background is inert (focus + AT both blocked) --&gt;</span>
+<span class="tag-c">&lt;main</span> <span class="atr">[attr.inert]</span>=<span class="val">"isModalOpen() ? '' : null"</span><span class="tag-c">&gt;</span>
+  ...page content (unfocusable while modal is open)...
+<span class="tag-c">&lt;/main&gt;</span>
+
+<span class="tag-c">&lt;div</span> <span class="atr">role</span>=<span class="val">"dialog"</span> <span class="atr">aria-modal</span>=<span class="val">"true"</span> <span class="atr">[hidden]</span>=<span class="val">"!isModalOpen()"</span><span class="tag-c">&gt;</span>
+  ...modal content...
+<span class="tag-c">&lt;/div&gt;</span>
+
+<span class="cmt">&lt;!-- ✓ Decorative icon: aria-hidden only (not focusable, so safe) --&gt;</span>
+<span class="tag-c">&lt;svg</span> <span class="atr">aria-hidden</span>=<span class="val">"true"</span> <span class="atr">focusable</span>=<span class="val">"false"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/svg&gt;</span>
+
+<span class="cmt">&lt;!-- ✗ Wrong: focusable button inside aria-hidden container --&gt;</span>
+<span class="tag-c">&lt;div</span> <span class="atr">aria-hidden</span>=<span class="val">"true"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;button&gt;</span>Click me<span class="tag-c">&lt;/button&gt;</span>  <span class="cmt">&lt;!-- keyboard trap! --&gt;</span>
+<span class="tag-c">&lt;/div&gt;</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 4.10 aria-current ─────────────────────────────────── -->
+        <section id="aria-current" aria-labelledby="h-current">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">4.10</div>
+            <h2 id="h-current"><code>aria-current</code></h2>
+          </div>
+
+          <div class="state-card">
+            <div class="state-card-head">
+              <code>aria-current</code>
+              <div class="state-meta">
+                <span class="state-tag tag-token">Token</span>
+              </div>
+            </div>
+            <div class="state-values">
+              <span class="val-pill active">page — current page in a nav</span>
+              <span class="val-pill">step — current step in a wizard</span>
+              <span class="val-pill">location — current location (breadcrumb)</span>
+              <span class="val-pill">date — current date in a datepicker</span>
+              <span class="val-pill">time — current time in a time widget</span>
+              <span class="val-pill">true — current item (generic)</span>
+              <span class="val-pill">false — not current (absent is equivalent)</span>
+            </div>
+            <p class="state-body">
+              Identifies the <strong>currently active item</strong> in a set of navigational
+              elements or steps. The most common value is <code>page</code> for the active
+              navigation link — it is the correct replacement for a visual "active" class.
+            </p>
+            <div class="state-rule">
+              <strong>Not for tabs or listboxes.</strong> Use <code>aria-selected</code> for tabs
+              and option widgets. <code>aria-current</code> is for navigation — links, breadcrumbs,
+              step indicators, pagination.
+            </div>
+            <div class="state-announce">
+              NVDA / JAWS / VoiceOver: announces "current page" / "current step" etc.
+              appended to the link or element name.
+            </div>
+          </div>
+
+          <h3>Angular 21 — Active navigation link</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — RouterLinkActive with aria-current</span>
+            <pre>
+<span class="tag-c">&lt;nav</span> <span class="atr">aria-label</span>=<span class="val">"Primary navigation"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;ul</span> <span class="atr">role</span>=<span class="val">"list"</span><span class="tag-c">&gt;</span>
+    <span class="tag-c">@for</span> (link of navLinks(); track link.path) {
+      <span class="tag-c">&lt;li&gt;</span>
+        <span class="tag-c">&lt;a</span>
+          <span class="atr">[routerLink]</span>=<span class="val">"link.path"</span>
+          <span class="atr">routerLinkActive</span>=<span class="val">"active"</span>
+          <span class="atr">[routerLinkActiveOptions]</span>=<span class="val">"{ exact: link.exact }"</span>
+          <span class="atr">#rla</span>=<span class="val">"routerLinkActive"</span>
+          <span class="atr">[attr.aria-current]</span>=<span class="val">"rla.isActive ? 'page' : null"</span><span class="tag-c">&gt;</span>
+          {{ link.label }}
+        <span class="tag-c">&lt;/a&gt;</span>
+      <span class="tag-c">&lt;/li&gt;</span>
+    }
+  <span class="tag-c">&lt;/ul&gt;</span>
+<span class="tag-c">&lt;/nav&gt;</span>
+</pre>
+          </div>
+
+          <h3>Breadcrumb with <code>aria-current="location"</code></h3>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — Accessible breadcrumb</span>
+            <pre>
+<span class="tag-c">&lt;nav</span> <span class="atr">aria-label</span>=<span class="val">"Breadcrumb"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;ol</span><span class="tag-c">&gt;</span>
+    <span class="tag-c">@for</span> (crumb of breadcrumbs(); track crumb.path; let last = $last) {
+      <span class="tag-c">&lt;li&gt;</span>
+        <span class="tag-c">@if</span> (last) {
+          <span class="cmt">&lt;!-- Current page: not a link, aria-current="location" --&gt;</span>
+          <span class="tag-c">&lt;span</span> <span class="atr">aria-current</span>=<span class="val">"location"</span><span class="tag-c">&gt;</span>{{ crumb.label }}<span class="tag-c">&lt;/span&gt;</span>
+        } <span class="tag-c">@else</span> {
+          <span class="tag-c">&lt;a</span> <span class="atr">[routerLink]</span>=<span class="val">"crumb.path"</span><span class="tag-c">&gt;</span>{{ crumb.label }}<span class="tag-c">&lt;/a&gt;</span>
+          <span class="tag-c">&lt;span</span> <span class="atr">aria-hidden</span>=<span class="val">"true"</span><span class="tag-c">&gt;</span> / <span class="tag-c">&lt;/span&gt;</span>
+        }
+      <span class="tag-c">&lt;/li&gt;</span>
+    }
+  <span class="tag-c">&lt;/ol&gt;</span>
+<span class="tag-c">&lt;/nav&gt;</span>
+</pre>
+          </div>
+
+          <h3>Step indicator with <code>aria-current="step"</code></h3>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — Wizard step progress indicator</span>
+            <pre>
+<span class="tag-c">&lt;ol</span> <span class="atr">aria-label</span>=<span class="val">"Form progress"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">@for</span> (step of steps(); track step.id; let i = $index) {
+    <span class="tag-c">&lt;li</span>
+      <span class="atr">[attr.aria-current]</span>=<span class="val">"currentStep() === step.id ? 'step' : null"</span><span class="tag-c">&gt;</span>
+      {{ step.label }}
+    <span class="tag-c">&lt;/li&gt;</span>
+  }
+<span class="tag-c">&lt;/ol&gt;</span>
+<span class="cmt">&lt;!-- Active step: "Step 2, Details, current step" --&gt;</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 4.11 Angular 21 Signal Patterns ──────────────────── -->
+        <section id="angular-patterns" aria-labelledby="h-ng-patterns">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">4.11</div>
+            <h2 id="h-ng-patterns">Angular 21 Signal Patterns for States</h2>
+          </div>
+
+          <p>
+            Angular 21's signal-based reactivity is a natural fit for ARIA states — signals
+            are the source of truth, <code>computed()</code> derives display values, and
+            <code>[attr.aria-*]</code> keeps the DOM in sync automatically.
+          </p>
+
+          <h3>Central state pattern: one signal, many aria attributes</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — Single state signal drives multiple ARIA attrs</span>
+            <pre>
+<span class="kw">type</span> <span class="typ">LoadState</span> <span class="op">=</span> <span class="str">'idle'</span> <span class="op">|</span> <span class="str">'loading'</span> <span class="op">|</span> <span class="str">'success'</span> <span class="op">|</span> <span class="str">'error'</span><span class="op">;</span>
+
+<span class="fn">@Component</span>({
+  template<span class="op">:</span> <span class="str">`
+    &lt;button
+      type="button"
+      [attr.aria-busy]="loadState() === 'loading' ? 'true' : null"
+      [attr.aria-disabled]="loadState() === 'loading' ? 'true' : null"
+      [attr.aria-label]="loadingLabel()"
+      (click)="save()"&gt;
+      @if (loadState() === 'loading') {
+        &lt;svg aria-hidden="true" class="animate-spin"&gt;...&lt;/svg&gt;
+      }
+      {{ loadState() === 'loading' ? 'Saving…' : 'Save' }}
+    &lt;/button&gt;
+
+    &lt;div role="status" aria-live="polite" class="sr-only"&gt;
+      {{ statusMessage() }}
+    &lt;/div&gt;
+  `</span>,
+})
+<span class="kw">export class</span> <span class="typ">SaveButtonComponent</span> {
+  loadState <span class="op">=</span> signal<span class="op">&lt;</span><span class="typ">LoadState</span><span class="op">&gt;</span>(<span class="str">'idle'</span>)<span class="op">;</span>
+
+  loadingLabel <span class="op">=</span> computed(<span class="op">()</span> <span class="op">=&gt;</span>
+    <span class="kw">this</span>.loadState() <span class="op">===</span> <span class="str">'loading'</span> ? <span class="str">'Saving, please wait'</span> : <span class="str">'Save'</span>
+  )<span class="op">;</span>
+
+  statusMessage <span class="op">=</span> computed(<span class="op">()</span> <span class="op">=&gt;</span> {
+    <span class="kw">switch</span> (<span class="kw">this</span>.loadState()) {
+      <span class="kw">case</span> <span class="str">'success'</span><span class="op">:</span> <span class="kw">return</span> <span class="str">'Todo saved successfully.'</span><span class="op">;</span>
+      <span class="kw">case</span> <span class="str">'error'</span><span class="op">:</span>   <span class="kw">return</span> <span class="str">'Save failed. Please try again.'</span><span class="op">;</span>
+      <span class="kw">default</span><span class="op">:</span>         <span class="kw">return</span> <span class="str">''</span><span class="op">;</span>
+    }
+  })<span class="op">;</span>
+
+  <span class="kw">async</span> save() {
+    <span class="kw">this</span>.loadState.set(<span class="str">'loading'</span>)<span class="op">;</span>
+    <span class="kw">try</span> {
+      <span class="kw">await</span> <span class="kw">this</span>.todoService.save()<span class="op">;</span>
+      <span class="kw">this</span>.loadState.set(<span class="str">'success'</span>)<span class="op">;</span>
+    } <span class="kw">catch</span> {
+      <span class="kw">this</span>.loadState.set(<span class="str">'error'</span>)<span class="op">;</span>
+    }
+  }
+}
+</pre>
+          </div>
+
+          <h3>Effect-based aria-live announcement</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — LiveAnnouncer + effect()</span>
+            <pre>
+<span class="fn">@Component</span>({ <span class="cmt">/* ... */</span> })
+<span class="kw">export class</span> <span class="typ">TodoListComponent</span> {
+  <span class="kw">private</span> announcer <span class="op">=</span> inject(<span class="typ">LiveAnnouncer</span>)<span class="op">;</span>
+
+  todos <span class="op">=</span> signal<span class="op">&lt;</span><span class="typ">Todo</span>[]<span class="op">&gt;</span>([])<span class="op">;</span>
+  filter <span class="op">=</span> signal<span class="op">&lt;</span><span class="str">'all'</span> <span class="op">|</span> <span class="str">'active'</span> <span class="op">|</span> <span class="str">'done'</span><span class="op">&gt;</span>(<span class="str">'all'</span>)<span class="op">;</span>
+
+  filteredTodos <span class="op">=</span> computed(() <span class="op">=&gt;</span> {
+    <span class="kw">const</span> f <span class="op">=</span> <span class="kw">this</span>.filter()<span class="op">;</span>
+    <span class="kw">if</span> (f <span class="op">===</span> <span class="str">'active'</span>) <span class="kw">return</span> <span class="kw">this</span>.todos().filter(t <span class="op">=&gt;</span> <span class="op">!</span>t.completed)<span class="op">;</span>
+    <span class="kw">if</span> (f <span class="op">===</span> <span class="str">'done'</span>)   <span class="kw">return</span> <span class="kw">this</span>.todos().filter(t <span class="op">=&gt;</span> t.completed)<span class="op">;</span>
+    <span class="kw">return</span> <span class="kw">this</span>.todos()<span class="op">;</span>
+  })<span class="op">;</span>
+
+  <span class="kw">constructor</span>() {
+    <span class="cmt">// Announce filter changes to screen reader users</span>
+    effect(() <span class="op">=&gt;</span> {
+      <span class="kw">const</span> count <span class="op">=</span> <span class="kw">this</span>.filteredTodos().length<span class="op">;</span>
+      <span class="kw">const</span> label <span class="op">=</span> <span class="kw">this</span>.filter()<span class="op">;</span>
+      <span class="kw">this</span>.announcer.announce(
+        <span class="str">`Showing </span><span class="op">${</span>count<span class="op">}</span><span class="str"> </span><span class="op">${</span>label<span class="op">}</span><span class="str"> todo</span><span class="op">${</span>count <span class="op">!==</span> <span class="num">1</span> ? <span class="str">'s'</span> : <span class="str">''</span><span class="op">}</span><span class="str">`</span>,
+        <span class="str">'polite'</span>
+      )<span class="op">;</span>
+    })<span class="op">;</span>
+  }
+}
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 4.12 Screen Reader Announcement Matrix ────────────── -->
+        <section id="state-matrix" aria-labelledby="h-matrix">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">4.12</div>
+            <h2 id="h-matrix">Screen Reader Announcement Matrix</h2>
+          </div>
+
+          <p>
+            How major screen readers (May 2026) announce each ARIA state when an element receives focus:
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="ARIA states screen reader announcement matrix">
+              <thead>
+                <tr>
+                  <th scope="col">State</th>
+                  <th scope="col">Value</th>
+                  <th scope="col">NVDA + Chrome</th>
+                  <th scope="col">JAWS + Chrome</th>
+                  <th scope="col">VoiceOver + Safari (macOS)</th>
+                  <th scope="col">TalkBack + Chrome (Android)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>aria-expanded</code></td>
+                  <td><code>true</code></td>
+                  <td>"expanded"</td>
+                  <td>"expanded"</td>
+                  <td>"expanded"</td>
+                  <td>"expanded"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-expanded</code></td>
+                  <td><code>false</code></td>
+                  <td>"collapsed"</td>
+                  <td>"collapsed"</td>
+                  <td>"collapsed"</td>
+                  <td>"collapsed"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-checked</code></td>
+                  <td><code>true</code></td>
+                  <td>"checked"</td>
+                  <td>"checked"</td>
+                  <td>"checked"</td>
+                  <td>"checked"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-checked</code></td>
+                  <td><code>false</code></td>
+                  <td>"not checked"</td>
+                  <td>"unchecked"</td>
+                  <td>"unchecked"</td>
+                  <td>"not checked"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-checked</code></td>
+                  <td><code>mixed</code></td>
+                  <td>"partially checked"</td>
+                  <td>"partially checked"</td>
+                  <td>"mixed"</td>
+                  <td>"partially checked"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-selected</code></td>
+                  <td><code>true</code></td>
+                  <td>"selected"</td>
+                  <td>"selected"</td>
+                  <td>"selected"</td>
+                  <td>"selected"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-pressed</code></td>
+                  <td><code>true</code></td>
+                  <td>"pressed"</td>
+                  <td>"pressed"</td>
+                  <td>"selected" ⚠️</td>
+                  <td>"pressed"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-pressed</code></td>
+                  <td><code>false</code></td>
+                  <td>"not pressed"</td>
+                  <td>"not pressed"</td>
+                  <td>(no announcement) ⚠️</td>
+                  <td>"not pressed"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-invalid</code></td>
+                  <td><code>true</code></td>
+                  <td>"invalid entry"</td>
+                  <td>"invalid entry"</td>
+                  <td>reads aria-errormessage</td>
+                  <td>"invalid"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-busy</code></td>
+                  <td><code>true</code></td>
+                  <td>defers reading region</td>
+                  <td>defers reading region</td>
+                  <td>defers reading region</td>
+                  <td>defers reading region</td>
+                </tr>
+                <tr>
+                  <td><code>aria-disabled</code></td>
+                  <td><code>true</code></td>
+                  <td>"dimmed"</td>
+                  <td>"unavailable"</td>
+                  <td>"dimmed"</td>
+                  <td>"disabled"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-hidden</code></td>
+                  <td><code>true</code></td>
+                  <td>element not in AT tree</td>
+                  <td>element not in AT tree</td>
+                  <td>element not in AT tree</td>
+                  <td>element not in AT tree</td>
+                </tr>
+                <tr>
+                  <td><code>aria-current</code></td>
+                  <td><code>page</code></td>
+                  <td>"current page"</td>
+                  <td>"current page"</td>
+                  <td>"current page"</td>
+                  <td>"current page"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-current</code></td>
+                  <td><code>step</code></td>
+                  <td>"current step"</td>
+                  <td>"current step"</td>
+                  <td>"current step"</td>
+                  <td>"current step"</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong>VoiceOver inconsistency with <code>aria-pressed</code>:</strong>
+              VoiceOver announces <code>aria-pressed="true"</code> as "selected" (not "pressed")
+              and gives no announcement for <code>aria-pressed="false"</code>. If your toggle
+              button must be clearly understood on iOS/macOS, update the visible button label to
+              reflect the state (e.g., "Dark mode: on") so the label alone communicates the state
+              without relying solely on the ARIA state announcement.
+            </p>
+          </div>
+
+          <div class="callout success">
+            <span class="callout-icon" aria-hidden="true">✅</span>
+            <p>
+              <strong>Section 4 complete.</strong> You now understand every major ARIA state —
+              their values, when to apply them, AT announcement differences, and Angular 21
+              signal patterns. Section 5 covers <strong>ARIA Live Regions</strong> —
+              <code>aria-live</code>, <code>aria-atomic</code>, <code>aria-relevant</code>,
+              and <code>role="alert"</code> / <code>role="status"</code> — the mechanism for
+              proactively announcing dynamic content changes to screen reader users.
+            </p>
+          </div>
+        </section>
+
+        <!-- ═══ BOTTOM NAVIGATION ════════════════════════════════════ -->
+        <nav class="bottom-nav" aria-label="Section navigation">
+          <a href="./aria-s3-properties.html">← Section 3: Properties</a>
+          <span style="font-size:0.78rem;color:var(--muted);text-align:center;flex:1;">
+            Section 4 of 9 — ARIA States
+          </span>
+          <a href="./aria-s5-live-regions.html" aria-label="Section 5: Live Regions">
+            Section 5: Live Regions →
+          </a>
+        </nav>
+
+      </main>
+
+      <!-- ═══ FOOTER ════════════════════════════════════════════════ -->
+      <footer role="contentinfo">
+        <p>
+          ARIA Complete Guide · Section 4 · Angular 21 · WAI-ARIA 1.2 (W3C Rec, June 2023) ·
+          Updated May 2026 ·
+          <a href="https://www.w3.org/TR/wai-aria-1.2/" rel="noopener noreferrer">W3C WAI-ARIA 1.2 Spec</a> ·
+          <a href="https://www.w3.org/WAI/ARIA/apg/" rel="noopener noreferrer">ARIA Authoring Practices Guide</a>
+        </p>
+        <p style="margin-top:0.5rem;color:#374151;">
+          <a href="./aria-complete-guide.html">← Back to ARIA Guide Index</a> ·
+          <a href="./aria-s3-properties.html">← Section 3: Properties</a>
+        </p>
+      </footer>
+
+    </div><!-- /page-wrapper -->
+  </body>
+</html>

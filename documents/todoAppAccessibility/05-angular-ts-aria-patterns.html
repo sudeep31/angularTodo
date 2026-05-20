@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Angular TypeScript — ARIA &amp; Accessibility Patterns Reference</title>
+    <style>
+      /* ─── Reset & Base ──────────────────────────────────────────── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg:            #0f172a;
+        --surface:       #1e293b;
+        --surface-2:     #273549;
+        --surface-3:     #1a2844;
+        --border:        #334155;
+        --primary:       #818cf8;
+        --primary-light: #a5b4fc;
+        --accent:        #34d399;
+        --warn:          #fbbf24;
+        --danger:        #f87171;
+        --purple:        #c084fc;
+        --cyan:          #67e8f9;
+        --orange:        #fb923c;
+        --text:          #e2e8f0;
+        --muted:         #94a3b8;
+        --code-bg:       #0d1117;
+        --font-sans:     'Segoe UI', system-ui, -apple-system, sans-serif;
+        --font-mono:     'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+        --radius:        0.75rem;
+        --radius-sm:     0.4rem;
+        --shadow:        0 4px 24px rgba(0,0,0,0.5);
+        --max-width:     960px;
+      }
+
+      html { scroll-behavior: smooth; }
+
+      body {
+        font-family: var(--font-sans);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.8;
+        font-size: 1rem;
+      }
+
+      /* ─── Skip Link ─────────────────────────────────────────────── */
+      .skip-link {
+        position: absolute; top: -100%; left: 1rem;
+        padding: 0.5rem 1rem;
+        background: var(--primary); color: #0f172a;
+        font-weight: 700; border-radius: 0 0 var(--radius) var(--radius);
+        z-index: 9999; transition: top 0.2s; text-decoration: none;
+      }
+      .skip-link:focus { top: 0; }
+
+      /* ─── Layout ────────────────────────────────────────────────── */
+      .page-wrapper { max-width: var(--max-width); margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+
+      /* ─── Top Nav Bar ───────────────────────────────────────────── */
+      .top-nav {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.75rem 1.25rem;
+        margin-bottom: 2rem;
+        font-size: 0.85rem;
+        gap: 1rem;
+      }
+      .top-nav a {
+        color: var(--primary-light); text-decoration: none;
+        padding: 0.3rem 0.75rem; border-radius: var(--radius-sm);
+        border: 1px solid var(--border); transition: border-color 0.15s, background 0.15s;
+        white-space: nowrap;
+      }
+      .top-nav a:hover { border-color: var(--primary); background: var(--surface-2); }
+      .top-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .top-nav .nav-center {
+        font-size: 0.75rem; color: var(--muted);
+        text-align: center; flex: 1; min-width: 0;
+      }
+      .top-nav .nav-center strong { color: var(--primary-light); }
+      .top-nav .nav-disabled { opacity: 0.45; pointer-events: none; }
+
+      /* ─── Hero ──────────────────────────────────────────────────── */
+      .hero {
+        background: linear-gradient(135deg, #1e1b4b 0%, #1e293b 50%, #0c1a2e 100%);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 3rem 2.5rem;
+        margin-bottom: 2rem;
+        text-align: center;
+        box-shadow: var(--shadow);
+      }
+      .hero-badge {
+        display: inline-block;
+        background: rgba(129,140,248,0.15);
+        border: 1px solid var(--primary);
+        color: var(--primary-light);
+        font-size: 0.72rem; font-weight: 700;
+        letter-spacing: 0.14em; text-transform: uppercase;
+        padding: 0.3rem 1rem; border-radius: 999px;
+        margin-bottom: 1.25rem;
+      }
+      .hero h1 {
+        font-size: clamp(1.75rem, 4vw, 2.8rem);
+        font-weight: 800; line-height: 1.15; color: #fff;
+        margin-bottom: 1rem;
+      }
+      .hero h1 span { color: var(--primary-light); }
+      .hero p { font-size: 1.05rem; color: var(--muted); max-width: 700px; margin: 0 auto 1rem; }
+      .hero-meta {
+        display: flex; justify-content: center; gap: 1.5rem;
+        flex-wrap: wrap; margin-top: 1.25rem;
+      }
+      .hero-meta span {
+        font-size: 0.78rem; color: var(--muted);
+        display: flex; align-items: center; gap: 0.4rem;
+      }
+      .hero-meta span strong { color: var(--accent); }
+
+      /* ─── TOC ───────────────────────────────────────────────────── */
+      .toc {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--primary);
+        border-radius: var(--radius);
+        padding: 1.5rem 2rem;
+        margin-bottom: 3rem;
+      }
+      .toc-title {
+        font-size: 0.78rem; font-weight: 700;
+        letter-spacing: 0.12em; text-transform: uppercase;
+        color: var(--primary); margin-bottom: 1rem;
+      }
+      .toc ol {
+        padding-left: 1.5rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 0.3rem 2rem;
+      }
+      .toc li { font-size: 0.875rem; }
+      .toc a { color: var(--muted); text-decoration: none; transition: color 0.15s; }
+      .toc a:hover, .toc a:focus { color: var(--primary-light); text-decoration: underline; }
+
+      /* ─── Sections ──────────────────────────────────────────────── */
+      section { margin-bottom: 4.5rem; scroll-margin-top: 2rem; }
+      .section-header {
+        display: flex; align-items: center; gap: 0.75rem;
+        margin-bottom: 1.75rem; padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .section-number {
+        flex-shrink: 0; width: 2.25rem; height: 2.25rem;
+        background: linear-gradient(135deg, var(--primary), #6366f1);
+        color: #fff; font-size: 0.82rem; font-weight: 800;
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      }
+      h2 { font-size: 1.55rem; font-weight: 800; color: #fff; }
+      h3 { font-size: 1.1rem; font-weight: 700; color: var(--primary-light); margin: 2.25rem 0 0.75rem; }
+      h4 {
+        font-size: 0.9rem; font-weight: 700; color: var(--accent);
+        margin: 1.5rem 0 0.5rem;
+        text-transform: uppercase; letter-spacing: 0.07em;
+      }
+      p { margin-bottom: 1rem; color: var(--text); }
+      p:last-child { margin-bottom: 0; }
+
+      ul, ol { padding-left: 1.5rem; margin: 0.75rem 0; }
+      li { margin-bottom: 0.4rem; color: var(--text); font-size: 0.95rem; }
+
+      strong { color: #fff; }
+      em { color: var(--warn); font-style: italic; }
+
+      code {
+        font-family: var(--font-mono); font-size: 0.82em;
+        background: var(--surface-2); border: 1px solid var(--border);
+        padding: 0.15em 0.45em; border-radius: var(--radius-sm);
+        color: var(--primary-light);
+      }
+
+      /* ─── Callouts ──────────────────────────────────────────────── */
+      .callout {
+        display: flex; gap: 0.75rem;
+        padding: 1rem 1.25rem; border-radius: var(--radius);
+        margin: 1.25rem 0; border: 1px solid; font-size: 0.9rem;
+      }
+      .callout-icon { font-size: 1.25rem; flex-shrink: 0; line-height: 1.5; margin-top: 0.1rem; }
+      .callout p { margin: 0; color: inherit; line-height: 1.7; }
+      .callout.info    { background: rgba(129,140,248,0.08); border-color: rgba(129,140,248,0.3); color: var(--primary-light); }
+      .callout.warn    { background: rgba(251,191,36,0.08);  border-color: rgba(251,191,36,0.3);  color: var(--warn); }
+      .callout.success { background: rgba(52,211,153,0.08);  border-color: rgba(52,211,153,0.3);  color: var(--accent); }
+      .callout.danger  { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.3); color: var(--danger); }
+
+      /* ─── Code Blocks ───────────────────────────────────────────── */
+      .code-block {
+        background: var(--code-bg); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 1.25rem 1.5rem;
+        overflow-x: auto; margin: 1.25rem 0; position: relative;
+      }
+      .code-block .lang-tag {
+        position: absolute; top: 0.6rem; right: 0.75rem;
+        font-size: 0.65rem; font-weight: 700;
+        letter-spacing: 0.1em; text-transform: uppercase;
+        color: var(--muted); background: var(--surface);
+        padding: 0.15rem 0.5rem; border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+      }
+      pre {
+        font-family: var(--font-mono); font-size: 0.82rem;
+        line-height: 1.75; color: #e2e8f0; white-space: pre;
+      }
+      .kw  { color: #c792ea; }
+      .fn  { color: #82aaff; }
+      .str { color: #c3e88d; }
+      .cmt { color: #546e7a; font-style: italic; }
+      .typ { color: #ffcb6b; }
+      .tag-c { color: #f07178; }
+      .atr { color: #ffcb6b; }
+      .val { color: #c3e88d; }
+      .op  { color: #89ddff; }
+      .num { color: #f78c6c; }
+      .dec { color: #fb923c; }
+
+      /* ─── Compare Grid ──────────────────────────────────────────── */
+      .compare-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(340px,1fr));
+        gap: 1rem; margin: 1.25rem 0;
+      }
+      .compare-card {
+        background: var(--code-bg); border: 1px solid var(--border);
+        border-radius: var(--radius); overflow: hidden;
+      }
+      .compare-header {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 0.6rem 1rem; font-size: 0.78rem; font-weight: 700;
+        letter-spacing: 0.05em;
+      }
+      .compare-header.good { background: rgba(52,211,153,0.12); color: var(--accent); }
+      .compare-header.bad  { background: rgba(248,113,113,0.1);  color: var(--danger); }
+      .compare-card pre    { padding: 1rem; font-size: 0.78rem; line-height: 1.7; color: #b0bec5; white-space: pre; }
+
+      /* ─── Table ─────────────────────────────────────────────────── */
+      .table-wrapper { overflow-x: auto; margin: 1.25rem 0; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+      thead th {
+        background: var(--surface); color: var(--primary-light);
+        font-weight: 700; font-size: 0.78rem;
+        text-transform: uppercase; letter-spacing: 0.06em;
+        padding: 0.75rem 1rem; text-align: left;
+        border-bottom: 2px solid var(--border);
+      }
+      tbody td {
+        padding: 0.75rem 1rem; border-bottom: 1px solid var(--border);
+        color: var(--text); vertical-align: top; line-height: 1.6;
+      }
+      tbody tr:hover td { background: var(--surface); }
+
+      /* ─── Bottom Nav ─────────────────────────────────────────────── */
+      .bottom-nav {
+        display: flex; align-items: center; justify-content: space-between;
+        border-top: 1px solid var(--border); padding-top: 2rem;
+        margin-top: 4rem; gap: 1rem; flex-wrap: wrap;
+      }
+      .bottom-nav a {
+        color: var(--primary-light); text-decoration: none;
+        padding: 0.5rem 1.25rem; border-radius: var(--radius-sm);
+        border: 1px solid var(--border); font-size: 0.875rem;
+        transition: border-color 0.15s, background 0.15s;
+        display: flex; align-items: center; gap: 0.4rem;
+      }
+      .bottom-nav a:hover { border-color: var(--primary); background: var(--surface); }
+      .bottom-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .bottom-nav .nav-hub { color: var(--muted); }
+
+      /* ─── Footer ────────────────────────────────────────────────── */
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 2rem 0 0; text-align: center;
+        font-size: 0.8rem; color: var(--muted);
+        margin-top: 3rem;
+      }
+      footer a { color: var(--primary-light); text-decoration: none; }
+      footer a:hover { text-decoration: underline; }
+    </style>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <div class="page-wrapper">
+
+      <!-- ═══ TOP NAVIGATION ═══════════════════════════════════════ -->
+      <nav class="top-nav" aria-label="Document navigation">
+        <a href="./04-chrome-testing-guide.html" aria-label="Previous: Chrome Testing Guide">← Previous</a>
+        <div class="nav-center">
+          <strong>Angular TS ARIA Patterns</strong> — Todo App Accessibility Series · Doc 5 of 5
+        </div>
+        <a class="nav-disabled" aria-label="No next document" aria-disabled="true">Next →</a>
+      </nav>
+
+      <!-- ═══ HERO ══════════════════════════════════════════════════ -->
+      <header role="banner">
+        <div class="hero">
+          <div class="hero-badge">Angular 21 · WCAG 2.1 AA · CDK a11y · May 2026</div>
+          <h1>Angular TypeScript — <span>ARIA &amp; Accessibility</span> Patterns Reference</h1>
+          <p>
+            A practical reference for implementing WCAG 2.1 AA compliance inside Angular
+            <code>.ts</code> files. Covers signals, CDK utilities, host bindings, and component
+            architecture patterns.
+          </p>
+          <div class="hero-meta">
+            <span>🔧 Framework: <strong>Angular 21</strong></span>
+            <span>♿ Target: <strong>WCAG 2.1 AA</strong></span>
+            <span>📦 CDK: <strong>@angular/cdk/a11y</strong></span>
+            <span>📅 Updated: <strong>May 2026</strong></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ═══ TABLE OF CONTENTS ═════════════════════════════════════ -->
+      <nav aria-label="Page contents">
+        <div class="toc">
+          <p class="toc-title">Table of Contents</p>
+          <ol>
+            <li><a href="#s1">Live Announcements — <code>LiveAnnouncer</code></a></li>
+            <li><a href="#s2">Dynamic ARIA Attributes with Signals</a></li>
+            <li><a href="#s3">Host Bindings for ARIA Roles and Labels</a></li>
+            <li><a href="#s4">Focus Management — <code>FocusTrap</code> and <code>FocusMonitor</code></a></li>
+            <li><a href="#s5">SSR Safety — <code>isPlatformBrowser</code></a></li>
+            <li><a href="#s6">Keyboard Interaction Handlers</a></li>
+            <li><a href="#s7">Form Validation and ARIA Error States</a></li>
+            <li><a href="#s8">Landmark Roles — Host vs Template</a></li>
+            <li><a href="#s9">Computed Labels for Lists and Regions</a></li>
+            <li><a href="#s10">Testing Accessibility in <code>.spec.ts</code></a></li>
+            <li><a href="#cheatsheet">Quick Reference Cheat Sheet</a></li>
+          </ol>
+        </div>
+      </nav>
+
+      <!-- ═══ MAIN CONTENT ══════════════════════════════════════════ -->
+      <main id="main-content">
+
+        <!-- ─── 1. Live Announcements ────────────────────────────── -->
+        <section id="s1" aria-labelledby="h-s1">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">1</div>
+            <h2 id="h-s1">Live Announcements — <code>LiveAnnouncer</code></h2>
+          </div>
+
+          <p>
+            <strong>When to use:</strong> Any dynamic DOM update that a screen reader would otherwise miss —
+            adds, deletes, state changes, filter results.
+          </p>
+
+          <h3>Setup</h3>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre><span class="kw">import</span> { <span class="typ">LiveAnnouncer</span> } <span class="kw">from</span> <span class="str">'@angular/cdk/a11y'</span>;
+<span class="kw">import</span> { <span class="fn">inject</span> } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+
+<span class="kw">private readonly</span> liveAnnouncer = <span class="fn">inject</span>(<span class="typ">LiveAnnouncer</span>);</pre>
+          </div>
+
+          <div class="callout info">
+            <span class="callout-icon">ℹ️</span>
+            <p><code>LiveAnnouncer</code> is <code>providedIn: 'root'</code> — no module or provider setup needed.</p>
+          </div>
+
+          <h3>Politeness levels</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Level</th>
+                  <th>Use for</th>
+                  <th>Screen reader behaviour</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>'polite'</code></td>
+                  <td>Adds, toggles, filter changes</td>
+                  <td>Waits for the user to finish reading before announcing</td>
+                </tr>
+                <tr>
+                  <td><code>'assertive'</code></td>
+                  <td>Deletions, critical errors</td>
+                  <td>Interrupts the user immediately</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Patterns used in this project</h3>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre><span class="cmt">// Task added — polite (not urgent)</span>
+<span class="fn">onAddTodo</span>(): <span class="typ">void</span> {
+  <span class="cmt">// ... create logic</span>
+  <span class="kw">this</span>.liveAnnouncer.<span class="fn">announce</span>(<span class="str">`Task "<span class="op">${</span>title<span class="op">}</span>" added`</span>, <span class="str">'polite'</span>);
+}
+
+<span class="cmt">// Task deleted — assertive (destructive action)</span>
+<span class="fn">onTodoDeleted</span>(todoId: <span class="typ">string</span>): <span class="typ">void</span> {
+  <span class="kw">const</span> todo = <span class="kw">this</span>.<span class="fn">todos</span>().<span class="fn">find</span>(t =&gt; t.id === todoId);
+  <span class="kw">const</span> title = todo?.title ?? <span class="str">'Task'</span>;
+  <span class="kw">this</span>.todoApiService.<span class="fn">delete</span>(todoId);
+  <span class="kw">this</span>.liveAnnouncer.<span class="fn">announce</span>(<span class="str">`"<span class="op">${</span>title<span class="op">}</span>" deleted`</span>, <span class="str">'assertive'</span>);
+}
+
+<span class="cmt">// Toggle completion state</span>
+<span class="fn">onTodoToggled</span>(todoId: <span class="typ">string</span>): <span class="typ">void</span> {
+  <span class="kw">const</span> todo = <span class="kw">this</span>.<span class="fn">todos</span>().<span class="fn">find</span>(t =&gt; t.id === todoId);
+  <span class="kw">if</span> (todo) {
+    <span class="kw">const</span> newState = !todo.completed;
+    <span class="kw">this</span>.todoApiService.<span class="fn">update</span>(todoId, { completed: newState });
+    <span class="kw">this</span>.liveAnnouncer.<span class="fn">announce</span>(
+      <span class="str">`"<span class="op">${</span>todo.title<span class="op">}</span>" marked as <span class="op">${</span>newState ? <span class="str">'complete'</span> : <span class="str">'incomplete'</span><span class="op">}</span>`</span>,
+      <span class="str">'polite'</span>,
+    );
+  }
+}
+
+<span class="cmt">// Filter changed — announce count so user knows scope</span>
+<span class="fn">onFilterChanged</span>(filter: <span class="str">'all'</span> | <span class="str">'active'</span> | <span class="str">'completed'</span>): <span class="typ">void</span> {
+  <span class="kw">this</span>.filter.<span class="fn">set</span>(filter);
+  <span class="kw">const</span> count = <span class="kw">this</span>.<span class="fn">filteredTodos</span>().length;
+  <span class="kw">this</span>.liveAnnouncer.<span class="fn">announce</span>(
+    <span class="str">`Showing <span class="op">${</span>count<span class="op">}</span> <span class="op">${</span>filter<span class="op">}</span> task<span class="op">${</span>count !== <span class="num">1</span> ? <span class="str">'s'</span> : <span class="str">''</span><span class="op">}</span>`</span>,
+    <span class="str">'polite'</span>,
+  );
+}
+
+<span class="cmt">// Bulk clear</span>
+<span class="fn">onClearCompleted</span>(): <span class="typ">void</span> {
+  <span class="kw">const</span> count = <span class="kw">this</span>.<span class="fn">todoStats</span>().completed;
+  <span class="cmt">// ... delete logic</span>
+  <span class="kw">this</span>.liveAnnouncer.<span class="fn">announce</span>(
+    <span class="str">`<span class="op">${</span>count<span class="op">}</span> completed task<span class="op">${</span>count !== <span class="num">1</span> ? <span class="str">'s'</span> : <span class="str">''</span><span class="op">}</span> cleared`</span>,
+    <span class="str">'polite'</span>,
+  );
+}
+
+<span class="cmt">// Toggle all</span>
+<span class="fn">onToggleAll</span>(): <span class="typ">void</span> {
+  <span class="kw">const</span> allCompleted = <span class="kw">this</span>.<span class="fn">todos</span>().<span class="fn">every</span>(todo =&gt; todo.completed);
+  <span class="cmt">// ... update logic</span>
+  <span class="kw">this</span>.liveAnnouncer.<span class="fn">announce</span>(
+    allCompleted ? <span class="str">'All tasks marked as incomplete'</span> : <span class="str">'All tasks marked as complete'</span>,
+    <span class="str">'polite'</span>,
+  );
+}</pre>
+          </div>
+
+          <h3>Announcement message guidelines</h3>
+          <ul>
+            <li>Always include the item <strong>name</strong> so the user knows which item changed.</li>
+            <li>Use plain language — no HTML, no special characters.</li>
+            <li>Keep messages short (under 80 characters where possible).</li>
+            <li>Pluralise counts: <code>1 task</code> / <code>3 tasks</code>.</li>
+          </ul>
+        </section>
+
+        <!-- ─── 2. Dynamic ARIA Attributes with Signals ──────────── -->
+        <section id="s2" aria-labelledby="h-s2">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">2</div>
+            <h2 id="h-s2">Dynamic ARIA Attributes with Signals</h2>
+          </div>
+
+          <p>
+            Angular signals are ideal for ARIA attributes that reflect component state — they update
+            the DOM synchronously on every state change.
+          </p>
+
+          <h3>Pattern: <code>computed()</code> signal → <code>[attr.aria-*]</code> binding</h3>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre><span class="cmt">// In the component .ts</span>
+<span class="kw">protected readonly</span> ariaListLabel = <span class="fn">computed</span>(() =&gt; {
+  <span class="kw">const</span> labels: <span class="typ">Record</span>&lt;<span class="typ">string</span>, <span class="typ">string</span>&gt; = {
+    all: <span class="str">'All tasks'</span>,
+    active: <span class="str">'Active tasks'</span>,
+    completed: <span class="str">'Completed tasks'</span>,
+  };
+  <span class="kw">return</span> labels[<span class="kw">this</span>.<span class="fn">filter</span>()];
+});</pre>
+          </div>
+          <div class="code-block">
+            <span class="lang-tag">HTML</span>
+            <pre><span class="cmt">&lt;!-- In the template .html --&gt;</span>
+<span class="tag-c">&lt;ul</span> <span class="atr">[attr.aria-label]</span>=<span class="val">"ariaListLabel()"</span><span class="tag-c">&gt;&lt;/ul&gt;</span></pre>
+          </div>
+
+          <h3>Pattern: <code>null</code> to remove an ARIA attribute</h3>
+          <p>
+            When a condition is false, binding <code>null</code> removes the attribute entirely from
+            the DOM — correct behaviour, as there should be no <code>aria-invalid="false"</code> on
+            valid fields.
+          </p>
+          <div class="code-block">
+            <span class="lang-tag">HTML</span>
+            <pre><span class="cmt">&lt;!-- aria-invalid only appears when there IS an error --&gt;</span>
+<span class="atr">[attr.aria-invalid]</span>=<span class="val">"formErrors().title ? 'true' : null"</span></pre>
+          </div>
+
+          <h3>Pattern: <code>aria-expanded</code> on toggle buttons</h3>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre><span class="kw">protected readonly</span> isMenuOpen = <span class="fn">signal</span>(<span class="kw">false</span>);
+
+<span class="fn">toggleMenu</span>(): <span class="typ">void</span> {
+  <span class="kw">this</span>.isMenuOpen.<span class="fn">update</span>(v =&gt; !v);
+}</pre>
+          </div>
+          <div class="code-block">
+            <span class="lang-tag">HTML</span>
+            <pre><span class="tag-c">&lt;button</span>
+  <span class="atr">type</span>=<span class="val">"button"</span>
+  <span class="atr">[attr.aria-expanded]</span>=<span class="val">"isMenuOpen()"</span>
+  <span class="atr">aria-controls</span>=<span class="val">"menu-panel"</span>
+  <span class="atr">(click)</span>=<span class="val">"toggleMenu()"</span>
+<span class="tag-c">&gt;</span>
+  Menu
+<span class="tag-c">&lt;/button&gt;</span>
+<span class="tag-c">&lt;div</span> <span class="atr">id</span>=<span class="val">"menu-panel"</span> <span class="atr">[hidden]</span>=<span class="val">"!isMenuOpen()"</span><span class="tag-c">&gt;</span>…<span class="tag-c">&lt;/div&gt;</span></pre>
+          </div>
+
+          <h3>Pattern: <code>aria-busy</code> during loading</h3>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre><span class="kw">protected readonly</span> loading = <span class="fn">computed</span>(() =&gt; <span class="kw">this</span>.todoApiService.<span class="fn">isLoading</span>());</pre>
+          </div>
+          <div class="code-block">
+            <span class="lang-tag">HTML</span>
+            <pre><span class="tag-c">&lt;section</span> <span class="atr">[attr.aria-busy]</span>=<span class="val">"loading()"</span><span class="tag-c">&gt;</span>…<span class="tag-c">&lt;/section&gt;</span></pre>
+          </div>
+        </section>
+
+        <!-- ─── 3. Host Bindings for ARIA Roles and Labels ───────── -->
+        <section id="s3" aria-labelledby="h-s3">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">3</div>
+            <h2 id="h-s3">Host Bindings for ARIA Roles and Labels</h2>
+          </div>
+
+          <p>
+            Use the <code>host</code> property in <code>@Component</code> to attach ARIA roles and
+            labels to the component's <strong>host element</strong> (the custom element tag in the
+            parent template). This avoids adding a redundant wrapper <code>&lt;div&gt;</code> inside
+            the template.
+          </p>
+
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre><span class="dec">@Component</span>({
+  selector: <span class="str">'app-todo-list'</span>,
+  <span class="cmt">// ...</span>
+  host: {
+    <span class="cmt">// CSS classes applied to the host element</span>
+    <span class="kw">class</span>: <span class="str">'block w-full'</span>,
+
+    <span class="cmt">// ARIA role on the host element</span>
+    <span class="cmt">// region (not main) — the outer &lt;main&gt; in app.html is the only main landmark</span>
+    role: <span class="str">'region'</span>,
+
+    <span class="cmt">// Dynamic label bound to a computed signal</span>
+    <span class="str">'[attr.aria-label]'</span>: <span class="str">'ariaLabel()'</span>,
+  },
+})
+<span class="kw">export class</span> <span class="typ">TodoListComponent</span> {
+  <span class="kw">protected readonly</span> ariaLabel = <span class="fn">computed</span>(() =&gt; {
+    <span class="kw">const</span> stats = <span class="kw">this</span>.<span class="fn">todoStats</span>();
+    <span class="kw">return</span> <span class="str">`Todo list with <span class="op">${</span>stats.total<span class="op">}</span> items, <span class="op">${</span>stats.active<span class="op">}</span> active, <span class="op">${</span>stats.completed<span class="op">}</span> completed`</span>;
+  });
+}</pre>
+          </div>
+
+          <h3>Landmark role rules</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Role</th>
+                  <th>When to use in Angular</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>main</code></td>
+                  <td>Only once per page — use in <code>app.html</code> <code>&lt;main&gt;</code></td>
+                  <td>Never put on a component host if <code>app.html</code> already has <code>&lt;main&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>region</code></td>
+                  <td>Significant sections of the page with a label</td>
+                  <td>Requires <code>aria-label</code> or <code>aria-labelledby</code></td>
+                </tr>
+                <tr>
+                  <td><code>navigation</code></td>
+                  <td><code>&lt;nav&gt;</code> elements</td>
+                  <td>Add <code>aria-label</code> to distinguish multiple navs</td>
+                </tr>
+                <tr>
+                  <td><code>banner</code></td>
+                  <td>Page-level header</td>
+                  <td>One per page</td>
+                </tr>
+                <tr>
+                  <td><code>contentinfo</code></td>
+                  <td>Page-level footer</td>
+                  <td>One per page</td>
+                </tr>
+                <tr>
+                  <td><code>form</code></td>
+                  <td>A <code>&lt;form&gt;</code> with a label</td>
+                  <td>Use <code>aria-labelledby</code> pointing to a heading</td>
+                </tr>
+                <tr>
+                  <td><code>search</code></td>
+                  <td>A search form</td>
+                  <td>Replaces <code>role="form"</code> for search</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Do not duplicate landmarks</h3>
+          <div class="compare-grid">
+            <div class="compare-card">
+              <div class="compare-header bad">✗ Wrong — duplicate &lt;main&gt; landmark</div>
+              <pre><span class="cmt">// app.html already has &lt;main&gt;,</span>
+<span class="cmt">// this creates two main landmarks</span>
+host: { <span class="str">'role'</span>: <span class="str">'main'</span> }</pre>
+            </div>
+            <div class="compare-card">
+              <div class="compare-header good">✓ Correct — use region instead</div>
+              <pre>host: {
+  <span class="str">'role'</span>: <span class="str">'region'</span>,
+  <span class="str">'[attr.aria-label]'</span>: <span class="str">'ariaLabel()'</span>
+}</pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 4. Focus Management ──────────────────────────────── -->
+        <section id="s4" aria-labelledby="h-s4">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">4</div>
+            <h2 id="h-s4">Focus Management — <code>FocusTrap</code> and <code>FocusMonitor</code></h2>
+          </div>
+
+          <h3><code>FocusTrap</code> — Modal dialogs and drawers</h3>
+          <p>
+            Prevents focus from escaping a container (required for modals per WCAG 2.1 SC 2.1.2).
+          </p>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre><span class="kw">import</span> { <span class="typ">FocusTrapFactory</span>, <span class="typ">FocusTrap</span> } <span class="kw">from</span> <span class="str">'@angular/cdk/a11y'</span>;
+<span class="kw">import</span> { <span class="typ">ElementRef</span>, <span class="fn">inject</span>, <span class="fn">afterNextRender</span> } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+
+<span class="kw">private readonly</span> focusTrapFactory = <span class="fn">inject</span>(<span class="typ">FocusTrapFactory</span>);
+<span class="kw">private readonly</span> elementRef = <span class="fn">inject</span>(<span class="typ">ElementRef</span>);
+<span class="kw">private</span> focusTrap?: <span class="typ">FocusTrap</span>;
+
+<span class="fn">constructor</span>() {
+  <span class="cmt">// afterNextRender — SSR safe, runs only in the browser after first paint</span>
+  <span class="fn">afterNextRender</span>(() =&gt; {
+    <span class="kw">this</span>.focusTrap = <span class="kw">this</span>.focusTrapFactory.<span class="fn">create</span>(<span class="kw">this</span>.elementRef.nativeElement);
+    <span class="kw">this</span>.focusTrap.<span class="fn">focusInitialElementWhenReady</span>();
+  });
+}
+
+<span class="fn">ngOnDestroy</span>(): <span class="typ">void</span> {
+  <span class="kw">this</span>.focusTrap?.<span class="fn">destroy</span>();
+}</pre>
+          </div>
+
+          <h3><code>FocusMonitor</code> — Track focus origin (mouse vs keyboard)</h3>
+          <p>
+            Lets you style differently for keyboard vs mouse focus (common pattern: show focus ring only for keyboard).
+          </p>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre><span class="kw">import</span> { <span class="typ">FocusMonitor</span>, <span class="typ">FocusOrigin</span> } <span class="kw">from</span> <span class="str">'@angular/cdk/a11y'</span>;
+<span class="kw">import</span> { <span class="typ">ElementRef</span>, <span class="fn">inject</span>, <span class="typ">OnDestroy</span>, <span class="fn">afterNextRender</span> } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+
+<span class="kw">private readonly</span> focusMonitor = <span class="fn">inject</span>(<span class="typ">FocusMonitor</span>);
+<span class="kw">private readonly</span> elementRef = <span class="fn">inject</span>(<span class="typ">ElementRef</span>);
+
+<span class="kw">protected readonly</span> focusOrigin = <span class="fn">signal</span>&lt;<span class="typ">FocusOrigin</span> | <span class="kw">null</span>&gt;(<span class="kw">null</span>);
+
+<span class="fn">constructor</span>() {
+  <span class="fn">afterNextRender</span>(() =&gt; {
+    <span class="kw">this</span>.focusMonitor.<span class="fn">monitor</span>(<span class="kw">this</span>.elementRef).<span class="fn">subscribe</span>(origin =&gt; {
+      <span class="kw">this</span>.focusOrigin.<span class="fn">set</span>(origin);
+    });
+  });
+}
+
+<span class="fn">ngOnDestroy</span>(): <span class="typ">void</span> {
+  <span class="kw">this</span>.focusMonitor.<span class="fn">stopMonitoring</span>(<span class="kw">this</span>.elementRef);
+}</pre>
+          </div>
+          <div class="code-block">
+            <span class="lang-tag">HTML</span>
+            <pre><span class="tag-c">&lt;button</span> <span class="atr">type</span>=<span class="val">"button"</span> <span class="atr">[class.focus-visible]</span>=<span class="val">"focusOrigin() === 'keyboard'"</span><span class="tag-c">&gt;</span>Click me<span class="tag-c">&lt;/button&gt;</span></pre>
+          </div>
+        </section>
+
+        <!-- ─── 5. SSR Safety ────────────────────────────────────── -->
+        <section id="s5" aria-labelledby="h-s5">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">5</div>
+            <h2 id="h-s5">SSR Safety — <code>isPlatformBrowser</code></h2>
+          </div>
+
+          <p>
+            Any code that accesses the DOM, <code>window</code>, <code>document</code>, or
+            browser-only APIs must be guarded. Angular SSR renders components on the server where
+            these APIs do not exist.
+          </p>
+
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre><span class="kw">import</span> { <span class="fn">isPlatformBrowser</span> } <span class="kw">from</span> <span class="str">'@angular/common'</span>;
+<span class="kw">import</span> { <span class="fn">inject</span>, <span class="typ">PLATFORM_ID</span> } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+
+<span class="kw">private readonly</span> platformId = <span class="fn">inject</span>(<span class="typ">PLATFORM_ID</span>);
+
+<span class="fn">someMethod</span>(): <span class="typ">void</span> {
+  <span class="kw">if</span> (<span class="fn">isPlatformBrowser</span>(<span class="kw">this</span>.platformId)) {
+    <span class="cmt">// Safe — only runs in the browser</span>
+    document.<span class="fn">getElementById</span>(<span class="str">'main-content'</span>)?.<span class="fn">focus</span>();
+  }
+}</pre>
+          </div>
+
+          <h3>Prefer <code>afterNextRender()</code> for DOM access in lifecycle hooks</h3>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre><span class="kw">import</span> { <span class="fn">afterNextRender</span> } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+
+<span class="fn">constructor</span>() {
+  <span class="cmt">// Runs only in the browser, after the first render — no isPlatformBrowser needed</span>
+  <span class="fn">afterNextRender</span>(() =&gt; {
+    <span class="kw">this</span>.<span class="fn">initAccessibilityFeature</span>();
+  });
+}</pre>
+          </div>
+
+          <div class="callout success">
+            <span class="callout-icon">✅</span>
+            <p>
+              Prefer <code>afterNextRender()</code> over <code>isPlatformBrowser()</code> when the
+              code belongs in a lifecycle hook — it is cleaner and automatically SSR-safe.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 6. Keyboard Interaction Handlers ─────────────────── -->
+        <section id="s6" aria-labelledby="h-s6">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">6</div>
+            <h2 id="h-s6">Keyboard Interaction Handlers</h2>
+          </div>
+
+          <p>
+            All interactive functionality accessible by mouse must also be accessible by keyboard
+            (WCAG 2.1 SC 2.1.1).
+          </p>
+
+          <h3>Enter key to submit a form</h3>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre><span class="fn">onFormKeydown</span>(event: <span class="typ">KeyboardEvent</span>): <span class="typ">void</span> {
+  <span class="kw">if</span> (event.key === <span class="str">'Enter'</span> &amp;&amp; <span class="kw">this</span>.<span class="fn">isFormValid</span>()) {
+    <span class="kw">this</span>.<span class="fn">onAddTodo</span>();
+  }
+}</pre>
+          </div>
+
+          <h3>Escape key to close / cancel</h3>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre><span class="fn">onKeydown</span>(event: <span class="typ">KeyboardEvent</span>): <span class="typ">void</span> {
+  <span class="kw">if</span> (event.key === <span class="str">'Escape'</span>) {
+    <span class="kw">this</span>.<span class="fn">closePanel</span>();
+  }
+}</pre>
+          </div>
+
+          <h3>Arrow key navigation (custom widget)</h3>
+          <p>
+            For listboxes, menus, and tab panels that require roving <code>tabindex</code>,
+            handle <code>ArrowUp</code> / <code>ArrowDown</code>:
+          </p>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre><span class="kw">protected readonly</span> focusedIndex = <span class="fn">signal</span>(<span class="num">0</span>);
+
+<span class="fn">onListKeydown</span>(event: <span class="typ">KeyboardEvent</span>): <span class="typ">void</span> {
+  <span class="kw">const</span> items = <span class="kw">this</span>.<span class="fn">items</span>();
+  <span class="kw">if</span> (event.key === <span class="str">'ArrowDown'</span>) {
+    event.<span class="fn">preventDefault</span>(); <span class="cmt">// stop page scroll</span>
+    <span class="kw">this</span>.focusedIndex.<span class="fn">update</span>(i =&gt; <span class="typ">Math</span>.<span class="fn">min</span>(i + <span class="num">1</span>, items.length - <span class="num">1</span>));
+  }
+  <span class="kw">if</span> (event.key === <span class="str">'ArrowUp'</span>) {
+    event.<span class="fn">preventDefault</span>();
+    <span class="kw">this</span>.focusedIndex.<span class="fn">update</span>(i =&gt; <span class="typ">Math</span>.<span class="fn">max</span>(i - <span class="num">1</span>, <span class="num">0</span>));
+  }
+  <span class="kw">if</span> (event.key === <span class="str">'Home'</span>) {
+    <span class="kw">this</span>.focusedIndex.<span class="fn">set</span>(<span class="num">0</span>);
+  }
+  <span class="kw">if</span> (event.key === <span class="str">'End'</span>) {
+    <span class="kw">this</span>.focusedIndex.<span class="fn">set</span>(items.length - <span class="num">1</span>);
+  }
+}</pre>
+          </div>
+        </section>
+
+        <!-- ─── 7. Form Validation and ARIA Error States ──────────── -->
+        <section id="s7" aria-labelledby="h-s7">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">7</div>
+            <h2 id="h-s7">Form Validation and ARIA Error States</h2>
+          </div>
+
+          <h3>Signal-based validation with ARIA error ids</h3>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre><span class="kw">protected readonly</span> formErrors = <span class="fn">signal</span>({ title: <span class="str">''</span>, description: <span class="str">''</span> });
+
+<span class="kw">private</span> <span class="fn">validateField</span>(field: <span class="str">'title'</span> | <span class="str">'description'</span>): <span class="typ">void</span> {
+  <span class="kw">const</span> value = <span class="kw">this</span>.<span class="fn">newTodoForm</span>()[field].<span class="fn">trim</span>();
+  <span class="kw">const</span> alphanumericPattern = <span class="op">/</span>^[a-zA-Z0-9\s]+$<span class="op">/</span>;
+
+  <span class="kw">let</span> error = <span class="str">''</span>;
+  <span class="kw">if</span> (!value) {
+    error = <span class="str">`<span class="op">${</span>field.<span class="fn">charAt</span>(<span class="num">0</span>).<span class="fn">toUpperCase</span>() + field.<span class="fn">slice</span>(<span class="num">1</span>)<span class="op">}</span> is required`</span>;
+  } <span class="kw">else if</span> (!alphanumericPattern.<span class="fn">test</span>(value)) {
+    error = <span class="str">`<span class="op">${</span>field.<span class="fn">charAt</span>(<span class="num">0</span>).<span class="fn">toUpperCase</span>() + field.<span class="fn">slice</span>(<span class="num">1</span>)<span class="op">}</span> must contain only letters, numbers, and spaces`</span>;
+  }
+
+  <span class="kw">this</span>.formErrors.<span class="fn">update</span>(errors =&gt; ({ ...errors, [field]: error }));
+}</pre>
+          </div>
+          <div class="code-block">
+            <span class="lang-tag">HTML</span>
+            <pre><span class="cmt">&lt;!-- Input with linked error message --&gt;</span>
+<span class="tag-c">&lt;input</span>
+  <span class="atr">id</span>=<span class="val">"todo-title"</span>
+  <span class="atr">type</span>=<span class="val">"text"</span>
+  <span class="atr">aria-required</span>=<span class="val">"true"</span>
+  <span class="atr">[attr.aria-invalid]</span>=<span class="val">"formErrors().title ? 'true' : null"</span>
+  <span class="atr">aria-describedby</span>=<span class="val">"title-error"</span>
+  <span class="atr">(input)</span>=<span class="val">"onTitleInput($event)"</span>
+<span class="tag-c">/&gt;</span>
+<span class="tag-c">&lt;p</span> <span class="atr">id</span>=<span class="val">"title-error"</span> <span class="atr">role</span>=<span class="val">"alert"</span> <span class="atr">aria-live</span>=<span class="val">"polite"</span><span class="tag-c">&gt;</span>
+  @if (formErrors().title) { {{ formErrors().title }} }
+<span class="tag-c">&lt;/p&gt;</span></pre>
+          </div>
+
+          <h3>Key ARIA attributes for forms</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Attribute</th>
+                  <th>Value</th>
+                  <th>Purpose</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>aria-required="true"</code></td>
+                  <td>Static</td>
+                  <td>Tells screen readers the field is mandatory</td>
+                </tr>
+                <tr>
+                  <td><code>aria-invalid="true"</code></td>
+                  <td>Dynamic — bind with <code>null</code> to remove</td>
+                  <td>Field currently has a validation error</td>
+                </tr>
+                <tr>
+                  <td><code>aria-describedby="error-id"</code></td>
+                  <td>Static id reference</td>
+                  <td>Links the input to its error message paragraph</td>
+                </tr>
+                <tr>
+                  <td><code>aria-labelledby="heading-id"</code></td>
+                  <td>Static id reference</td>
+                  <td>Links a form section to its visible heading</td>
+                </tr>
+                <tr>
+                  <td><code>aria-live="polite"</code></td>
+                  <td>Static on error container</td>
+                  <td>Announces errors as they appear</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ─── 8. Landmark Roles — Host vs Template ─────────────── -->
+        <section id="s8" aria-labelledby="h-s8">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">8</div>
+            <h2 id="h-s8">Landmark Roles — Host vs Template</h2>
+          </div>
+
+          <h3>Decision guide</h3>
+          <div class="code-block">
+            <pre>Does the component represent an entire page section?
+  └─ YES → Put role in host: { 'role': '...' } — avoids extra wrapper div
+  └─ NO  → Put role in the template on the specific element</pre>
+          </div>
+
+          <h3>Common mistakes</h3>
+          <div class="compare-grid">
+            <div class="compare-card">
+              <div class="compare-header bad">✗ Creates two &lt;main&gt; landmarks — fails WCAG 1.3.6</div>
+              <pre><span class="dec">@Component</span>({
+  host: { <span class="str">'role'</span>: <span class="str">'main'</span> }
+})</pre>
+            </div>
+            <div class="compare-card">
+              <div class="compare-header good">✓ One main in app.html, components use region</div>
+              <pre><span class="dec">@Component</span>({
+  host: {
+    <span class="str">'role'</span>: <span class="str">'region'</span>,
+    <span class="str">'[attr.aria-label]'</span>: <span class="str">'"Todo application"'</span>
+  }
+})</pre>
+            </div>
+          </div>
+
+          <div class="compare-grid">
+            <div class="compare-card">
+              <div class="compare-header bad">✗ Missing label on region — fails WCAG 1.3.6</div>
+              <pre><span class="tag-c">&lt;section</span> <span class="atr">role</span>=<span class="val">"region"</span><span class="tag-c">&gt;</span>…<span class="tag-c">&lt;/section&gt;</span></pre>
+            </div>
+            <div class="compare-card">
+              <div class="compare-header good">✓ Named region — screen readers list it in landmarks menu</div>
+              <pre><span class="tag-c">&lt;section</span> <span class="atr">role</span>=<span class="val">"region"</span>
+         <span class="atr">aria-labelledby</span>=<span class="val">"section-heading"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;h2</span> <span class="atr">id</span>=<span class="val">"section-heading"</span><span class="tag-c">&gt;</span>Active Tasks<span class="tag-c">&lt;/h2&gt;</span>
+<span class="tag-c">&lt;/section&gt;</span></pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 9. Computed Labels for Lists and Regions ──────────── -->
+        <section id="s9" aria-labelledby="h-s9">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">9</div>
+            <h2 id="h-s9">Computed Labels for Lists and Regions</h2>
+          </div>
+
+          <p>
+            Dynamic content labels keep screen reader announcements accurate when state changes.
+          </p>
+
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre><span class="cmt">// Label reflects the active filter</span>
+<span class="kw">protected readonly</span> ariaListLabel = <span class="fn">computed</span>(() =&gt; {
+  <span class="kw">const</span> labels: <span class="typ">Record</span>&lt;<span class="typ">string</span>, <span class="typ">string</span>&gt; = {
+    all: <span class="str">'All tasks'</span>,
+    active: <span class="str">'Active tasks'</span>,
+    completed: <span class="str">'Completed tasks'</span>,
+  };
+  <span class="kw">return</span> labels[<span class="kw">this</span>.<span class="fn">filter</span>()];
+});
+
+<span class="cmt">// Label includes counts for the region host element</span>
+<span class="kw">protected readonly</span> ariaLabel = <span class="fn">computed</span>(() =&gt; {
+  <span class="kw">const</span> stats = <span class="kw">this</span>.<span class="fn">todoStats</span>();
+  <span class="kw">return</span> <span class="str">`Todo list with <span class="op">${</span>stats.total<span class="op">}</span> items, <span class="op">${</span>stats.active<span class="op">}</span> active, <span class="op">${</span>stats.completed<span class="op">}</span> completed`</span>;
+});
+
+<span class="cmt">// Per-item action button labels include the item name</span>
+<span class="cmt">// (Defined as input() in TodoItemComponent)</span>
+<span class="cmt">// In template: [attr.aria-label]="'Edit: ' + todo().title"</span>
+<span class="cmt">//              [attr.aria-label]="'Delete: ' + todo().title"</span></pre>
+          </div>
+
+          <h3>Why per-item labels matter</h3>
+          <p>
+            Without a title in the button label, a screen reader announces
+            <em>"Edit button, Edit button, Edit button…"</em> for every item in the list. With
+            <code>'Edit: Buy groceries'</code> the user knows exactly which item they are acting on
+            — essential for WCAG 2.4.6 <em>Headings and Labels</em> and 2.4.9
+            <em>Link Purpose</em>.
+          </p>
+        </section>
+
+        <!-- ─── 10. Testing Accessibility ────────────────────────── -->
+        <section id="s10" aria-labelledby="h-s10">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">10</div>
+            <h2 id="h-s10">Testing Accessibility in <code>.spec.ts</code></h2>
+          </div>
+
+          <h3>Test that ARIA attributes update with signals</h3>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre><span class="fn">it</span>(<span class="str">'sets aria-invalid on the title input when there is a validation error'</span>, () =&gt; {
+  component.testFormErrors.<span class="fn">set</span>({ title: <span class="str">'Title is required'</span>, description: <span class="str">''</span> });
+  fixture.<span class="fn">detectChanges</span>();
+
+  <span class="kw">const</span> input = fixture.nativeElement.<span class="fn">querySelector</span>(<span class="str">'#todo-title'</span>);
+  <span class="fn">expect</span>(input.<span class="fn">getAttribute</span>(<span class="str">'aria-invalid'</span>)).<span class="fn">toBe</span>(<span class="str">'true'</span>);
+});
+
+<span class="fn">it</span>(<span class="str">'removes aria-invalid when the error is cleared'</span>, () =&gt; {
+  component.testFormErrors.<span class="fn">set</span>({ title: <span class="str">''</span>, description: <span class="str">''</span> });
+  fixture.<span class="fn">detectChanges</span>();
+
+  <span class="kw">const</span> input = fixture.nativeElement.<span class="fn">querySelector</span>(<span class="str">'#todo-title'</span>);
+  <span class="fn">expect</span>(input.<span class="fn">getAttribute</span>(<span class="str">'aria-invalid'</span>)).<span class="fn">toBeNull</span>();
+});</pre>
+          </div>
+
+          <h3>Test that LiveAnnouncer is called</h3>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre><span class="kw">import</span> { <span class="typ">LiveAnnouncer</span> } <span class="kw">from</span> <span class="str">'@angular/cdk/a11y'</span>;
+
+<span class="kw">let</span> liveAnnouncer: <span class="typ">LiveAnnouncer</span>;
+
+<span class="fn">beforeEach</span>(() =&gt; {
+  liveAnnouncer = <span class="typ">TestBed</span>.<span class="fn">inject</span>(<span class="typ">LiveAnnouncer</span>);
+  vi.<span class="fn">spyOn</span>(liveAnnouncer, <span class="str">'announce'</span>);
+});
+
+<span class="fn">it</span>(<span class="str">'announces deletion assertively'</span>, () =&gt; {
+  component.<span class="fn">onTodoDeleted</span>(<span class="str">'todo-1'</span>);
+  <span class="fn">expect</span>(liveAnnouncer.announce).<span class="fn">toHaveBeenCalledWith</span>(
+    <span class="fn">expect</span>.<span class="fn">stringContaining</span>(<span class="str">'deleted'</span>),
+    <span class="str">'assertive'</span>,
+  );
+});
+
+<span class="fn">it</span>(<span class="str">'announces toggle with correct completion state'</span>, () =&gt; {
+  component.<span class="fn">onTodoToggled</span>(<span class="str">'todo-1'</span>); <span class="cmt">// assuming todo-1 is incomplete</span>
+  <span class="fn">expect</span>(liveAnnouncer.announce).<span class="fn">toHaveBeenCalledWith</span>(
+    <span class="fn">expect</span>.<span class="fn">stringContaining</span>(<span class="str">'marked as complete'</span>),
+    <span class="str">'polite'</span>,
+  );
+});</pre>
+          </div>
+
+          <h3>Test host role and label</h3>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre><span class="fn">it</span>(<span class="str">'has role="region" on the host element'</span>, () =&gt; {
+  <span class="fn">expect</span>(fixture.nativeElement.<span class="fn">getAttribute</span>(<span class="str">'role'</span>)).<span class="fn">toBe</span>(<span class="str">'region'</span>);
+});
+
+<span class="fn">it</span>(<span class="str">'sets aria-label on the host element from computed signal'</span>, () =&gt; {
+  <span class="kw">const</span> label = fixture.nativeElement.<span class="fn">getAttribute</span>(<span class="str">'aria-label'</span>);
+  <span class="fn">expect</span>(label).<span class="fn">toContain</span>(<span class="str">'Todo list'</span>);
+});</pre>
+          </div>
+
+          <h3>Test list label updates on filter change</h3>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre><span class="fn">it</span>(<span class="str">'updates the ul aria-label when the filter changes'</span>, () =&gt; {
+  component.<span class="fn">onFilterChanged</span>(<span class="str">'active'</span>);
+  fixture.<span class="fn">detectChanges</span>();
+
+  <span class="kw">const</span> ul = fixture.nativeElement.<span class="fn">querySelector</span>(<span class="str">'ul'</span>);
+  <span class="fn">expect</span>(ul.<span class="fn">getAttribute</span>(<span class="str">'aria-label'</span>)).<span class="fn">toBe</span>(<span class="str">'Active tasks'</span>);
+});</pre>
+          </div>
+        </section>
+
+        <!-- ─── Quick Reference Cheat Sheet ──────────────────────── -->
+        <section id="cheatsheet" aria-labelledby="h-cheatsheet">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">⚡</div>
+            <h2 id="h-cheatsheet">Quick Reference — ARIA Patterns Cheat Sheet</h2>
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Need</th>
+                  <th>Angular TypeScript pattern</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Announce dynamic change</td>
+                  <td><code>inject(LiveAnnouncer)</code> → <code>.announce(msg, 'polite'|'assertive')</code></td>
+                </tr>
+                <tr>
+                  <td>Dynamic aria attribute</td>
+                  <td><code>computed()</code> signal + <code>[attr.aria-label]="signal()"</code></td>
+                </tr>
+                <tr>
+                  <td>Remove attribute when false</td>
+                  <td><code>[attr.aria-invalid]="condition ? 'true' : null"</code></td>
+                </tr>
+                <tr>
+                  <td>Role on host element</td>
+                  <td><code>host: { 'role': 'region', '[attr.aria-label]': 'signal()' }</code></td>
+                </tr>
+                <tr>
+                  <td>Trap focus in modal</td>
+                  <td><code>inject(FocusTrapFactory)</code> + <code>afterNextRender</code></td>
+                </tr>
+                <tr>
+                  <td>SSR-safe DOM access</td>
+                  <td><code>inject(PLATFORM_ID)</code> + <code>isPlatformBrowser()</code> or <code>afterNextRender()</code></td>
+                </tr>
+                <tr>
+                  <td>Keyboard submit</td>
+                  <td><code>if (event.key === 'Enter' &amp;&amp; valid) submit()</code></td>
+                </tr>
+                <tr>
+                  <td>Keyboard dismiss</td>
+                  <td><code>if (event.key === 'Escape') close()</code></td>
+                </tr>
+                <tr>
+                  <td>Per-item button labels</td>
+                  <td><code>[attr.aria-label]="'Edit: ' + item().name"</code></td>
+                </tr>
+                <tr>
+                  <td>Form field error link</td>
+                  <td><code>aria-describedby="error-id"</code> + <code>id="error-id"</code> on <code>&lt;p role="alert"&gt;</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ─── Bottom Nav ───────────────────────────────────────── -->
+        <nav class="bottom-nav" aria-label="Document navigation">
+          <a href="./04-chrome-testing-guide.html" class="nav-hub">← Chrome Testing Guide</a>
+          <a href="../aria-complete-guide.html">ARIA Complete Guide ↗</a>
+        </nav>
+
+      </main>
+
+      <!-- ═══ FOOTER ════════════════════════════════════════════════ -->
+      <footer>
+        <p>Angular TypeScript ARIA Patterns · Todo App Accessibility Series · WCAG 2.1 AA · May 2026</p>
+      </footer>
+
+    </div>
+  </body>
+</html>

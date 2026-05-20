@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Section 6: Custom ARIA Patterns in Angular 21 — ARIA Complete Guide</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg:            #0f172a;
+        --surface:       #1e293b;
+        --surface-2:     #273549;
+        --border:        #334155;
+        --primary:       #818cf8;
+        --primary-light: #a5b4fc;
+        --accent:        #34d399;
+        --warn:          #fbbf24;
+        --danger:        #f87171;
+        --purple:        #c084fc;
+        --cyan:          #67e8f9;
+        --text:          #e2e8f0;
+        --muted:         #94a3b8;
+        --code-bg:       #0d1117;
+        --font-sans:     'Segoe UI', system-ui, -apple-system, sans-serif;
+        --font-mono:     'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+        --radius:        0.75rem;
+        --radius-sm:     0.4rem;
+        --shadow:        0 4px 24px rgba(0,0,0,0.5);
+        --max-width:     960px;
+      }
+
+      html { scroll-behavior: smooth; }
+      body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.8; font-size: 1rem; }
+
+      .skip-link {
+        position: absolute; top: -100%; left: 1rem;
+        padding: 0.5rem 1rem; background: var(--primary); color: #0f172a;
+        font-weight: 700; border-radius: 0 0 var(--radius) var(--radius);
+        z-index: 9999; transition: top 0.2s; text-decoration: none;
+      }
+      .skip-link:focus { top: 0; }
+
+      .page-wrapper { max-width: var(--max-width); margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+
+      /* ─── Top Nav ───────────────────────────────────────────── */
+      .top-nav {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 0.75rem 1.25rem;
+        margin-bottom: 2rem; font-size: 0.85rem; gap: 1rem;
+      }
+      .top-nav a {
+        color: var(--primary-light); text-decoration: none;
+        padding: 0.3rem 0.75rem; border-radius: var(--radius-sm);
+        border: 1px solid var(--border); transition: border-color 0.15s, background 0.15s;
+        white-space: nowrap;
+      }
+      .top-nav a:hover { border-color: var(--primary); background: var(--surface-2); }
+      .top-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .top-nav .nav-center { font-size: 0.75rem; color: var(--muted); text-align: center; flex: 1; min-width: 0; }
+      .top-nav .nav-center strong { color: var(--primary-light); }
+      .top-nav .nav-next { opacity: 0.45; pointer-events: none; }
+
+      /* ─── Hero ──────────────────────────────────────────────── */
+      .hero {
+        background: linear-gradient(135deg, #0c1a2e 0%, #1e293b 50%, #1a1035 100%);
+        border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 3rem 2.5rem; margin-bottom: 2rem;
+        text-align: center; box-shadow: var(--shadow);
+      }
+      .hero-badge {
+        display: inline-block; background: rgba(129,140,248,0.15);
+        border: 1px solid var(--primary); color: var(--primary-light);
+        font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em;
+        text-transform: uppercase; padding: 0.3rem 1rem;
+        border-radius: 999px; margin-bottom: 1.25rem;
+      }
+      .hero h1 { font-size: clamp(1.75rem, 4vw, 2.8rem); font-weight: 800; line-height: 1.15; color: #fff; margin-bottom: 1rem; }
+      .hero h1 span { color: var(--primary-light); }
+      .hero h1 .section-num { color: var(--muted); font-size: 0.55em; font-weight: 600; display: block; margin-bottom: 0.25rem; }
+      .hero p { font-size: 1.05rem; color: var(--muted); max-width: 700px; margin: 0 auto 1rem; }
+      .hero-meta { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-top: 1.25rem; }
+      .hero-meta span { font-size: 0.78rem; color: var(--muted); display: flex; align-items: center; gap: 0.4rem; }
+      .hero-meta span strong { color: var(--accent); }
+
+      /* ─── TOC ───────────────────────────────────────────────── */
+      .toc {
+        background: var(--surface); border: 1px solid var(--border);
+        border-left: 4px solid var(--primary); border-radius: var(--radius);
+        padding: 1.5rem 2rem; margin-bottom: 3rem;
+      }
+      .toc-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--primary); margin-bottom: 1rem; }
+      .toc ol { padding-left: 1.5rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.3rem 2rem; }
+      .toc li { font-size: 0.875rem; }
+      .toc a { color: var(--muted); text-decoration: none; transition: color 0.15s; }
+      .toc a:hover, .toc a:focus { color: var(--primary-light); text-decoration: underline; }
+
+      /* ─── Sections ──────────────────────────────────────────── */
+      section { margin-bottom: 4.5rem; scroll-margin-top: 2rem; }
+      .section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+      .section-number { flex-shrink: 0; width: 2.25rem; height: 2.25rem; background: linear-gradient(135deg, var(--primary), #6366f1); color: #fff; font-size: 0.82rem; font-weight: 800; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+      h2 { font-size: 1.55rem; font-weight: 800; color: #fff; }
+      h3 { font-size: 1.1rem; font-weight: 700; color: var(--primary-light); margin: 2.25rem 0 0.75rem; }
+      h4 { font-size: 0.9rem; font-weight: 700; color: var(--accent); margin: 1.5rem 0 0.5rem; text-transform: uppercase; letter-spacing: 0.07em; }
+      p { margin-bottom: 1rem; color: var(--text); }
+      p:last-child { margin-bottom: 0; }
+      ul, ol { padding-left: 1.5rem; margin: 0.75rem 0; }
+      li { margin-bottom: 0.4rem; color: var(--text); font-size: 0.95rem; }
+      strong { color: #fff; }
+      em { color: var(--warn); font-style: italic; }
+      code { font-family: var(--font-mono); font-size: 0.82em; background: var(--surface-2); border: 1px solid var(--border); padding: 0.15em 0.45em; border-radius: var(--radius-sm); color: var(--primary-light); }
+      kbd { font-family: var(--font-mono); font-size: 0.78em; background: var(--surface-2); border: 1px solid var(--border); border-bottom: 2px solid var(--border); padding: 0.15em 0.45em; border-radius: var(--radius-sm); color: var(--text); }
+
+      /* ─── Callouts ──────────────────────────────────────────── */
+      .callout { display: flex; gap: 0.75rem; padding: 1rem 1.25rem; border-radius: var(--radius); margin: 1.25rem 0; border: 1px solid; font-size: 0.9rem; }
+      .callout-icon { font-size: 1.25rem; flex-shrink: 0; line-height: 1.5; margin-top: 0.1rem; }
+      .callout p { margin: 0; color: inherit; line-height: 1.7; }
+      .callout.info    { background: rgba(129,140,248,0.08); border-color: rgba(129,140,248,0.3); color: var(--primary-light); }
+      .callout.warn    { background: rgba(251,191,36,0.08);  border-color: rgba(251,191,36,0.3);  color: var(--warn); }
+      .callout.success { background: rgba(52,211,153,0.08);  border-color: rgba(52,211,153,0.3);  color: var(--accent); }
+      .callout.danger  { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.3); color: var(--danger); }
+      .callout.purple  { background: rgba(192,132,252,0.08); border-color: rgba(192,132,252,0.3); color: var(--purple); }
+
+      /* ─── Code Blocks ───────────────────────────────────────── */
+      .code-block { background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; overflow-x: auto; margin: 1.25rem 0; position: relative; }
+      .code-block .lang-tag { position: absolute; top: 0.6rem; right: 0.75rem; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); background: var(--surface); padding: 0.15rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+      pre { font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.75; color: #e2e8f0; white-space: pre; }
+      .kw  { color: #c792ea; } .fn  { color: #82aaff; } .str { color: #c3e88d; }
+      .cmt { color: #546e7a; font-style: italic; } .typ { color: #ffcb6b; }
+      .tag-c { color: #f07178; } .atr { color: #ffcb6b; } .val { color: #c3e88d; }
+      .op  { color: #89ddff; } .num { color: #f78c6c; }
+
+      /* ─── Pattern Card ──────────────────────────────────────── */
+      .pattern-card {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 1.5rem;
+        margin: 1.5rem 0;
+      }
+      .pattern-card-head {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;
+        padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);
+      }
+      .pattern-card-head code { font-size: 1rem; color: var(--cyan); }
+      .pattern-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+      .p-tag {
+        display: inline-block; font-size: 0.68rem; font-weight: 700;
+        letter-spacing: 0.07em; text-transform: uppercase;
+        padding: 0.15rem 0.55rem; border-radius: 999px;
+      }
+      .p-tag-apg    { background: rgba(52,211,153,0.12);  color: var(--accent);  border: 1px solid rgba(52,211,153,0.3); }
+      .p-tag-cdk    { background: rgba(129,140,248,0.12); color: var(--primary); border: 1px solid rgba(129,140,248,0.3); }
+      .p-tag-custom { background: rgba(251,191,36,0.12);  color: var(--warn);    border: 1px solid rgba(251,191,36,0.3); }
+
+      .pattern-body { font-size: 0.9rem; color: var(--muted); line-height: 1.7; margin-bottom: 0.75rem; }
+      .pattern-body strong { color: #fff; }
+      .pattern-rule { font-size: 0.82rem; background: var(--surface-2); border-left: 3px solid var(--primary); padding: 0.6rem 1rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 0.75rem; color: var(--text); }
+      .pattern-rule strong { color: var(--primary-light); }
+
+      /* ─── Keyboard row ──────────────────────────────────────── */
+      .kb-grid { display: grid; gap: 0.5rem; margin: 1rem 0; }
+      .kb-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.65rem 1rem; font-size: 0.85rem; }
+      .kb-keys { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+      .kb-desc { color: var(--muted); }
+
+      /* ─── Comparison Grid ─────────────────────────────────────── */
+      .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+      @media (max-width: 640px) { .compare-grid { grid-template-columns: 1fr; } }
+      .compare-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+      .compare-card.good { border-top: 3px solid var(--accent); }
+      .compare-card.bad  { border-top: 3px solid var(--danger); }
+      .compare-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.75rem; }
+      .compare-card.good .compare-label { color: var(--accent); }
+      .compare-card.bad  .compare-label { color: var(--danger); }
+
+      /* ─── Tables ─────────────────────────────────────────────── */
+      .table-wrapper { overflow-x: auto; margin: 1.25rem 0; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+      thead th { background: var(--surface); color: var(--primary-light); font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.75rem 1rem; text-align: left; border-bottom: 2px solid var(--border); }
+      tbody td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; line-height: 1.6; }
+      tbody tr:hover td { background: var(--surface); }
+
+      /* ─── Bottom Nav ─────────────────────────────────────────── */
+      .bottom-nav { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 2rem; margin-top: 4rem; gap: 1rem; flex-wrap: wrap; }
+      .bottom-nav a { color: var(--primary-light); text-decoration: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.875rem; transition: border-color 0.15s, background 0.15s; display: flex; align-items: center; gap: 0.4rem; }
+      .bottom-nav a:hover { border-color: var(--primary); background: var(--surface); }
+      .bottom-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .bottom-nav .nav-next { opacity: 0.45; pointer-events: none; }
+
+      /* ─── Footer ────────────────────────────────────────────── */
+      footer { border-top: 1px solid var(--border); padding: 2rem 0 0; text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 3rem; }
+      footer a { color: var(--primary-light); text-decoration: none; }
+      footer a:hover { text-decoration: underline; }
+    </style>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <div class="page-wrapper">
+
+      <!-- ═══ TOP NAV ═══════════════════════════════════════════════ -->
+      <nav class="top-nav" aria-label="Document navigation">
+        <a href="./aria-s5-live-regions.html">← Section 5</a>
+        <div class="nav-center">
+          <strong>Section 6 of 9</strong> — Custom ARIA Patterns in Angular 21
+        </div>
+        <a href="./aria-s7-screen-readers.html" aria-label="Section 7: Screen Reader Behaviour Reference">
+          Section 7 →
+        </a>
+      </nav>
+
+      <!-- ═══ HERO ══════════════════════════════════════════════════ -->
+      <header role="banner">
+        <div class="hero">
+          <div class="hero-badge">Section 6 · WAI-ARIA APG · Angular 21 · May 2026</div>
+          <h1>
+            <span class="section-num">Section 6 of 9</span>
+            Custom ARIA <span>Patterns</span> in Angular 21
+          </h1>
+          <p>
+            Complex interactive components — dialogs, tabs, comboboxes, data grids, tooltips,
+            and disclosure widgets — require specific ARIA role hierarchies, keyboard contracts,
+            and focus management to be accessible. This section walks through each pattern
+            with complete Angular 21 implementations.
+          </p>
+          <div class="hero-meta">
+            <span>📋 Source: <strong>WAI-ARIA APG (ARIA Practices Guide)</strong></span>
+            <span>🔧 Framework: <strong>Angular 21</strong></span>
+            <span>📅 Updated: <strong>May 2026</strong></span>
+            <span>🎯 CDK: <strong>@angular/cdk/a11y</strong></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ═══ TOC ════════════════════════════════════════════════════ -->
+      <nav aria-label="Section contents">
+        <div class="toc">
+          <div class="toc-title">In This Section</div>
+          <ol>
+            <li><a href="#s6-1">6.1 — The APG Design Pattern Rule</a></li>
+            <li><a href="#s6-2">6.2 — Modal Dialog</a></li>
+            <li><a href="#s6-3">6.3 — Tabs</a></li>
+            <li><a href="#s6-4">6.4 — Combobox / Autocomplete</a></li>
+            <li><a href="#s6-5">6.5 — Data Grid</a></li>
+            <li><a href="#s6-6">6.6 — Disclosure / Accordion</a></li>
+            <li><a href="#s6-7">6.7 — Tooltip</a></li>
+            <li><a href="#s6-8">6.8 — Pattern Compatibility Matrix</a></li>
+          </ol>
+        </div>
+      </nav>
+
+      <!-- ═══ MAIN ═══════════════════════════════════════════════════ -->
+      <main id="main-content">
+
+        <!-- ─── 6.1 APG Rule ──────────────────────────────────────── -->
+        <section id="s6-1" aria-labelledby="h6-1">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">6.1</div>
+            <h2 id="h6-1">The APG Design Pattern Rule</h2>
+          </div>
+
+          <p>
+            The <strong>ARIA Authoring Practices Guide (APG)</strong> published by the W3C defines
+            a design pattern for every complex widget. Each pattern specifies exactly three things:
+          </p>
+          <ol>
+            <li><strong>ARIA roles, properties &amp; states</strong> — what roles to assign, what attributes are required</li>
+            <li><strong>Keyboard interaction contract</strong> — which keys do what; deviating from this breaks user expectations</li>
+            <li><strong>Focus management rules</strong> — where focus goes when the widget opens, closes, or the user navigates</li>
+          </ol>
+
+          <div class="callout info">
+            <span class="callout-icon" aria-hidden="true">💡</span>
+            <p>
+              <strong>Rule:</strong> Before implementing any custom interactive component,
+              look up its APG pattern at
+              <a href="https://www.w3.org/WAI/ARIA/apg/patterns/" style="color:var(--primary-light);">w3.org/WAI/ARIA/apg/patterns</a>.
+              If the component maps to an existing pattern, follow it exactly.
+              If the component is genuinely novel, model it after the closest pattern.
+              Never invent role structures or keyboard behaviours from scratch.
+            </p>
+          </div>
+
+          <h3>When to use CDK vs Custom Implementation</h3>
+          <div class="table-wrapper">
+            <table aria-label="CDK vs custom implementation decision matrix">
+              <thead>
+                <tr>
+                  <th scope="col">Component</th>
+                  <th scope="col">Angular CDK Solution</th>
+                  <th scope="col">Complexity</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Modal Dialog</td>
+                  <td><code>cdkTrapFocus</code> directive, <code>A11yModule</code></td>
+                  <td>Low — CDK handles focus trapping</td>
+                </tr>
+                <tr>
+                  <td>Tabs</td>
+                  <td>Manual implementation (no CDK tab widget as of v21)</td>
+                  <td>Medium — roving tabindex required</td>
+                </tr>
+                <tr>
+                  <td>Combobox</td>
+                  <td><code>CdkListbox</code> + <code>CdkOption</code> (CDK v17+)</td>
+                  <td>Medium — use CDK where possible</td>
+                </tr>
+                <tr>
+                  <td>Data Grid</td>
+                  <td><code>CdkTable</code> + manual grid keyboard</td>
+                  <td>High — complex keyboard model</td>
+                </tr>
+                <tr>
+                  <td>Disclosure/Accordion</td>
+                  <td>Manual — small surface area</td>
+                  <td>Low — simple button + region pattern</td>
+                </tr>
+                <tr>
+                  <td>Tooltip</td>
+                  <td><code>MatTooltip</code> from Angular Material, or manual</td>
+                  <td>Low</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ─── 6.2 Modal Dialog ──────────────────────────────────── -->
+        <section id="s6-2" aria-labelledby="h6-2">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">6.2</div>
+            <h2 id="h6-2">Modal Dialog Pattern</h2>
+          </div>
+
+          <div class="pattern-card">
+            <div class="pattern-card-head">
+              <code>role="dialog"</code>
+              <div class="pattern-meta">
+                <span class="p-tag p-tag-apg">APG Pattern</span>
+                <span class="p-tag p-tag-cdk">cdkTrapFocus</span>
+              </div>
+            </div>
+            <div class="pattern-body">
+              A dialog is an overlay window that <strong>traps focus</strong> inside it until
+              dismissed. The user cannot Tab out of the dialog while it is open. Closing it
+              must return focus to the element that triggered it. Use <code>role="dialog"</code>
+              with <code>aria-modal="true"</code> to tell AT the rest of the page is inert.
+            </div>
+            <div class="pattern-rule">
+              <strong>Required:</strong> <code>role="dialog"</code> ·
+              <code>aria-labelledby</code> pointing to the dialog title ·
+              <code>aria-modal="true"</code> · Focus trap · <kbd>Escape</kbd> closes.
+            </div>
+          </div>
+
+          <h4>Keyboard contract (APG Dialog Pattern)</h4>
+          <div class="kb-grid">
+            <div class="kb-row">
+              <div class="kb-keys"><kbd>Tab</kbd></div>
+              <div class="kb-desc">Move focus forward through focusable elements <em>within</em> the dialog — wraps at the end back to the first element</div>
+            </div>
+            <div class="kb-row">
+              <div class="kb-keys"><kbd>Shift</kbd><kbd>Tab</kbd></div>
+              <div class="kb-desc">Move focus backward — wraps from first element to last</div>
+            </div>
+            <div class="kb-row">
+              <div class="kb-keys"><kbd>Escape</kbd></div>
+              <div class="kb-desc">Close the dialog and return focus to the trigger element</div>
+            </div>
+          </div>
+
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — Angular 21 dialog component</span>
+            <pre>
+<span class="kw">import</span> { <span class="typ">A11yModule</span><span class="op">,</span> <span class="typ">FocusTrap</span><span class="op">,</span> <span class="typ">FocusTrapFactory</span> } <span class="kw">from</span> <span class="str">'@angular/cdk/a11y'</span><span class="op">;</span>
+
+<span class="fn">@Component</span>(<span class="op">{</span>
+  selector<span class="op">:</span> <span class="str">'app-confirm-dialog'</span><span class="op">,</span>
+  standalone<span class="op">:</span> <span class="kw">true</span><span class="op">,</span>
+  imports<span class="op">:</span> [<span class="typ">A11yModule</span>]<span class="op">,</span>
+  changeDetection<span class="op">:</span> <span class="typ">ChangeDetectionStrategy</span><span class="op">.</span>OnPush<span class="op">,</span>
+  template<span class="op">:</span> <span class="str">`
+    &lt;div
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="'dialog-title-' + dialogId"
+      [attr.aria-describedby]="'dialog-desc-' + dialogId"
+      cdkTrapFocus
+      cdkTrapFocusAutoCapture
+      (keydown.escape)="close()"
+    &gt;
+      &lt;h2 [id]="'dialog-title-' + dialogId"&gt;{{ title() }}&lt;/h2&gt;
+      &lt;p  [id]="'dialog-desc-'  + dialogId"&gt;{{ description() }}&lt;/p&gt;
+      &lt;div&gt;
+        &lt;button type="button" (click)="confirm()"&gt;Confirm&lt;/button&gt;
+        &lt;button type="button" (click)="close()"&gt;Cancel&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  `</span><span class="op">,</span>
+<span class="op">})</span>
+<span class="kw">export class</span> <span class="typ">ConfirmDialogComponent</span> <span class="op">{</span>
+  <span class="kw">readonly</span> title         <span class="op">=</span> <span class="fn">input</span><span class="op">&lt;</span><span class="kw">string</span><span class="op">&gt;</span>(<span class="str">'Confirm action'</span>)<span class="op">;</span>
+  <span class="kw">readonly</span> description   <span class="op">=</span> <span class="fn">input</span><span class="op">&lt;</span><span class="kw">string</span><span class="op">&gt;</span>(<span class="str">''</span>)<span class="op">;</span>
+  <span class="kw">readonly</span> confirmed      <span class="op">=</span> <span class="fn">output</span><span class="op">&lt;</span><span class="kw">void</span><span class="op">&gt;</span>()<span class="op">;</span>
+  <span class="kw">readonly</span> dismissed      <span class="op">=</span> <span class="fn">output</span><span class="op">&lt;</span><span class="kw">void</span><span class="op">&gt;</span>()<span class="op">;</span>
+  <span class="kw">readonly</span> dialogId       <span class="op">=</span> <span class="fn">crypto</span><span class="op">.</span><span class="fn">randomUUID</span>()<span class="op">;</span>
+
+  <span class="cmt">// Track element that opened the dialog to restore focus on close</span>
+  <span class="kw">private</span> triggerEl<span class="op">:</span> <span class="typ">HTMLElement</span> <span class="op">|</span> <span class="kw">null</span> <span class="op">=</span> <span class="kw">null</span><span class="op">;</span>
+
+  <span class="fn">open</span>(trigger<span class="op">:</span> <span class="typ">HTMLElement</span>)<span class="op">:</span> <span class="kw">void</span> <span class="op">{</span>
+    <span class="kw">this</span><span class="op">.</span>triggerEl <span class="op">=</span> trigger<span class="op">;</span>
+  <span class="op">}</span>
+
+  <span class="fn">confirm</span>()<span class="op">:</span> <span class="kw">void</span> <span class="op">{</span>
+    <span class="kw">this</span><span class="op">.</span>confirmed<span class="op">.</span><span class="fn">emit</span>()<span class="op">;</span>
+    <span class="kw">this</span><span class="op">.</span><span class="fn">restoreFocus</span>()<span class="op">;</span>
+  <span class="op">}</span>
+
+  <span class="fn">close</span>()<span class="op">:</span> <span class="kw">void</span> <span class="op">{</span>
+    <span class="kw">this</span><span class="op">.</span>dismissed<span class="op">.</span><span class="fn">emit</span>()<span class="op">;</span>
+    <span class="kw">this</span><span class="op">.</span><span class="fn">restoreFocus</span>()<span class="op">;</span>
+  <span class="op">}</span>
+
+  <span class="kw">private</span> <span class="fn">restoreFocus</span>()<span class="op">:</span> <span class="kw">void</span> <span class="op">{</span>
+    <span class="cmt">// Return focus to trigger after dialog is removed from DOM</span>
+    <span class="fn">setTimeout</span>(() <span class="op">=&gt;</span> <span class="kw">this</span><span class="op">.</span>triggerEl<span class="op">?.</span><span class="fn">focus</span>())<span class="op">;</span>
+  <span class="op">}</span>
+<span class="op">}</span>
+</pre>
+          </div>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong>Make the background inert:</strong> <code>aria-modal="true"</code> alone
+              is not sufficient in all screen readers. In NVDA's Browse mode, users can still
+              escape into the background DOM. Set <code>[inert]</code> or
+              <code>aria-hidden="true"</code> on the <code>&lt;main&gt;</code> element when
+              the dialog is open. Angular CDK's <code>Dialog</code> service handles this for you.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 6.3 Tabs ──────────────────────────────────────────── -->
+        <section id="s6-3" aria-labelledby="h6-3">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">6.3</div>
+            <h2 id="h6-3">Tabs Pattern</h2>
+          </div>
+
+          <div class="pattern-card">
+            <div class="pattern-card-head">
+              <code>role="tablist"</code> / <code>role="tab"</code> / <code>role="tabpanel"</code>
+              <div class="pattern-meta">
+                <span class="p-tag p-tag-apg">APG Pattern</span>
+                <span class="p-tag p-tag-custom">Roving Tabindex</span>
+              </div>
+            </div>
+            <div class="pattern-body">
+              Tabs use a <strong>roving tabindex</strong> for keyboard navigation — only the
+              active tab has <code>tabindex="0"</code>; all others have <code>tabindex="-1"</code>.
+              Arrow keys move between tabs; <kbd>Tab</kbd> moves into the active tabpanel.
+              Each tab has <code>aria-selected</code> and <code>aria-controls</code> pointing
+              to its panel.
+            </div>
+            <div class="pattern-rule">
+              <strong>Required:</strong> <code>role="tablist"</code> on container ·
+              <code>role="tab"</code> + <code>aria-selected</code> + <code>aria-controls</code> on each tab ·
+              <code>role="tabpanel"</code> + <code>aria-labelledby</code> on each panel ·
+              Roving tabindex · Arrow-key navigation between tabs
+            </div>
+          </div>
+
+          <h4>Keyboard contract (APG Tabs Pattern)</h4>
+          <div class="kb-grid">
+            <div class="kb-row">
+              <div class="kb-keys"><kbd>→</kbd> / <kbd>←</kbd></div>
+              <div class="kb-desc">Move focus between tab buttons; activates the focused tab (automatic activation variant)</div>
+            </div>
+            <div class="kb-row">
+              <div class="kb-keys"><kbd>Home</kbd></div>
+              <div class="kb-desc">Move focus to the first tab</div>
+            </div>
+            <div class="kb-row">
+              <div class="kb-keys"><kbd>End</kbd></div>
+              <div class="kb-desc">Move focus to the last tab</div>
+            </div>
+            <div class="kb-row">
+              <div class="kb-keys"><kbd>Tab</kbd></div>
+              <div class="kb-desc">Move focus to the active tab panel (exit the tab list into the panel content)</div>
+            </div>
+            <div class="kb-row">
+              <div class="kb-keys"><kbd>Shift</kbd><kbd>Tab</kbd></div>
+              <div class="kb-desc">From the panel, move focus back to the active tab</div>
+            </div>
+          </div>
+
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — Angular 21 tabs component</span>
+            <pre>
+<span class="fn">@Component</span>(<span class="op">{</span>
+  selector<span class="op">:</span> <span class="str">'app-tabs'</span><span class="op">,</span>
+  standalone<span class="op">:</span> <span class="kw">true</span><span class="op">,</span>
+  changeDetection<span class="op">:</span> <span class="typ">ChangeDetectionStrategy</span><span class="op">.</span>OnPush<span class="op">,</span>
+  template<span class="op">:</span> <span class="str">`
+    &lt;div role="tablist" [attr.aria-label]="label()"&gt;
+      @for (tab of tabs(); track tab.id; let i = $index) {
+        &lt;button
+          role="tab"
+          [id]="'tab-' + tab.id"
+          [attr.aria-selected]="activeIndex() === i ? 'true' : 'false'"
+          [attr.aria-controls]="'panel-' + tab.id"
+          [tabindex]="activeIndex() === i ? 0 : -1"
+          (click)="activate(i)"
+          (keydown)="onKeydown($event, i)"
+        &gt;
+          {{ tab.label }}
+        &lt;/button&gt;
+      }
+    &lt;/div&gt;
+
+    @for (tab of tabs(); track tab.id; let i = $index) {
+      &lt;div
+        role="tabpanel"
+        [id]="'panel-' + tab.id"
+        [attr.aria-labelledby]="'tab-' + tab.id"
+        [hidden]="activeIndex() !== i"
+        tabindex="0"
+      &gt;
+        &lt;ng-container *ngTemplateOutlet="tab.content" /&gt;
+      &lt;/div&gt;
+    }
+  `</span><span class="op">,</span>
+<span class="op">})</span>
+<span class="kw">export class</span> <span class="typ">TabsComponent</span> <span class="op">{</span>
+  <span class="kw">readonly</span> tabs        <span class="op">=</span> <span class="fn">input</span><span class="op">&lt;</span><span class="typ">TabItem</span>[]<span class="op">&gt;</span>([])<span class="op">;</span>
+  <span class="kw">readonly</span> label       <span class="op">=</span> <span class="fn">input</span><span class="op">&lt;</span><span class="kw">string</span><span class="op">&gt;</span>(<span class="str">''</span>)<span class="op">;</span>
+  <span class="kw">readonly</span> activeIndex <span class="op">=</span> <span class="fn">signal</span>(<span class="num">0</span>)<span class="op">;</span>
+
+  <span class="fn">activate</span>(index<span class="op">:</span> <span class="kw">number</span>)<span class="op">:</span> <span class="kw">void</span> <span class="op">{</span>
+    <span class="kw">this</span><span class="op">.</span><span class="fn">activeIndex</span><span class="op">.</span><span class="fn">set</span>(index)<span class="op">;</span>
+  <span class="op">}</span>
+
+  <span class="fn">onKeydown</span>(event<span class="op">:</span> <span class="typ">KeyboardEvent</span><span class="op">,</span> current<span class="op">:</span> <span class="kw">number</span>)<span class="op">:</span> <span class="kw">void</span> <span class="op">{</span>
+    <span class="kw">const</span> count <span class="op">=</span> <span class="kw">this</span><span class="op">.</span><span class="fn">tabs</span>()<span class="op">.</span>length<span class="op">;</span>
+    <span class="kw">let</span> next <span class="op">=</span> current<span class="op">;</span>
+
+    <span class="kw">switch</span> (event<span class="op">.</span>key) <span class="op">{</span>
+      <span class="kw">case</span> <span class="str">'ArrowRight'</span><span class="op">:</span> next <span class="op">=</span> (current <span class="op">+</span> <span class="num">1</span>) <span class="op">%</span> count<span class="op">;</span>  <span class="kw">break</span><span class="op">;</span>
+      <span class="kw">case</span> <span class="str">'ArrowLeft'</span><span class="op">:</span>  next <span class="op">=</span> (current <span class="op">-</span> <span class="num">1</span> <span class="op">+</span> count) <span class="op">%</span> count<span class="op">;</span> <span class="kw">break</span><span class="op">;</span>
+      <span class="kw">case</span> <span class="str">'Home'</span><span class="op">:</span>        next <span class="op">=</span> <span class="num">0</span><span class="op">;</span>          <span class="kw">break</span><span class="op">;</span>
+      <span class="kw">case</span> <span class="str">'End'</span><span class="op">:</span>         next <span class="op">=</span> count <span class="op">-</span> <span class="num">1</span><span class="op">;</span> <span class="kw">break</span><span class="op">;</span>
+      <span class="kw">default</span><span class="op">:</span> <span class="kw">return</span><span class="op">;</span>
+    <span class="op">}</span>
+
+    event<span class="op">.</span><span class="fn">preventDefault</span>()<span class="op">;</span>
+    <span class="kw">this</span><span class="op">.</span><span class="fn">activate</span>(next)<span class="op">;</span>
+
+    <span class="cmt">// Move DOM focus to newly activated tab button</span>
+    <span class="kw">const</span> tabs <span class="op">=</span> document<span class="op">.</span><span class="fn">querySelectorAll</span><span class="op">&lt;</span><span class="typ">HTMLButtonElement</span><span class="op">&gt;</span>(<span class="str">'[role="tab"]'</span>)<span class="op">;</span>
+    tabs[next]<span class="op">?.</span><span class="fn">focus</span>()<span class="op">;</span>
+  <span class="op">}</span>
+<span class="op">}</span>
+</pre>
+          </div>
+
+          <div class="callout info">
+            <span class="callout-icon" aria-hidden="true">💡</span>
+            <p>
+              <strong>Do not remove inactive panels from the DOM.</strong> Use <code>[hidden]</code>
+              to hide inactive panels. Removing them with <code>@if</code> destroys component state
+              and causes focus management issues when panels contain forms or interactive content.
+              <code>[hidden]</code> keeps the DOM present but hides it visually and from AT.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 6.4 Combobox ─────────────────────────────────────── -->
+        <section id="s6-4" aria-labelledby="h6-4">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">6.4</div>
+            <h2 id="h6-4">Combobox / Autocomplete Pattern</h2>
+          </div>
+
+          <div class="pattern-card">
+            <div class="pattern-card-head">
+              <code>role="combobox"</code>
+              <div class="pattern-meta">
+                <span class="p-tag p-tag-apg">APG Pattern</span>
+                <span class="p-tag p-tag-cdk">CdkListbox</span>
+              </div>
+            </div>
+            <div class="pattern-body">
+              A combobox is a text input paired with a popup listbox. The input uses
+              <code>role="combobox"</code>, <code>aria-expanded</code>, and
+              <code>aria-controls</code> pointing to the listbox. Option focus is managed
+              with <code>aria-activedescendant</code> — focus stays on the input while
+              AT announces the highlighted option. Options use <code>role="option"</code>
+              and <code>aria-selected</code>.
+            </div>
+            <div class="pattern-rule">
+              <strong>Required:</strong> <code>role="combobox"</code> on input ·
+              <code>aria-expanded</code> · <code>aria-controls</code> → listbox id ·
+              <code>aria-activedescendant</code> → highlighted option id ·
+              <code>role="listbox"</code> on popup · <code>role="option"</code> + <code>aria-selected</code> on each option
+            </div>
+          </div>
+
+          <h4>Keyboard contract (APG Combobox Pattern — List Autocomplete)</h4>
+          <div class="kb-grid">
+            <div class="kb-row">
+              <div class="kb-keys"><kbd>↓</kbd></div>
+              <div class="kb-desc">Open popup if closed; move focus indicator to next option</div>
+            </div>
+            <div class="kb-row">
+              <div class="kb-keys"><kbd>↑</kbd></div>
+              <div class="kb-desc">Move focus indicator to previous option; if at first option, return focus indicator to input</div>
+            </div>
+            <div class="kb-row">
+              <div class="kb-keys"><kbd>Enter</kbd></div>
+              <div class="kb-desc">Select the focused option, close popup, return focus to input</div>
+            </div>
+            <div class="kb-row">
+              <div class="kb-keys"><kbd>Escape</kbd></div>
+              <div class="kb-desc">Close popup without selecting; if popup already closed, clear input value</div>
+            </div>
+            <div class="kb-row">
+              <div class="kb-keys"><kbd>Home</kbd> / <kbd>End</kbd></div>
+              <div class="kb-desc">Move cursor within input text (standard text editing behaviour)</div>
+            </div>
+          </div>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — Angular 21 combobox template (aria-activedescendant pattern)</span>
+            <pre>
+<span class="tag-c">&lt;div</span> <span class="atr">class</span>=<span class="val">"combobox-wrapper"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;label</span> <span class="atr">[for]</span>=<span class="val">"comboboxId"</span><span class="tag-c">&gt;</span>{{ label() }}<span class="tag-c">&lt;/label&gt;</span>
+
+  <span class="tag-c">&lt;input</span>
+    <span class="atr">[id]</span>=<span class="val">"comboboxId"</span>
+    <span class="atr">type</span>=<span class="val">"text"</span>
+    <span class="atr">role</span>=<span class="val">"combobox"</span>
+    <span class="atr">[attr.aria-expanded]</span>=<span class="val">"isOpen() ? 'true' : 'false'"</span>
+    <span class="atr">[attr.aria-controls]</span>=<span class="val">"listboxId"</span>
+    <span class="atr">[attr.aria-autocomplete]</span>=<span class="val">"'list'"</span>
+    <span class="atr">[attr.aria-activedescendant]</span>=<span class="val">"activeOptionId()"</span>
+    <span class="atr">[value]</span>=<span class="val">"inputValue()"</span>
+    <span class="atr">(input)</span>=<span class="val">"onInput($event)"</span>
+    <span class="atr">(keydown)</span>=<span class="val">"onKeydown($event)"</span>
+  <span class="tag-c">/&gt;</span>
+
+  @if (isOpen()) {
+    <span class="tag-c">&lt;ul</span>
+      <span class="atr">role</span>=<span class="val">"listbox"</span>
+      <span class="atr">[id]</span>=<span class="val">"listboxId"</span>
+      <span class="atr">[attr.aria-label]</span>=<span class="val">"label() + ' options'"</span>
+    <span class="tag-c">&gt;</span>
+      @for (opt of filteredOptions(); track opt.id) {
+        <span class="tag-c">&lt;li</span>
+          <span class="atr">role</span>=<span class="val">"option"</span>
+          <span class="atr">[id]</span>=<span class="val">"'opt-' + opt.id"</span>
+          <span class="atr">[attr.aria-selected]</span>=<span class="val">"opt.id === selectedId() ? 'true' : 'false'"</span>
+          <span class="atr">(click)</span>=<span class="val">"select(opt)"</span>
+        <span class="tag-c">&gt;</span>{{ opt.label }}<span class="tag-c">&lt;/li&gt;</span>
+      }
+    <span class="tag-c">&lt;/ul&gt;</span>
+  }
+<span class="tag-c">&lt;/div&gt;</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 6.5 Data Grid ────────────────────────────────────── -->
+        <section id="s6-5" aria-labelledby="h6-5">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">6.5</div>
+            <h2 id="h6-5">Data Grid Pattern</h2>
+          </div>
+
+          <div class="pattern-card">
+            <div class="pattern-card-head">
+              <code>role="grid"</code>
+              <div class="pattern-meta">
+                <span class="p-tag p-tag-apg">APG Pattern</span>
+                <span class="p-tag p-tag-custom">Complex Keyboard</span>
+              </div>
+            </div>
+            <div class="pattern-body">
+              A grid is a composite widget containing a set of interactive cells. It differs from
+              <code>role="table"</code> (which is presentational) in that cells can be edited,
+              selected, or activated. Keyboard navigation moves through cells with arrow keys.
+              The grid uses a <strong>roving tabindex</strong> — only one cell has
+              <code>tabindex="0"</code> at a time.
+            </div>
+            <div class="pattern-rule">
+              <strong>Required:</strong> <code>role="grid"</code> on table ·
+              <code>role="row"</code> on <code>tr</code> ·
+              <code>role="gridcell"</code> on <code>td</code> ·
+              <code>role="columnheader"</code> / <code>role="rowheader"</code> on <code>th</code> ·
+              <code>aria-rowcount</code>, <code>aria-colcount</code> if virtualized ·
+              Arrow-key navigation between cells
+            </div>
+          </div>
+
+          <h4>Keyboard contract (APG Data Grid Pattern)</h4>
+          <div class="kb-grid">
+            <div class="kb-row">
+              <div class="kb-keys"><kbd>→</kbd> <kbd>←</kbd> <kbd>↑</kbd> <kbd>↓</kbd></div>
+              <div class="kb-desc">Move focus between cells in the grid</div>
+            </div>
+            <div class="kb-row">
+              <div class="kb-keys"><kbd>Page Up</kbd> / <kbd>Page Down</kbd></div>
+              <div class="kb-desc">Move focus by a set number of rows up or down</div>
+            </div>
+            <div class="kb-row">
+              <div class="kb-keys"><kbd>Home</kbd></div>
+              <div class="kb-desc">Move focus to first cell in the row; with <kbd>Ctrl</kbd> — first cell in first row</div>
+            </div>
+            <div class="kb-row">
+              <div class="kb-keys"><kbd>End</kbd></div>
+              <div class="kb-desc">Move focus to last cell in the row; with <kbd>Ctrl</kbd> — last cell in last row</div>
+            </div>
+            <div class="kb-row">
+              <div class="kb-keys"><kbd>Enter</kbd> / <kbd>F2</kbd></div>
+              <div class="kb-desc">Activate cell edit mode; <kbd>Escape</kbd> exits edit mode without saving</div>
+            </div>
+          </div>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — Angular 21 accessible data grid</span>
+            <pre>
+<span class="tag-c">&lt;table</span>
+  <span class="atr">role</span>=<span class="val">"grid"</span>
+  <span class="atr">aria-label</span>=<span class="val">"Todo list"</span>
+  <span class="atr">[attr.aria-rowcount]</span>=<span class="val">"todos().length + 1"</span>
+  <span class="atr">[attr.aria-colcount]</span>=<span class="val">"3"</span>
+<span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;thead&gt;</span>
+    <span class="tag-c">&lt;tr</span> <span class="atr">role</span>=<span class="val">"row"</span><span class="tag-c">&gt;</span>
+      <span class="tag-c">&lt;th</span> <span class="atr">role</span>=<span class="val">"columnheader"</span> <span class="atr">aria-sort</span>=<span class="val">"none"</span>
+          <span class="atr">scope</span>=<span class="val">"col"</span> <span class="atr">tabindex</span>=<span class="val">"-1"</span><span class="tag-c">&gt;</span>Title<span class="tag-c">&lt;/th&gt;</span>
+      <span class="tag-c">&lt;th</span> <span class="atr">role</span>=<span class="val">"columnheader"</span> <span class="atr">scope</span>=<span class="val">"col"</span> <span class="atr">tabindex</span>=<span class="val">"-1"</span><span class="tag-c">&gt;</span>Status<span class="tag-c">&lt;/th&gt;</span>
+      <span class="tag-c">&lt;th</span> <span class="atr">role</span>=<span class="val">"columnheader"</span> <span class="atr">scope</span>=<span class="val">"col"</span> <span class="atr">tabindex</span>=<span class="val">"-1"</span><span class="tag-c">&gt;</span>Actions<span class="tag-c">&lt;/th&gt;</span>
+    <span class="tag-c">&lt;/tr&gt;</span>
+  <span class="tag-c">&lt;/thead&gt;</span>
+  <span class="tag-c">&lt;tbody&gt;</span>
+    @for (todo of todos(); track todo.id; let rowIdx = $index) {
+      <span class="tag-c">&lt;tr</span> <span class="atr">role</span>=<span class="val">"row"</span>
+          <span class="atr">[attr.aria-rowindex]</span>=<span class="val">"rowIdx + 2"</span><span class="tag-c">&gt;</span>
+        <span class="tag-c">&lt;td</span> <span class="atr">role</span>=<span class="val">"gridcell"</span>
+            <span class="atr">[tabindex]</span>=<span class="val">"focusedCell()?.row === rowIdx &amp;&amp; focusedCell()?.col === 0 ? 0 : -1"</span>
+            <span class="atr">(keydown)</span>=<span class="val">"onCellKey($event, rowIdx, 0)"</span>
+        <span class="tag-c">&gt;</span>{{ todo.title }}<span class="tag-c">&lt;/td&gt;</span>
+
+        <span class="tag-c">&lt;td</span> <span class="atr">role</span>=<span class="val">"gridcell"</span>
+            <span class="atr">[tabindex]</span>=<span class="val">"focusedCell()?.row === rowIdx &amp;&amp; focusedCell()?.col === 1 ? 0 : -1"</span>
+            <span class="atr">(keydown)</span>=<span class="val">"onCellKey($event, rowIdx, 1)"</span>
+        <span class="tag-c">&gt;</span>{{ todo.completed ? 'Done' : 'Pending' }}<span class="tag-c">&lt;/td&gt;</span>
+
+        <span class="tag-c">&lt;td</span> <span class="atr">role</span>=<span class="val">"gridcell"</span>
+            <span class="atr">[tabindex]</span>=<span class="val">"focusedCell()?.row === rowIdx &amp;&amp; focusedCell()?.col === 2 ? 0 : -1"</span>
+            <span class="atr">(keydown)</span>=<span class="val">"onCellKey($event, rowIdx, 2)"</span>
+        <span class="tag-c">&gt;</span>
+          <span class="tag-c">&lt;button</span> <span class="atr">type</span>=<span class="val">"button"</span>
+                  <span class="atr">[attr.aria-label]</span>=<span class="val">"'Delete ' + todo.title"</span>
+                  <span class="atr">(click)</span>=<span class="val">"deleteTodo(todo)"</span>
+          <span class="tag-c">&gt;</span>Delete<span class="tag-c">&lt;/button&gt;</span>
+        <span class="tag-c">&lt;/td&gt;</span>
+      <span class="tag-c">&lt;/tr&gt;</span>
+    }
+  <span class="tag-c">&lt;/tbody&gt;</span>
+<span class="tag-c">&lt;/table&gt;</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 6.6 Disclosure / Accordion ───────────────────────── -->
+        <section id="s6-6" aria-labelledby="h6-6">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">6.6</div>
+            <h2 id="h6-6">Disclosure &amp; Accordion Pattern</h2>
+          </div>
+
+          <div class="pattern-card">
+            <div class="pattern-card-head">
+              <code>&lt;button aria-expanded&gt;</code> + <code>aria-controls</code>
+              <div class="pattern-meta">
+                <span class="p-tag p-tag-apg">APG Pattern</span>
+                <span class="p-tag p-tag-custom">Simple</span>
+              </div>
+            </div>
+            <div class="pattern-body">
+              A disclosure is a <code>&lt;button&gt;</code> that shows/hides a content region.
+              The button has <code>aria-expanded</code> (true/false) and
+              <code>aria-controls</code> pointing to the controlled region.
+              An <strong>accordion</strong> is a group of disclosures. There is
+              <em>no</em> dedicated ARIA role for accordion panels — they are just
+              sections revealed by a button. The heading + button pattern is recommended.
+            </div>
+            <div class="pattern-rule">
+              <strong>Required per panel:</strong> <code>&lt;button aria-expanded="true|false" aria-controls="panelId"&gt;</code> ·
+              Controlled region has matching <code>id</code>; no special role needed.
+            </div>
+          </div>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — Angular 21 accordion (heading-button pattern)</span>
+            <pre>
+<span class="tag-c">&lt;div</span> <span class="atr">class</span>=<span class="val">"accordion"</span><span class="tag-c">&gt;</span>
+  @for (item of items(); track item.id) {
+    <span class="tag-c">&lt;div</span> <span class="atr">class</span>=<span class="val">"accordion-item"</span><span class="tag-c">&gt;</span>
+      <span class="cmt">&lt;!-- Heading wraps the button for document outline --&gt;</span>
+      <span class="tag-c">&lt;h3&gt;</span>
+        <span class="tag-c">&lt;button</span>
+          <span class="atr">type</span>=<span class="val">"button"</span>
+          <span class="atr">[attr.aria-expanded]</span>=<span class="val">"item.open ? 'true' : 'false'"</span>
+          <span class="atr">[attr.aria-controls]</span>=<span class="val">"'panel-' + item.id"</span>
+          <span class="atr">(click)</span>=<span class="val">"toggle(item)"</span>
+        <span class="tag-c">&gt;</span>
+          {{ item.title }}
+        <span class="tag-c">&lt;/button&gt;</span>
+      <span class="tag-c">&lt;/h3&gt;</span>
+
+      <span class="cmt">&lt;!-- Panel: [hidden] keeps it in DOM (better than @if for animations) --&gt;</span>
+      <span class="tag-c">&lt;div</span>
+        <span class="atr">[id]</span>=<span class="val">"'panel-' + item.id"</span>
+        <span class="atr">[hidden]</span>=<span class="val">"!item.open"</span>
+      <span class="tag-c">&gt;</span>
+        {{ item.content }}
+      <span class="tag-c">&lt;/div&gt;</span>
+    <span class="tag-c">&lt;/div&gt;</span>
+  }
+<span class="tag-c">&lt;/div&gt;</span>
+</pre>
+          </div>
+
+          <div class="callout success">
+            <span class="callout-icon" aria-hidden="true">✅</span>
+            <p>
+              <strong>Why [hidden] not @if:</strong> <code>[hidden]</code> keeps the panel DOM
+              alive (important if it has form state), enables CSS transition animations, and is
+              immediately re-discoverable if AT queries the DOM. <code>@if</code> destroys and
+              recreates the panel, losing all state. Use <code>@if</code> only for panels that
+              are genuinely resource-intensive and have no persistent state.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 6.7 Tooltip ──────────────────────────────────────── -->
+        <section id="s6-7" aria-labelledby="h6-7">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">6.7</div>
+            <h2 id="h6-7">Tooltip Pattern</h2>
+          </div>
+
+          <div class="pattern-card">
+            <div class="pattern-card-head">
+              <code>role="tooltip"</code> + <code>aria-describedby</code>
+              <div class="pattern-meta">
+                <span class="p-tag p-tag-apg">APG Pattern</span>
+              </div>
+            </div>
+            <div class="pattern-body">
+              A tooltip provides additional descriptive text for an element, shown on hover and
+              focus. The trigger element uses <code>aria-describedby</code> pointing to the
+              tooltip container. The tooltip has <code>role="tooltip"</code>. Focus must never
+              move into the tooltip — it is purely informational.
+            </div>
+            <div class="pattern-rule">
+              <strong>Required:</strong> Trigger: <code>aria-describedby="tooltipId"</code> ·
+              Tooltip: <code>role="tooltip"</code> + matching <code>id</code> ·
+              Show on both hover AND focus · Never requires interaction · Never contains links or buttons
+            </div>
+          </div>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — Angular 21 tooltip with keyboard support</span>
+            <pre>
+<span class="cmt">&lt;!-- Tooltip trigger: shows on hover and focus --&gt;</span>
+<span class="tag-c">&lt;button</span>
+  <span class="atr">type</span>=<span class="val">"button"</span>
+  <span class="atr">[attr.aria-describedby]</span>=<span class="val">"isTooltipVisible() ? 'info-tooltip' : null"</span>
+  <span class="atr">(mouseenter)</span>=<span class="val">"showTooltip()"</span>
+  <span class="atr">(mouseleave)</span>=<span class="val">"hideTooltip()"</span>
+  <span class="atr">(focus)</span>=<span class="val">"showTooltip()"</span>
+  <span class="atr">(blur)</span>=<span class="val">"hideTooltip()"</span>
+<span class="tag-c">&gt;</span>
+  ℹ Info
+<span class="tag-c">&lt;/button&gt;</span>
+
+<span class="cmt">&lt;!-- Tooltip: always in DOM; shown/hidden via CSS --&gt;</span>
+<span class="tag-c">&lt;div</span>
+  <span class="atr">id</span>=<span class="val">"info-tooltip"</span>
+  <span class="atr">role</span>=<span class="val">"tooltip"</span>
+  <span class="atr">[hidden]</span>=<span class="val">"!isTooltipVisible()"</span>
+<span class="tag-c">&gt;</span>
+  Mark this todo as complete to remove it from the active list.
+<span class="tag-c">&lt;/div&gt;</span>
+</pre>
+          </div>
+
+          <div class="callout danger">
+            <span class="callout-icon" aria-hidden="true">🚫</span>
+            <p>
+              <strong>Tooltip ≠ Accessible:</strong> Tooltips only appear on hover and focus —
+              touch users get nothing. Do not put <em>required</em> information exclusively in
+              a tooltip. If the information is needed for task completion, use visible text,
+              <code>&lt;details&gt;</code>, or a disclosure widget instead. Tooltips are
+              supplemental, not essential.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 6.8 Pattern Compatibility Matrix ─────────────────── -->
+        <section id="s6-8" aria-labelledby="h6-8">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">6.8</div>
+            <h2 id="h6-8">Pattern Compatibility Matrix</h2>
+          </div>
+
+          <p>Screen reader support for complex ARIA patterns as of May 2026.</p>
+
+          <div class="table-wrapper">
+            <table aria-label="ARIA pattern screen reader support matrix">
+              <thead>
+                <tr>
+                  <th scope="col">Pattern</th>
+                  <th scope="col">NVDA + Firefox</th>
+                  <th scope="col">JAWS + Chrome</th>
+                  <th scope="col">VoiceOver macOS</th>
+                  <th scope="col">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Modal Dialog (cdkTrapFocus)</td>
+                  <td>✅</td>
+                  <td>✅</td>
+                  <td>✅</td>
+                  <td>Must set background <code>inert</code> for NVDA Browse mode</td>
+                </tr>
+                <tr>
+                  <td>Tabs (roving tabindex)</td>
+                  <td>✅</td>
+                  <td>✅</td>
+                  <td>✅</td>
+                  <td>Arrow key nav works reliably; use <code>[hidden]</code> not <code>@if</code></td>
+                </tr>
+                <tr>
+                  <td>Combobox (aria-activedescendant)</td>
+                  <td>⚠️ NVDA needs <code>aria-live</code> backup in older versions</td>
+                  <td>✅</td>
+                  <td>✅</td>
+                  <td>Test with real AT — combobox is historically the most unreliable pattern</td>
+                </tr>
+                <tr>
+                  <td>Data Grid (role="grid")</td>
+                  <td>✅</td>
+                  <td>✅</td>
+                  <td>⚠️ VoiceOver navigation differs; test thoroughly</td>
+                  <td>Complex — prefer <code>role="table"</code> if cells are not interactive</td>
+                </tr>
+                <tr>
+                  <td>Disclosure (button aria-expanded)</td>
+                  <td>✅</td>
+                  <td>✅</td>
+                  <td>✅</td>
+                  <td>Most reliable pattern — widely supported</td>
+                </tr>
+                <tr>
+                  <td>Accordion</td>
+                  <td>✅</td>
+                  <td>✅</td>
+                  <td>✅</td>
+                  <td>Heading + button structure important for document outline</td>
+                </tr>
+                <tr>
+                  <td>Tooltip (role="tooltip")</td>
+                  <td>✅</td>
+                  <td>✅</td>
+                  <td>⚠️ iOS VoiceOver requires explicit focus, not hover</td>
+                  <td>Not a replacement for visible text; supplemental only</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout purple">
+            <span class="callout-icon" aria-hidden="true">🔬</span>
+            <p>
+              <strong>Testing is non-optional for complex patterns.</strong> ARIA patterns have
+              the highest variance of any accessibility feature across screen reader / browser
+              combinations. Code review and automated axe scans cannot substitute for manual testing
+              with NVDA + Firefox, JAWS + Chrome, and VoiceOver + Safari for every interactive
+              component. Schedule AT testing as part of every feature sprint.
+            </p>
+          </div>
+        </section>
+
+        <!-- ═══ BOTTOM NAVIGATION ════════════════════════════════════ -->
+        <nav class="bottom-nav" aria-label="Section navigation">
+          <a href="./aria-s5-live-regions.html">← Section 5: Live Regions</a>
+          <span style="font-size:0.78rem;color:var(--muted);text-align:center;flex:1;">
+            Section 6 of 9 — Custom ARIA Patterns in Angular 21
+          </span>
+          <a href="./aria-s7-screen-readers.html" aria-label="Section 7: Screen Reader Behaviour Reference">
+            Section 7: Screen Readers →
+          </a>
+        </nav>
+
+      </main>
+
+      <!-- ═══ FOOTER ════════════════════════════════════════════════ -->
+      <footer role="contentinfo">
+        <p>
+          ARIA Complete Guide · Section 6 · Angular 21 · WAI-ARIA APG (W3C) ·
+          Updated May 2026 ·
+          <a href="https://www.w3.org/WAI/ARIA/apg/patterns/" rel="noopener noreferrer">ARIA Authoring Practices Guide</a> ·
+          <a href="https://www.w3.org/TR/wai-aria-1.2/" rel="noopener noreferrer">WAI-ARIA 1.2 Spec</a>
+        </p>
+        <p style="margin-top:0.5rem;">
+          <a href="./aria-complete-guide.html">← Back to ARIA Guide Index</a> ·
+          <a href="./aria-s5-live-regions.html">← Section 5: Live Regions</a> ·
+          <a href="./aria-s7-screen-readers.html">Section 7 coming soon</a>
+        </p>
+      </footer>
+
+    </div><!-- /page-wrapper -->
+  </body>
+</html>

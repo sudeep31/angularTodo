@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Section 7: Screen Reader Behaviour Reference — ARIA Complete Guide</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg:            #0f172a;
+        --surface:       #1e293b;
+        --surface-2:     #273549;
+        --border:        #334155;
+        --primary:       #818cf8;
+        --primary-light: #a5b4fc;
+        --accent:        #34d399;
+        --warn:          #fbbf24;
+        --danger:        #f87171;
+        --purple:        #c084fc;
+        --cyan:          #67e8f9;
+        --text:          #e2e8f0;
+        --muted:         #94a3b8;
+        --code-bg:       #0d1117;
+        --font-sans:     'Segoe UI', system-ui, -apple-system, sans-serif;
+        --font-mono:     'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+        --radius:        0.75rem;
+        --radius-sm:     0.4rem;
+        --shadow:        0 4px 24px rgba(0,0,0,0.5);
+        --max-width:     960px;
+      }
+
+      html { scroll-behavior: smooth; }
+      body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.8; font-size: 1rem; }
+
+      .skip-link {
+        position: absolute; top: -100%; left: 1rem;
+        padding: 0.5rem 1rem; background: var(--primary); color: #0f172a;
+        font-weight: 700; border-radius: 0 0 var(--radius) var(--radius);
+        z-index: 9999; transition: top 0.2s; text-decoration: none;
+      }
+      .skip-link:focus { top: 0; }
+
+      .page-wrapper { max-width: var(--max-width); margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+
+      /* ─── Top Nav ───────────────────────────────────────────── */
+      .top-nav {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 0.75rem 1.25rem;
+        margin-bottom: 2rem; font-size: 0.85rem; gap: 1rem;
+      }
+      .top-nav a {
+        color: var(--primary-light); text-decoration: none;
+        padding: 0.3rem 0.75rem; border-radius: var(--radius-sm);
+        border: 1px solid var(--border); transition: border-color 0.15s, background 0.15s;
+        white-space: nowrap;
+      }
+      .top-nav a:hover { border-color: var(--primary); background: var(--surface-2); }
+      .top-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .top-nav .nav-center { font-size: 0.75rem; color: var(--muted); text-align: center; flex: 1; min-width: 0; }
+      .top-nav .nav-center strong { color: var(--primary-light); }
+      .top-nav .nav-next { opacity: 0.45; pointer-events: none; }
+
+      /* ─── Hero ──────────────────────────────────────────────── */
+      .hero {
+        background: linear-gradient(135deg, #0c1a2e 0%, #1e293b 50%, #1a1035 100%);
+        border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 3rem 2.5rem; margin-bottom: 2rem;
+        text-align: center; box-shadow: var(--shadow);
+      }
+      .hero-badge {
+        display: inline-block; background: rgba(129,140,248,0.15);
+        border: 1px solid var(--primary); color: var(--primary-light);
+        font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em;
+        text-transform: uppercase; padding: 0.3rem 1rem;
+        border-radius: 999px; margin-bottom: 1.25rem;
+      }
+      .hero h1 { font-size: clamp(1.75rem, 4vw, 2.8rem); font-weight: 800; line-height: 1.15; color: #fff; margin-bottom: 1rem; }
+      .hero h1 span { color: var(--primary-light); }
+      .hero h1 .section-num { color: var(--muted); font-size: 0.55em; font-weight: 600; display: block; margin-bottom: 0.25rem; }
+      .hero p { font-size: 1.05rem; color: var(--muted); max-width: 700px; margin: 0 auto 1rem; }
+      .hero-meta { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-top: 1.25rem; }
+      .hero-meta span { font-size: 0.78rem; color: var(--muted); display: flex; align-items: center; gap: 0.4rem; }
+      .hero-meta span strong { color: var(--accent); }
+
+      /* ─── TOC ───────────────────────────────────────────────── */
+      .toc {
+        background: var(--surface); border: 1px solid var(--border);
+        border-left: 4px solid var(--primary); border-radius: var(--radius);
+        padding: 1.5rem 2rem; margin-bottom: 3rem;
+      }
+      .toc-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--primary); margin-bottom: 1rem; }
+      .toc ol { padding-left: 1.5rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.3rem 2rem; }
+      .toc li { font-size: 0.875rem; }
+      .toc a { color: var(--muted); text-decoration: none; transition: color 0.15s; }
+      .toc a:hover, .toc a:focus { color: var(--primary-light); text-decoration: underline; }
+
+      /* ─── Sections ──────────────────────────────────────────── */
+      section { margin-bottom: 4.5rem; scroll-margin-top: 2rem; }
+      .section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+      .section-number { flex-shrink: 0; width: 2.25rem; height: 2.25rem; background: linear-gradient(135deg, var(--primary), #6366f1); color: #fff; font-size: 0.82rem; font-weight: 800; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+      h2 { font-size: 1.55rem; font-weight: 800; color: #fff; }
+      h3 { font-size: 1.1rem; font-weight: 700; color: var(--primary-light); margin: 2.25rem 0 0.75rem; }
+      h4 { font-size: 0.9rem; font-weight: 700; color: var(--accent); margin: 1.5rem 0 0.5rem; text-transform: uppercase; letter-spacing: 0.07em; }
+      p { margin-bottom: 1rem; color: var(--text); }
+      p:last-child { margin-bottom: 0; }
+      ul, ol { padding-left: 1.5rem; margin: 0.75rem 0; }
+      li { margin-bottom: 0.4rem; color: var(--text); font-size: 0.95rem; }
+      strong { color: #fff; }
+      em { color: var(--warn); font-style: italic; }
+      code { font-family: var(--font-mono); font-size: 0.82em; background: var(--surface-2); border: 1px solid var(--border); padding: 0.15em 0.45em; border-radius: var(--radius-sm); color: var(--primary-light); }
+      kbd { font-family: var(--font-mono); font-size: 0.78em; background: var(--surface-2); border: 1px solid var(--border); border-bottom: 2px solid var(--border); padding: 0.15em 0.45em; border-radius: var(--radius-sm); color: var(--text); }
+
+      /* ─── Callouts ──────────────────────────────────────────── */
+      .callout { display: flex; gap: 0.75rem; padding: 1rem 1.25rem; border-radius: var(--radius); margin: 1.25rem 0; border: 1px solid; font-size: 0.9rem; }
+      .callout-icon { font-size: 1.25rem; flex-shrink: 0; line-height: 1.5; margin-top: 0.1rem; }
+      .callout p { margin: 0; color: inherit; line-height: 1.7; }
+      .callout.info    { background: rgba(129,140,248,0.08); border-color: rgba(129,140,248,0.3); color: var(--primary-light); }
+      .callout.warn    { background: rgba(251,191,36,0.08);  border-color: rgba(251,191,36,0.3);  color: var(--warn); }
+      .callout.success { background: rgba(52,211,153,0.08);  border-color: rgba(52,211,153,0.3);  color: var(--accent); }
+      .callout.danger  { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.3); color: var(--danger); }
+      .callout.purple  { background: rgba(192,132,252,0.08); border-color: rgba(192,132,252,0.3); color: var(--purple); }
+
+      /* ─── AT Profile Card ───────────────────────────────────── */
+      .at-card {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 1.5rem;
+        margin: 1.5rem 0;
+      }
+      .at-card-head {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;
+        padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);
+      }
+      .at-name { font-size: 1.1rem; font-weight: 700; color: #fff; }
+      .at-combo { font-size: 0.82rem; color: var(--muted); margin-top: 0.2rem; }
+      .at-tags { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+      .at-tag {
+        font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em;
+        text-transform: uppercase; padding: 0.15rem 0.55rem;
+        border-radius: 999px; border: 1px solid;
+      }
+      .tag-desktop { background: rgba(129,140,248,0.12); color: var(--primary); border-color: rgba(129,140,248,0.3); }
+      .tag-mobile  { background: rgba(52,211,153,0.12);  color: var(--accent);  border-color: rgba(52,211,153,0.3); }
+      .tag-market  { background: rgba(251,191,36,0.12);  color: var(--warn);    border-color: rgba(251,191,36,0.3); }
+
+      .at-body { font-size: 0.9rem; color: var(--muted); line-height: 1.7; margin-bottom: 0.75rem; }
+      .at-body strong { color: #fff; }
+      .at-modes { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+      .mode-pill { font-size: 0.78rem; padding: 0.2rem 0.75rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
+      .at-shortcut { font-size: 0.82rem; background: var(--surface-2); border-left: 3px solid var(--cyan); padding: 0.6rem 1rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 0.5rem; color: var(--text); }
+      .at-shortcut strong { color: var(--cyan); }
+
+      /* ─── Tables ─────────────────────────────────────────────── */
+      .table-wrapper { overflow-x: auto; margin: 1.25rem 0; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+      thead th { background: var(--surface); color: var(--primary-light); font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.75rem 1rem; text-align: left; border-bottom: 2px solid var(--border); }
+      tbody td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; line-height: 1.6; }
+      tbody tr:hover td { background: var(--surface); }
+      .cell-ok   { color: var(--accent); }
+      .cell-warn { color: var(--warn); }
+      .cell-bad  { color: var(--danger); }
+
+      /* ─── Bottom Nav ─────────────────────────────────────────── */
+      .bottom-nav { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 2rem; margin-top: 4rem; gap: 1rem; flex-wrap: wrap; }
+      .bottom-nav a { color: var(--primary-light); text-decoration: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.875rem; transition: border-color 0.15s, background 0.15s; display: flex; align-items: center; gap: 0.4rem; }
+      .bottom-nav a:hover { border-color: var(--primary); background: var(--surface); }
+      .bottom-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .bottom-nav .nav-next { opacity: 0.45; pointer-events: none; }
+
+      /* ─── Footer ────────────────────────────────────────────── */
+      footer { border-top: 1px solid var(--border); padding: 2rem 0 0; text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 3rem; }
+      footer a { color: var(--primary-light); text-decoration: none; }
+      footer a:hover { text-decoration: underline; }
+    </style>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <div class="page-wrapper">
+
+      <!-- ═══ TOP NAV ═══════════════════════════════════════════════ -->
+      <nav class="top-nav" aria-label="Document navigation">
+        <a href="./aria-s6-custom-patterns.html">← Section 6</a>
+        <div class="nav-center">
+          <strong>Section 7 of 9</strong> — Screen Reader Behaviour Reference
+        </div>
+        <a href="./aria-s8-antipatterns.html" aria-label="Section 8: Anti-patterns &amp; Common Mistakes">
+          Section 8 →
+        </a>
+      </nav>
+
+      <!-- ═══ HERO ══════════════════════════════════════════════════ -->
+      <header role="banner">
+        <div class="hero">
+          <div class="hero-badge">Section 7 · May 2026 · Tested AT Combinations</div>
+          <h1>
+            <span class="section-num">Section 7 of 9</span>
+            Screen Reader <span>Behaviour Reference</span>
+          </h1>
+          <p>
+            Side-by-side comparison of how <strong>NVDA</strong>, <strong>JAWS</strong>,
+            <strong>VoiceOver</strong> (macOS &amp; iOS), <strong>TalkBack</strong>, and
+            <strong>Narrator</strong> announce ARIA roles, states, properties, live regions,
+            and keyboard interactions — with Angular-specific notes as of May 2026.
+          </p>
+          <div class="hero-meta">
+            <span>🎙 NVDA: <strong>2024.4</strong></span>
+            <span>🎙 JAWS: <strong>2025</strong></span>
+            <span>🎙 VoiceOver: <strong>macOS 15 / iOS 18</strong></span>
+            <span>🎙 TalkBack: <strong>Android 14</strong></span>
+            <span>🎙 Narrator: <strong>Windows 11</strong></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ═══ TOC ════════════════════════════════════════════════════ -->
+      <nav aria-label="Section contents">
+        <div class="toc">
+          <div class="toc-title">In This Section</div>
+          <ol>
+            <li><a href="#s7-1">7.1 — Overview &amp; Testing Setup</a></li>
+            <li><a href="#s7-2">7.2 — NVDA + Firefox</a></li>
+            <li><a href="#s7-3">7.3 — JAWS + Chrome</a></li>
+            <li><a href="#s7-4">7.4 — VoiceOver macOS + Safari</a></li>
+            <li><a href="#s7-5">7.5 — VoiceOver iOS + Safari</a></li>
+            <li><a href="#s7-6">7.6 — TalkBack + Chrome (Android)</a></li>
+            <li><a href="#s7-7">7.7 — Narrator + Edge</a></li>
+            <li><a href="#s7-8">7.8 — ARIA Role Announcement Matrix</a></li>
+            <li><a href="#s7-9">7.9 — Angular-Specific Gotchas</a></li>
+          </ol>
+        </div>
+      </nav>
+
+      <!-- ═══ MAIN ═══════════════════════════════════════════════════ -->
+      <main id="main-content">
+
+        <!-- ─── 7.1 Overview ──────────────────────────────────────── -->
+        <section id="s7-1" aria-labelledby="h7-1">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">7.1</div>
+            <h2 id="h7-1">Overview &amp; Testing Setup</h2>
+          </div>
+
+          <p>
+            Screen readers do not simply "read out" attributes — each AT has its own
+            <strong>virtual buffer</strong> model, announcement queue, and user mode. A
+            feature that works perfectly in one combination may be completely broken in another.
+            This reference documents tested behaviour across the five major AT products.
+          </p>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong>Market share context (WebAIM Screen Reader Survey, 2024):</strong>
+              JAWS (~46% primary use), NVDA (~30%), VoiceOver iOS (~11%), ZoomText (~5%),
+              VoiceOver macOS (~9%), TalkBack (~7%), Narrator (~2%). Test at minimum:
+              <strong>NVDA + Firefox</strong>, <strong>JAWS + Chrome</strong>, and
+              <strong>VoiceOver + Safari</strong>.
+            </p>
+          </div>
+
+          <h3>Standard Test Browser Pairings</h3>
+          <div class="table-wrapper">
+            <table aria-label="Recommended screen reader browser pairings">
+              <thead>
+                <tr>
+                  <th scope="col">Screen Reader</th>
+                  <th scope="col">Primary Browser</th>
+                  <th scope="col">Platform</th>
+                  <th scope="col">Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>NVDA</strong> (NonVisual Desktop Access)</td>
+                  <td>Firefox</td>
+                  <td>Windows</td>
+                  <td>Free, open source</td>
+                </tr>
+                <tr>
+                  <td><strong>JAWS</strong> (Job Access With Speech)</td>
+                  <td>Chrome or Edge</td>
+                  <td>Windows</td>
+                  <td>Commercial (free trial mode available)</td>
+                </tr>
+                <tr>
+                  <td><strong>VoiceOver</strong></td>
+                  <td>Safari</td>
+                  <td>macOS, iOS, iPadOS</td>
+                  <td>Free — built into Apple OS</td>
+                </tr>
+                <tr>
+                  <td><strong>TalkBack</strong></td>
+                  <td>Chrome</td>
+                  <td>Android</td>
+                  <td>Free — built into Android</td>
+                </tr>
+                <tr>
+                  <td><strong>Narrator</strong></td>
+                  <td>Edge</td>
+                  <td>Windows 11</td>
+                  <td>Free — built into Windows</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ─── 7.2 NVDA ──────────────────────────────────────────── -->
+        <section id="s7-2" aria-labelledby="h7-2">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">7.2</div>
+            <h2 id="h7-2">NVDA + Firefox</h2>
+          </div>
+
+          <div class="at-card">
+            <div class="at-card-head">
+              <div>
+                <div class="at-name">NVDA (NonVisual Desktop Access)</div>
+                <div class="at-combo">Version 2024.4 + Firefox 127 — Windows 10/11</div>
+              </div>
+              <div class="at-tags">
+                <span class="at-tag tag-desktop">Desktop</span>
+                <span class="at-tag tag-market">~30% Market Share</span>
+              </div>
+            </div>
+
+            <div class="at-body">
+              NVDA is the most popular free screen reader. It has two primary modes:
+              <strong>Browse mode</strong> (virtual cursor for reading the DOM) and
+              <strong>Focus mode</strong> (passes keypresses to the page for form interaction).
+              NVDA switches modes automatically; users can toggle with <kbd>Insert</kbd><kbd>Space</kbd>.
+            </div>
+
+            <h4>Primary navigation modes</h4>
+            <div class="at-modes">
+              <span class="mode-pill">Browse Mode (default)</span>
+              <span class="mode-pill">Focus Mode (forms)</span>
+            </div>
+
+            <h4>Critical keyboard shortcuts</h4>
+            <div class="at-shortcut"><strong>H</strong> — jump to next heading</div>
+            <div class="at-shortcut"><strong>B</strong> — jump to next button</div>
+            <div class="at-shortcut"><strong>L</strong> — jump to next list</div>
+            <div class="at-shortcut"><strong>G</strong> — jump to next graphic</div>
+            <div class="at-shortcut"><strong>T</strong> — jump to next table</div>
+            <div class="at-shortcut"><strong>F</strong> — jump to next form field</div>
+            <div class="at-shortcut"><strong>D</strong> — jump to next ARIA landmark</div>
+            <div class="at-shortcut"><strong>R</strong> — jump to next live region</div>
+            <div class="at-shortcut"><strong>Insert + Space</strong> — toggle Browse / Focus mode</div>
+            <div class="at-shortcut"><strong>Insert + F7</strong> — list all headings / links / landmarks</div>
+
+            <div class="at-body" style="margin-top:1rem;">
+              <strong>Angular notes:</strong> NVDA reads <code>aria-label</code> and <code>aria-labelledby</code>
+              reliably. Live regions work well with static DOM. Dynamic content injected by Angular signals
+              (<code>@if</code>, <code>@for</code>) is picked up by the virtual buffer after a short delay.
+              NVDA's Browse mode can escape <code>aria-modal</code> dialogs without <code>[inert]</code> on background elements.
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 7.3 JAWS ──────────────────────────────────────────── -->
+        <section id="s7-3" aria-labelledby="h7-3">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">7.3</div>
+            <h2 id="h7-3">JAWS + Chrome</h2>
+          </div>
+
+          <div class="at-card">
+            <div class="at-card-head">
+              <div>
+                <div class="at-name">JAWS (Job Access With Speech)</div>
+                <div class="at-combo">Version 2025 + Chrome 126 — Windows 10/11</div>
+              </div>
+              <div class="at-tags">
+                <span class="at-tag tag-desktop">Desktop</span>
+                <span class="at-tag tag-market">~46% Market Share</span>
+              </div>
+            </div>
+
+            <div class="at-body">
+              JAWS is the dominant commercial screen reader, particularly in enterprise and
+              government contexts. It has extensive ARIA support and tends to be the most
+              "correct" interpreter of the ARIA spec. It also has <strong>Virtual PC Cursor</strong>
+              (browse mode) and <strong>PC Cursor</strong> (focus mode).
+            </div>
+
+            <h4>Primary navigation modes</h4>
+            <div class="at-modes">
+              <span class="mode-pill">Virtual PC Cursor (browse)</span>
+              <span class="mode-pill">PC Cursor (focus/forms)</span>
+              <span class="mode-pill">Application Mode (custom widgets)</span>
+            </div>
+
+            <h4>Critical keyboard shortcuts</h4>
+            <div class="at-shortcut"><strong>H</strong> — next heading | <strong>Shift+H</strong> — previous heading</div>
+            <div class="at-shortcut"><strong>B</strong> — next button | <strong>F</strong> — next form field</div>
+            <div class="at-shortcut"><strong>T</strong> — next table | <strong>G</strong> — next graphic</div>
+            <div class="at-shortcut"><strong>R</strong> — next live region | <strong>Insert+F11</strong> — list landmarks</div>
+            <div class="at-shortcut"><strong>Insert+F6</strong> — list headings | <strong>Insert+F7</strong> — list links</div>
+            <div class="at-shortcut"><strong>Insert+Z</strong> — toggle Virtual Cursor on/off</div>
+
+            <div class="at-body" style="margin-top:1rem;">
+              <strong>Angular notes:</strong> JAWS handles Angular SPAs well when proper
+              <code>TitleStrategy</code> announcements are in place. Role=application regions
+              (widgets) switch JAWS to PC Cursor automatically when properly structured.
+              JAWS reads <code>aria-describedby</code> content as a separate "description"
+              announcement after the main label — leave a short pause in test scripts for this.
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 7.4 VoiceOver macOS ───────────────────────────────── -->
+        <section id="s7-4" aria-labelledby="h7-4">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">7.4</div>
+            <h2 id="h7-4">VoiceOver macOS + Safari</h2>
+          </div>
+
+          <div class="at-card">
+            <div class="at-card-head">
+              <div>
+                <div class="at-name">VoiceOver (macOS)</div>
+                <div class="at-combo">macOS 15 Sequoia + Safari 18</div>
+              </div>
+              <div class="at-tags">
+                <span class="at-tag tag-desktop">Desktop</span>
+                <span class="at-tag tag-market">~9% Market Share</span>
+              </div>
+            </div>
+
+            <div class="at-body">
+              VoiceOver on macOS navigates via the <strong>VoiceOver cursor</strong>
+              (a distinct concept from keyboard focus). Users interact through
+              <kbd>VO</kbd> (<kbd>Ctrl</kbd><kbd>Option</kbd>) + navigation keys.
+              Web content uses <strong>Web Rotor</strong> for quick navigation by element type.
+            </div>
+
+            <h4>Critical keyboard shortcuts</h4>
+            <div class="at-shortcut"><strong>VO + Right/Left</strong> — navigate DOM order</div>
+            <div class="at-shortcut"><strong>VO + U</strong> — open Web Rotor (headings, links, form controls, landmarks)</div>
+            <div class="at-shortcut"><strong>VO + Cmd + H</strong> — next heading</div>
+            <div class="at-shortcut"><strong>VO + Space</strong> — activate element (click)</div>
+            <div class="at-shortcut"><strong>VO + A</strong> — read from cursor position</div>
+            <div class="at-shortcut"><strong>VO + F3</strong> — describe element under cursor</div>
+            <div class="at-shortcut"><strong>Ctrl</strong> — stop reading</div>
+
+            <div class="at-body" style="margin-top:1rem;">
+              <strong>Angular notes:</strong> VoiceOver on macOS is generally excellent with
+              ARIA when using Safari. Chrome on macOS has historically worse ARIA support
+              with VoiceOver — always test the Safari + VoiceOver pairing specifically.
+              VoiceOver reads <code>aria-live="assertive"</code> reliably but may queue
+              <code>polite</code> announcements differently from NVDA/JAWS.
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 7.5 VoiceOver iOS ─────────────────────────────────── -->
+        <section id="s7-5" aria-labelledby="h7-5">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">7.5</div>
+            <h2 id="h7-5">VoiceOver iOS + Safari</h2>
+          </div>
+
+          <div class="at-card">
+            <div class="at-card-head">
+              <div>
+                <div class="at-name">VoiceOver (iOS / iPadOS)</div>
+                <div class="at-combo">iOS 18 / iPadOS 18 + Safari</div>
+              </div>
+              <div class="at-tags">
+                <span class="at-tag tag-mobile">Mobile</span>
+                <span class="at-tag tag-market">~11% Market Share</span>
+              </div>
+            </div>
+
+            <div class="at-body">
+              iOS VoiceOver uses <strong>swipe gestures</strong> to navigate. Swipe right
+              moves to the next element; swipe left moves to the previous. Double-tap activates.
+              Three-finger swipe scrolls. The Rotor (<strong>rotate two fingers</strong>)
+              changes navigation granularity (headings, words, characters, links, form controls).
+            </div>
+
+            <h4>Critical gestures</h4>
+            <div class="at-shortcut"><strong>Swipe right/left</strong> — next/previous element</div>
+            <div class="at-shortcut"><strong>Double-tap</strong> — activate element</div>
+            <div class="at-shortcut"><strong>Two-finger rotate</strong> — change Rotor setting</div>
+            <div class="at-shortcut"><strong>Two-finger double-tap</strong> — start/stop reading</div>
+            <div class="at-shortcut"><strong>Three-finger swipe up/down</strong> — scroll page</div>
+            <div class="at-shortcut"><strong>Three-finger double-tap</strong> — toggle VoiceOver mute</div>
+
+            <div class="at-body" style="margin-top:1rem;">
+              <strong>Angular notes:</strong> iOS VoiceOver has limited support for
+              <code>aria-live="assertive"</code> — it often ignores assertive interruptions.
+              Use <code>polite</code> for iOS-targeted announcements.
+              Touch targets must be at minimum 44×44 CSS pixels (WCAG 2.5.5, AAA; WCAG 2.5.8, AA in 2.2).
+              Angular CDK <code>LiveAnnouncer</code> works reliably on iOS Safari.
+              Custom keyboard interactions (arrow keys, Home/End) are unavailable — touch-only
+              navigation requires all content to be reachable via sequential swipe.
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 7.6 TalkBack ──────────────────────────────────────── -->
+        <section id="s7-6" aria-labelledby="h7-6">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">7.6</div>
+            <h2 id="h7-6">TalkBack + Chrome (Android)</h2>
+          </div>
+
+          <div class="at-card">
+            <div class="at-card-head">
+              <div>
+                <div class="at-name">TalkBack</div>
+                <div class="at-combo">Android 14 + Chrome for Android 126</div>
+              </div>
+              <div class="at-tags">
+                <span class="at-tag tag-mobile">Mobile</span>
+                <span class="at-tag tag-market">~7% Market Share</span>
+              </div>
+            </div>
+
+            <div class="at-body">
+              TalkBack is the built-in Android screen reader, similar to iOS VoiceOver
+              in gesture model. Swipe right to navigate forward, swipe left for back.
+              Double-tap to activate. Users can connect a Bluetooth keyboard for full
+              keyboard navigation (same conventions as desktop screen readers).
+            </div>
+
+            <h4>Critical gestures</h4>
+            <div class="at-shortcut"><strong>Swipe right/left</strong> — next/previous element</div>
+            <div class="at-shortcut"><strong>Double-tap</strong> — activate element</div>
+            <div class="at-shortcut"><strong>Swipe up then right</strong> — open TalkBack menu</div>
+            <div class="at-shortcut"><strong>Two-finger swipe down</strong> — read from top</div>
+            <div class="at-shortcut"><strong>Swipe up, down (reading controls)</strong> — change granularity</div>
+
+            <div class="at-body" style="margin-top:1rem;">
+              <strong>Angular notes:</strong> TalkBack ARIA support has improved substantially
+              with Android 14 + Chrome. Live regions work reliably.
+              <code>role="alert"</code> is announced immediately. ARIA patterns relying on
+              keyboard arrow navigation require a hardware keyboard for Android TalkBack users
+              — always provide alternative touch-accessible interaction paths.
+              Ensure all interactive elements have explicit <code>aria-label</code> or
+              <code>aria-labelledby</code> — TalkBack sometimes does not compute accessible
+              names from child text in custom components.
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 7.7 Narrator ──────────────────────────────────────── -->
+        <section id="s7-7" aria-labelledby="h7-7">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">7.7</div>
+            <h2 id="h7-7">Narrator + Edge (Windows 11)</h2>
+          </div>
+
+          <div class="at-card">
+            <div class="at-card-head">
+              <div>
+                <div class="at-name">Narrator</div>
+                <div class="at-combo">Windows 11 + Microsoft Edge 126</div>
+              </div>
+              <div class="at-tags">
+                <span class="at-tag tag-desktop">Desktop</span>
+                <span class="at-tag tag-market">~2% Market Share</span>
+              </div>
+            </div>
+
+            <div class="at-body">
+              Narrator is the built-in Windows screen reader. It has improved dramatically
+              with Windows 11 but remains behind NVDA and JAWS in ARIA support. It works
+              best with Microsoft Edge. Narrator uses <strong>Scan Mode</strong>
+              (toggle with <kbd>Caps Lock</kbd><kbd>Space</kbd>) for browsing the DOM.
+            </div>
+
+            <h4>Critical keyboard shortcuts</h4>
+            <div class="at-shortcut"><strong>Caps Lock + Space</strong> — toggle Scan Mode (browse vs focus)</div>
+            <div class="at-shortcut"><strong>Caps Lock + →/←</strong> — next/previous item</div>
+            <div class="at-shortcut"><strong>H</strong> (in Scan Mode) — next heading</div>
+            <div class="at-shortcut"><strong>B</strong> (in Scan Mode) — next button</div>
+            <div class="at-shortcut"><strong>F</strong> (in Scan Mode) — next form field</div>
+            <div class="at-shortcut"><strong>T</strong> (in Scan Mode) — next table</div>
+            <div class="at-shortcut"><strong>Caps Lock + Enter</strong> — activate element</div>
+
+            <div class="at-body" style="margin-top:1rem;">
+              <strong>Angular notes:</strong> Narrator's ARIA support has gaps compared to
+              NVDA/JAWS. Test Narrator as a secondary AT rather than primary. Live regions
+              generally work; complex custom widgets (<code>role="grid"</code>, comboboxes)
+              may have reduced announcements. Narrator announces role and state changes
+              less verbosely than NVDA/JAWS — simpler, more predictable for basic interactions.
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 7.8 ARIA Role Announcement Matrix ────────────────── -->
+        <section id="s7-8" aria-labelledby="h7-8">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">7.8</div>
+            <h2 id="h7-8">ARIA Role &amp; State Announcement Matrix</h2>
+          </div>
+
+          <p>How each AT announces common ARIA roles, states, and properties — as of May 2026.</p>
+
+          <div class="table-wrapper">
+            <table aria-label="ARIA role announcement matrix across screen readers">
+              <thead>
+                <tr>
+                  <th scope="col">ARIA Feature</th>
+                  <th scope="col">NVDA + FF</th>
+                  <th scope="col">JAWS + Chrome</th>
+                  <th scope="col">VO macOS</th>
+                  <th scope="col">TalkBack</th>
+                  <th scope="col">AT Announcement Example</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>role="button"</code> on <code>&lt;div&gt;</code></td>
+                  <td class="cell-ok">✅ "button"</td>
+                  <td class="cell-ok">✅ "button"</td>
+                  <td class="cell-ok">✅ "button"</td>
+                  <td class="cell-ok">✅ "button"</td>
+                  <td>"Save button"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-pressed="true"</code></td>
+                  <td class="cell-ok">✅ "pressed"</td>
+                  <td class="cell-ok">✅ "pressed"</td>
+                  <td class="cell-warn">⚠️ "selected"</td>
+                  <td class="cell-ok">✅ "pressed"</td>
+                  <td>NVDA: "Bold button pressed"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-expanded="true"</code></td>
+                  <td class="cell-ok">✅ "expanded"</td>
+                  <td class="cell-ok">✅ "expanded"</td>
+                  <td class="cell-ok">✅ "expanded"</td>
+                  <td class="cell-ok">✅ "expanded"</td>
+                  <td>"Menu button expanded"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-expanded="false"</code></td>
+                  <td class="cell-ok">✅ "collapsed"</td>
+                  <td class="cell-ok">✅ "collapsed"</td>
+                  <td class="cell-ok">✅ "collapsed"</td>
+                  <td class="cell-ok">✅ "collapsed"</td>
+                  <td>"Menu button collapsed"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-checked="true"</code></td>
+                  <td class="cell-ok">✅ "checked"</td>
+                  <td class="cell-ok">✅ "checked"</td>
+                  <td class="cell-ok">✅ "checked"</td>
+                  <td class="cell-ok">✅ "checked"</td>
+                  <td>"Accept terms checkbox checked"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-checked="mixed"</code></td>
+                  <td class="cell-ok">✅ "partially checked"</td>
+                  <td class="cell-ok">✅ "mixed"</td>
+                  <td class="cell-ok">✅ "mixed"</td>
+                  <td class="cell-warn">⚠️ varies</td>
+                  <td>NVDA: "Select all checkbox partially checked"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-disabled="true"</code></td>
+                  <td class="cell-ok">✅ "unavailable"</td>
+                  <td class="cell-ok">✅ "unavailable"</td>
+                  <td class="cell-ok">✅ "dimmed"</td>
+                  <td class="cell-ok">✅ "disabled"</td>
+                  <td>VO: "Save button dimmed"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-required="true"</code></td>
+                  <td class="cell-ok">✅ "required"</td>
+                  <td class="cell-ok">✅ "required"</td>
+                  <td class="cell-ok">✅ "required"</td>
+                  <td class="cell-ok">✅ "required"</td>
+                  <td>"Email required edit"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-invalid="true"</code></td>
+                  <td class="cell-ok">✅ "invalid data"</td>
+                  <td class="cell-ok">✅ "invalid entry"</td>
+                  <td class="cell-ok">✅ "invalid data"</td>
+                  <td class="cell-ok">✅ "error"</td>
+                  <td>JAWS: "Email invalid entry"</td>
+                </tr>
+                <tr>
+                  <td><code>aria-selected="true"</code> (tab)</td>
+                  <td class="cell-ok">✅ "selected"</td>
+                  <td class="cell-ok">✅ "selected"</td>
+                  <td class="cell-ok">✅ "selected"</td>
+                  <td class="cell-ok">✅ "selected"</td>
+                  <td>"Overview tab selected"</td>
+                </tr>
+                <tr>
+                  <td><code>role="alert"</code> content change</td>
+                  <td class="cell-ok">✅ immediate</td>
+                  <td class="cell-ok">✅ immediate</td>
+                  <td class="cell-ok">✅ immediate</td>
+                  <td class="cell-ok">✅ immediate</td>
+                  <td>"Error: invalid email" (immediate)</td>
+                </tr>
+                <tr>
+                  <td><code>aria-live="polite"</code></td>
+                  <td class="cell-ok">✅ after pause</td>
+                  <td class="cell-ok">✅ after pause</td>
+                  <td class="cell-ok">✅ after pause</td>
+                  <td class="cell-ok">✅ after pause</td>
+                  <td>"3 results found" (after user pauses)</td>
+                </tr>
+                <tr>
+                  <td><code>role="dialog"</code> open</td>
+                  <td class="cell-ok">✅ announces title</td>
+                  <td class="cell-ok">✅ announces title</td>
+                  <td class="cell-ok">✅ announces title</td>
+                  <td class="cell-ok">✅ announces title</td>
+                  <td>"Delete todo dialog"</td>
+                </tr>
+                <tr>
+                  <td><code>role="tooltip"</code> on focus</td>
+                  <td class="cell-ok">✅ reads tip</td>
+                  <td class="cell-ok">✅ reads tip</td>
+                  <td class="cell-ok">✅ reads tip</td>
+                  <td class="cell-warn">⚠️ focus only</td>
+                  <td>"Info button. Mark todo as complete to remove it."</td>
+                </tr>
+                <tr>
+                  <td><code>aria-haspopup="listbox"</code></td>
+                  <td class="cell-ok">✅ "has popup"</td>
+                  <td class="cell-ok">✅ "has popup list"</td>
+                  <td class="cell-warn">⚠️ inconsistent</td>
+                  <td class="cell-warn">⚠️ varies</td>
+                  <td>JAWS: "Search has popup list"</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ─── 7.9 Angular-Specific Gotchas ─────────────────────── -->
+        <section id="s7-9" aria-labelledby="h7-9">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">7.9</div>
+            <h2 id="h7-9">Angular-Specific Screen Reader Gotchas</h2>
+          </div>
+
+          <div class="table-wrapper">
+            <table aria-label="Angular-specific screen reader issues and solutions">
+              <thead>
+                <tr>
+                  <th scope="col">Issue</th>
+                  <th scope="col">Root Cause</th>
+                  <th scope="col">AT Affected</th>
+                  <th scope="col">Solution</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Route navigation not announced</td>
+                  <td>Angular router updates DOM without browser page load — AT never knows the page changed</td>
+                  <td>All</td>
+                  <td>Implement <code>A11yTitleStrategy</code> with <code>LiveAnnouncer</code> — see Section 5.10</td>
+                </tr>
+                <tr>
+                  <td>OnPush component changes not read</td>
+                  <td>AT reads DOM; Angular's OnPush only updates DOM after signal/input change triggers CD — usually fine, but complex effects may not trigger CD</td>
+                  <td>NVDA, JAWS</td>
+                  <td>Ensure effects that modify accessible text are inside the Angular change detection cycle (use signals, not external DOM manipulation)</td>
+                </tr>
+                <tr>
+                  <td><code>@if</code> live region silently broken</td>
+                  <td>Live region inserted at same time as its content — AT never registered the region</td>
+                  <td>All</td>
+                  <td>Keep live region element always in DOM; change only its text content (see Section 5.11)</td>
+                </tr>
+                <tr>
+                  <td>SSR hydration ID mismatch</td>
+                  <td>Server renders different IDs for <code>aria-labelledby</code>/<code>aria-describedby</code> than client — relationship attributes break</td>
+                  <td>All</td>
+                  <td>Use Angular's <code>inject(APP_ID)</code> with counter for stable IDs; avoid random UUID in constructor</td>
+                </tr>
+                <tr>
+                  <td>CDK overlay focus not trapped on iOS</td>
+                  <td><code>cdkTrapFocus</code> uses DOM focus — VoiceOver cursor is independent</td>
+                  <td>VoiceOver iOS</td>
+                  <td>Add <code>aria-modal="true"</code> on dialog; set <code>inert</code> on background. VoiceOver respects <code>aria-modal</code> in iOS 17+</td>
+                </tr>
+                <tr>
+                  <td>Signals update faster than AT can announce</td>
+                  <td>Rapidly changing signal (e.g., character counter on every keystroke) triggers live region faster than AT speech queue can empty</td>
+                  <td>NVDA, JAWS</td>
+                  <td>Debounce the live region update: use RxJS <code>debounceTime(300)</code> or <code>setTimeout</code> inside effect</td>
+                </tr>
+                <tr>
+                  <td>Angular Material overlays and NVDA Browse Mode</td>
+                  <td>NVDA Browse Mode allows navigation outside <code>aria-modal</code> dialogs without background <code>inert</code></td>
+                  <td>NVDA</td>
+                  <td>Angular Material CDK Dialog sets background <code>aria-hidden</code> automatically. Custom dialogs must do this manually</td>
+                </tr>
+                <tr>
+                  <td><code>[attr.aria-*]</code> binding returns <code>null</code> — removes attribute</td>
+                  <td>Binding evaluates to <code>null</code> or <code>undefined</code> — Angular removes the attribute entirely, which changes the accessible name or state</td>
+                  <td>All</td>
+                  <td>Use explicit ternary: <code>[attr.aria-invalid]="isInvalid ? 'true' : null"</code>. Removing is fine when the attribute should not exist; ensure the logic is intentional</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout success">
+            <span class="callout-icon" aria-hidden="true">✅</span>
+            <p>
+              <strong>Minimum viable AT testing setup for Angular development:</strong>
+              Install NVDA (free) and test with Firefox as part of every PR that touches
+              accessible names, ARIA states, live regions, or focus management.
+              Run automated axe-core scans (<code>@axe-core/playwright</code> or
+              <code>@axe-core/angular</code>) as a CI gate. Test VoiceOver + Safari for
+              every release candidate. Test TalkBack manually for any mobile-targeted features.
+            </p>
+          </div>
+        </section>
+
+        <!-- ═══ BOTTOM NAVIGATION ════════════════════════════════════ -->
+        <nav class="bottom-nav" aria-label="Section navigation">
+          <a href="./aria-s6-custom-patterns.html">← Section 6: Custom Patterns</a>
+          <span style="font-size:0.78rem;color:var(--muted);text-align:center;flex:1;">
+            Section 7 of 9 — Screen Reader Behaviour Reference
+          </span>
+          <a href="./aria-s8-antipatterns.html" aria-label="Section 8: Anti-patterns &amp; Common Mistakes">
+            Section 8: Anti-patterns →
+          </a>
+        </nav>
+
+      </main>
+
+      <!-- ═══ FOOTER ════════════════════════════════════════════════ -->
+      <footer role="contentinfo">
+        <p>
+          ARIA Complete Guide · Section 7 · Updated May 2026 ·
+          <a href="https://www.w3.org/TR/wai-aria-1.2/" rel="noopener noreferrer">WAI-ARIA 1.2 Spec</a> ·
+          <a href="https://webaim.org/projects/screenreadersurvey10/" rel="noopener noreferrer">WebAIM SR Survey 2024</a>
+        </p>
+        <p style="margin-top:0.5rem;">
+          <a href="./aria-complete-guide.html">← Back to ARIA Guide Index</a> ·
+          <a href="./aria-s6-custom-patterns.html">← Section 6: Custom Patterns</a> ·
+          <a href="./aria-s8-antipatterns.html">Section 8 coming soon</a>
+        </p>
+      </footer>
+
+    </div><!-- /page-wrapper -->
+  </body>
+</html>

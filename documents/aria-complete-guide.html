@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ARIA Complete Guide — Index</title>
+    <style>
+      /* ─── Reset & Base ──────────────────────────────────────────── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg:            #0f172a;
+        --surface:       #1e293b;
+        --surface-2:     #273549;
+        --surface-3:     #1a2844;
+        --border:        #334155;
+        --primary:       #818cf8;
+        --primary-light: #a5b4fc;
+        --accent:        #34d399;
+        --warn:          #fbbf24;
+        --danger:        #f87171;
+        --purple:        #c084fc;
+        --cyan:          #67e8f9;
+        --orange:        #fb923c;
+        --text:          #e2e8f0;
+        --muted:         #94a3b8;
+        --code-bg:       #0d1117;
+        --font-sans:     'Segoe UI', system-ui, -apple-system, sans-serif;
+        --font-mono:     'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+        --radius:        0.75rem;
+        --radius-sm:     0.4rem;
+        --shadow:        0 4px 24px rgba(0,0,0,0.5);
+        --max-width:     960px;
+      }
+
+      html { scroll-behavior: smooth; }
+
+      body {
+        font-family: var(--font-sans);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.8;
+        font-size: 1rem;
+      }
+
+      /* ─── Skip Link ─────────────────────────────────────────────── */
+      .skip-link {
+        position: absolute; top: -100%; left: 1rem;
+        padding: 0.5rem 1rem;
+        background: var(--primary); color: #0f172a;
+        font-weight: 700; border-radius: 0 0 var(--radius) var(--radius);
+        z-index: 9999; transition: top 0.2s; text-decoration: none;
+      }
+      .skip-link:focus { top: 0; }
+
+      /* ─── Layout ────────────────────────────────────────────────── */
+      .page-wrapper { max-width: var(--max-width); margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+
+      /* ─── Hero ──────────────────────────────────────────────────── */
+      .hero {
+        background: linear-gradient(135deg, #1e1b4b 0%, #1e293b 50%, #0c1a2e 100%);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 3rem 2.5rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        box-shadow: var(--shadow);
+      }
+      .hero-badge {
+        display: inline-block;
+        background: rgba(129,140,248,0.15);
+        border: 1px solid var(--primary);
+        color: var(--primary-light);
+        font-size: 0.72rem; font-weight: 700;
+        letter-spacing: 0.14em; text-transform: uppercase;
+        padding: 0.3rem 1rem; border-radius: 999px;
+        margin-bottom: 1.25rem;
+      }
+      .hero h1 {
+        font-size: clamp(1.75rem, 4vw, 2.8rem);
+        font-weight: 800; line-height: 1.15; color: #fff;
+        margin-bottom: 1rem;
+      }
+      .hero h1 span { color: var(--primary-light); }
+      .hero p { font-size: 1.05rem; color: var(--muted); max-width: 700px; margin: 0 auto 1rem; }
+      .hero-meta {
+        display: flex; justify-content: center; gap: 1.5rem;
+        flex-wrap: wrap; margin-top: 1.25rem;
+      }
+      .hero-meta span {
+        font-size: 0.78rem; color: var(--muted);
+        display: flex; align-items: center; gap: 0.4rem;
+      }
+      .hero-meta span strong { color: var(--accent); }
+
+      /* ─── Progress Banner ───────────────────────────────────────── */
+      .progress-banner {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--accent);
+        border-radius: var(--radius);
+        padding: 1rem 1.5rem;
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.875rem;
+      }
+      .progress-banner .pb-icon { font-size: 1.3rem; }
+      .progress-banner strong { color: var(--accent); }
+      .progress-dots { display: flex; gap: 0.4rem; margin-top: 0.5rem; flex-wrap: wrap; }
+      .dot-item {
+        font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 999px;
+        border: 1px solid var(--border);
+      }
+      .dot-item.done  { background: rgba(52,211,153,0.15); border-color: var(--accent);  color: var(--accent); }
+      .dot-item.next  { background: rgba(129,140,248,0.15); border-color: var(--primary); color: var(--primary-light); }
+      .dot-item.pending { background: transparent; color: var(--muted); }
+
+      /* ─── TOC ───────────────────────────────────────────────────── */
+      .toc {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--primary);
+        border-radius: var(--radius);
+        padding: 1.5rem 2rem;
+        margin-bottom: 3rem;
+      }
+      .toc-title {
+        font-size: 0.78rem; font-weight: 700;
+        letter-spacing: 0.12em; text-transform: uppercase;
+        color: var(--primary); margin-bottom: 1rem;
+      }
+      .toc ol {
+        padding-left: 1.5rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 0.3rem 2rem;
+      }
+      .toc li { font-size: 0.875rem; }
+      .toc a { color: var(--muted); text-decoration: none; transition: color 0.15s; }
+      .toc a:hover, .toc a:focus { color: var(--primary-light); text-decoration: underline; }
+      .toc .toc-pending { color: var(--muted); opacity: 0.5; font-style: italic; }
+
+      /* ─── Sections ──────────────────────────────────────────────── */
+      section { margin-bottom: 4.5rem; scroll-margin-top: 2rem; }
+      .section-header {
+        display: flex; align-items: center; gap: 0.75rem;
+        margin-bottom: 1.75rem; padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .section-number {
+        flex-shrink: 0; width: 2.25rem; height: 2.25rem;
+        background: linear-gradient(135deg, var(--primary), #6366f1);
+        color: #fff; font-size: 0.82rem; font-weight: 800;
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      }
+      h2 { font-size: 1.55rem; font-weight: 800; color: #fff; }
+      h3 { font-size: 1.1rem; font-weight: 700; color: var(--primary-light); margin: 2.25rem 0 0.75rem; }
+      h4 {
+        font-size: 0.9rem; font-weight: 700; color: var(--accent);
+        margin: 1.5rem 0 0.5rem;
+        text-transform: uppercase; letter-spacing: 0.07em;
+      }
+      p { margin-bottom: 1rem; color: var(--text); }
+      p:last-child { margin-bottom: 0; }
+
+      ul, ol { padding-left: 1.5rem; margin: 0.75rem 0; }
+      li { margin-bottom: 0.4rem; color: var(--text); font-size: 0.95rem; }
+
+      strong { color: #fff; }
+      em { color: var(--warn); font-style: italic; }
+
+      code {
+        font-family: var(--font-mono); font-size: 0.82em;
+        background: var(--surface-2); border: 1px solid var(--border);
+        padding: 0.15em 0.45em; border-radius: var(--radius-sm);
+        color: var(--primary-light);
+      }
+
+      /* ─── Callouts ──────────────────────────────────────────────── */
+      .callout {
+        display: flex; gap: 0.75rem;
+        padding: 1rem 1.25rem; border-radius: var(--radius);
+        margin: 1.25rem 0; border: 1px solid; font-size: 0.9rem;
+      }
+      .callout-icon { font-size: 1.25rem; flex-shrink: 0; line-height: 1.5; margin-top: 0.1rem; }
+      .callout p { margin: 0; color: inherit; line-height: 1.7; }
+      .callout.info    { background: rgba(129,140,248,0.08); border-color: rgba(129,140,248,0.3); color: var(--primary-light); }
+      .callout.warn    { background: rgba(251,191,36,0.08);  border-color: rgba(251,191,36,0.3);  color: var(--warn); }
+      .callout.success { background: rgba(52,211,153,0.08);  border-color: rgba(52,211,153,0.3);  color: var(--accent); }
+      .callout.danger  { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.3); color: var(--danger); }
+      .callout.purple  { background: rgba(192,132,252,0.08); border-color: rgba(192,132,252,0.3); color: var(--purple); }
+
+      /* ─── Cards ─────────────────────────────────────────────────── */
+      .card-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 1rem; margin: 1.5rem 0;
+      }
+      .card {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 1.25rem 1.5rem;
+        transition: border-color 0.15s, transform 0.15s;
+      }
+      .card:hover { border-color: var(--primary); transform: translateY(-1px); }
+      .card-icon { font-size: 1.75rem; margin-bottom: 0.6rem; }
+      .card h3 { margin: 0 0 0.4rem; font-size: 1rem; color: #fff; }
+      .card p { font-size: 0.85rem; color: var(--muted); margin: 0; line-height: 1.6; }
+
+      /* ─── Code Blocks ───────────────────────────────────────────── */
+      .code-block {
+        background: var(--code-bg); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 1.25rem 1.5rem;
+        overflow-x: auto; margin: 1.25rem 0; position: relative;
+      }
+      .code-block .lang-tag {
+        position: absolute; top: 0.6rem; right: 0.75rem;
+        font-size: 0.65rem; font-weight: 700;
+        letter-spacing: 0.1em; text-transform: uppercase;
+        color: var(--muted); background: var(--surface);
+        padding: 0.15rem 0.5rem; border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+      }
+      pre {
+        font-family: var(--font-mono); font-size: 0.82rem;
+        line-height: 1.75; color: #e2e8f0; white-space: pre;
+      }
+      .kw  { color: #c792ea; }
+      .fn  { color: #82aaff; }
+      .str { color: #c3e88d; }
+      .cmt { color: #546e7a; font-style: italic; }
+      .typ { color: #ffcb6b; }
+      .tag-c { color: #f07178; }
+      .atr { color: #ffcb6b; }
+      .val { color: #c3e88d; }
+      .op  { color: #89ddff; }
+      .num { color: #f78c6c; }
+      .hl  { background: rgba(129,140,248,0.12); display: block; border-left: 2px solid var(--primary); padding-left: 0.5rem; margin-left: -0.5rem; }
+
+      /* ─── Section Cards (index page) ───────────────────────────── */
+      .section-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.25rem;
+        margin: 2rem 0;
+      }
+      .section-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        text-decoration: none;
+        display: block;
+        transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+      }
+      .section-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      }
+      .section-card.available { border-left: 4px solid var(--accent); }
+      .section-card.coming    { border-left: 4px solid var(--border); opacity: 0.6; pointer-events: none; }
+      .sc-num {
+        font-size: 0.7rem; font-weight: 700;
+        letter-spacing: 0.1em; text-transform: uppercase;
+        color: var(--muted); margin-bottom: 0.5rem;
+      }
+      .sc-title {
+        font-size: 1.05rem; font-weight: 700; color: #fff;
+        margin-bottom: 0.5rem; line-height: 1.3;
+      }
+      .sc-desc {
+        font-size: 0.83rem; color: var(--muted);
+        line-height: 1.6; margin-bottom: 0.75rem;
+      }
+      .sc-status {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        font-size: 0.72rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.08em;
+        padding: 0.2rem 0.65rem; border-radius: 999px;
+      }
+      .sc-status.done    { background: rgba(52,211,153,0.15);  color: var(--accent); }
+      .sc-status.pending { background: rgba(148,163,184,0.1);  color: var(--muted); }
+      .sc-topics {
+        margin: 0.5rem 0 0;
+        padding: 0;
+        list-style: none;
+        display: flex; flex-wrap: wrap; gap: 0.3rem;
+      }
+      .sc-topics li {
+        font-size: 0.7rem;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        color: var(--muted);
+        padding: 0.15rem 0.5rem;
+        border-radius: var(--radius-sm);
+        margin: 0;
+      }
+
+      /* ─── Doc Links Banner ──────────────────────────────────────── */
+      .doc-links {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 1rem;
+        margin: 2rem 0;
+      }
+      .doc-link-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.25rem 1.5rem;
+        text-decoration: none;
+        display: flex; align-items: center; gap: 1rem;
+        transition: border-color 0.15s;
+      }
+      .doc-link-card:hover { border-color: var(--primary); }
+      .doc-link-card .dlc-icon { font-size: 2rem; flex-shrink: 0; }
+      .doc-link-card .dlc-text strong { display: block; color: #fff; font-size: 0.95rem; }
+      .doc-link-card .dlc-text span { font-size: 0.8rem; color: var(--muted); }
+
+      /* ─── Table ─────────────────────────────────────────────────── */
+      .table-wrapper { overflow-x: auto; margin: 1.25rem 0; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+      thead th {
+        background: var(--surface); color: var(--primary-light);
+        font-weight: 700; font-size: 0.78rem;
+        text-transform: uppercase; letter-spacing: 0.06em;
+        padding: 0.75rem 1rem; text-align: left;
+        border-bottom: 2px solid var(--border);
+      }
+      tbody td {
+        padding: 0.75rem 1rem; border-bottom: 1px solid var(--border);
+        color: var(--text); vertical-align: top; line-height: 1.6;
+      }
+      tbody tr:hover td { background: var(--surface); }
+
+      /* ─── Footer ────────────────────────────────────────────────── */
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 2rem 0 0; text-align: center;
+        font-size: 0.8rem; color: var(--muted);
+      }
+      footer a { color: var(--primary-light); text-decoration: none; }
+      footer a:hover { text-decoration: underline; }
+    </style>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <div class="page-wrapper">
+
+      <!-- ═══ HERO ══════════════════════════════════════════════════ -->
+      <header role="banner">
+        <div class="hero">
+          <div class="hero-badge">ARIA · WAI-ARIA 1.2 · Angular 21 · May 2026</div>
+          <h1>ARIA <span>Complete Guide</span></h1>
+          <p>
+            A deep-dive reference covering every ARIA role, property, state, live region,
+            custom pattern, and screen reader behaviour — built section by section,
+            one document per topic for easy navigation and bookmarking.
+          </p>
+          <div class="hero-meta">
+            <span>📋 Spec: <strong>WAI-ARIA 1.2 (W3C Rec)</strong></span>
+            <span>🔧 Framework: <strong>Angular 21</strong></span>
+            <span>📅 Updated: <strong>May 2026</strong></span>
+            <span>🎯 Target: <strong>WCAG 2.1 AA</strong></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ═══ COMPANION DOCUMENTS ═══════════════════════════════════ -->
+      <main id="main-content">
+
+        <h2 style="font-size:0.85rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--primary);margin-bottom:1rem;">
+          Related Documents
+        </h2>
+        <div class="doc-links">
+          <a class="doc-link-card" href="./web-accessibility-wcag21.html">
+            <span class="dlc-icon" aria-hidden="true">📘</span>
+            <div class="dlc-text">
+              <strong>Web Accessibility &amp; WCAG 2.1</strong>
+              <span>POUR principles · Conformance levels · Angular 21 implementation</span>
+            </div>
+          </a>
+          <a class="doc-link-card" href="./aria-s1-foundation.html">
+            <span class="dlc-icon" aria-hidden="true">🧱</span>
+            <div class="dlc-text">
+              <strong>You are here: ARIA Index</strong>
+              <span>Hub for all ARIA sections — choose a topic below</span>
+            </div>
+          </a>
+        </div>
+
+        <!-- ═══ SECTION INDEX ══════════════════════════════════════ -->
+        <h2 style="font-size:0.85rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--primary);margin:2.5rem 0 1rem;">
+          ARIA Guide Sections
+        </h2>
+
+        <div class="section-cards">
+
+          <!-- Section 1 — AVAILABLE -->
+          <a class="section-card available" href="./aria-s1-foundation.html">
+            <div class="sc-num">Section 1</div>
+            <div class="sc-title">ARIA Foundation — What, Why &amp; How</div>
+            <div class="sc-desc">
+              What ARIA is, how the accessibility tree works, the Name·Role·State·Value
+              model, accessible name computation, hiding techniques, and the five golden rules.
+            </div>
+            <span class="sc-status done">✓ Available</span>
+            <ul class="sc-topics">
+              <li>Accessibility tree</li>
+              <li>aria-hidden vs display:none</li>
+              <li>Name computation</li>
+              <li>sr-only pattern</li>
+              <li>5 golden rules</li>
+            </ul>
+          </a>
+
+          <!-- Section 2 — AVAILABLE -->
+          <a class="section-card available" href="./aria-s2-roles.html">
+            <div class="sc-num">Section 2</div>
+            <div class="sc-title">ARIA Roles</div>
+            <div class="sc-desc">
+              All 82 WAI-ARIA 1.2 roles — landmark, widget, document structure — with
+              screen reader announcements for NVDA, JAWS, VoiceOver, and TalkBack.
+            </div>
+            <span class="sc-status done">✓ Available</span>
+            <ul class="sc-topics">
+              <li>Landmark roles</li>
+              <li>Widget roles</li>
+              <li>Document roles</li>
+              <li>role=none / presentation</li>
+            </ul>
+          </a>
+
+          <!-- Section 3 — AVAILABLE -->
+          <a class="section-card available" href="./aria-s3-properties.html">
+            <div class="sc-num">Section 3</div>
+            <div class="sc-title">ARIA Properties</div>
+            <div class="sc-desc">
+              Static ARIA properties — aria-label, aria-labelledby, aria-describedby,
+              aria-required, aria-modal, aria-haspopup — with Angular 21 patterns.
+            </div>
+            <span class="sc-status done">✓ Available</span>
+            <ul class="sc-topics">
+              <li>Naming properties</li>
+              <li>Relationship properties</li>
+              <li>Widget properties</li>
+            </ul>
+          </a>
+
+          <!-- Section 4 — AVAILABLE -->
+          <a class="section-card available" href="./aria-s4-states.html">
+            <div class="sc-num">Section 4</div>
+            <div class="sc-title">ARIA States</div>
+            <div class="sc-desc">
+              Dynamic state attributes — aria-expanded, aria-selected, aria-checked,
+              aria-pressed, aria-busy, aria-invalid, aria-disabled, aria-current.
+            </div>
+            <span class="sc-status done">✓ Available</span>
+            <ul class="sc-topics">
+              <li>aria-expanded</li>
+              <li>aria-selected</li>
+              <li>aria-invalid</li>
+              <li>aria-busy</li>
+              <li>aria-current</li>
+            </ul>
+          </a>
+
+          <!-- Section 5 — AVAILABLE -->
+          <a class="section-card available" href="./aria-s5-live-regions.html">
+            <div class="sc-num">Section 5</div>
+            <div class="sc-title">Live Regions</div>
+            <div class="sc-desc">
+              aria-live, aria-atomic, aria-relevant, role=alert/status/log/timer —
+              the timing traps, Angular CDK LiveAnnouncer, and polite vs assertive.
+            </div>
+            <span class="sc-status done">✓ Available</span>
+            <ul class="sc-topics">
+              <li>aria-live polite/assertive</li>
+              <li>role=alert</li>
+              <li>LiveAnnouncer</li>
+              <li>Timing pitfalls</li>
+            </ul>
+          </a>
+
+          <!-- Section 6 — AVAILABLE -->
+          <a class="section-card available" href="./aria-s6-custom-patterns.html">
+            <div class="sc-num">Section 6</div>
+            <div class="sc-title">Custom Patterns in Angular 21</div>
+            <div class="sc-desc">
+              Building accessible tabs, modals, comboboxes, data grids, tooltips, and
+              disclosure widgets from scratch using Angular signals and CDK primitives.
+            </div>
+            <span class="sc-status done">✓ Available</span>
+            <ul class="sc-topics">
+              <li>Dialog pattern</li>
+              <li>Tabs pattern</li>
+              <li>Combobox</li>
+              <li>Data grid</li>
+            </ul>
+          </a>
+
+          <!-- Section 7 — AVAILABLE -->
+          <a class="section-card available" href="./aria-s7-screen-readers.html">
+            <div class="sc-num">Section 7</div>
+            <div class="sc-title">Screen Reader Behaviour Reference</div>
+            <div class="sc-desc">
+              Side-by-side comparison of how NVDA, JAWS, VoiceOver (macOS/iOS),
+              TalkBack, and Narrator announce every common ARIA pattern — as of May 2026.
+            </div>
+            <span class="sc-status done">✓ Available</span>
+            <ul class="sc-topics">
+              <li>NVDA + Firefox</li>
+              <li>JAWS + Chrome</li>
+              <li>VoiceOver + Safari</li>
+              <li>TalkBack</li>
+            </ul>
+          </a>
+
+          <!-- Section 8 — AVAILABLE -->
+          <a class="section-card available" href="./aria-s8-antipatterns.html">
+            <div class="sc-num">Section 8</div>
+            <div class="sc-title">Anti-patterns &amp; Common Mistakes</div>
+            <div class="sc-desc">
+              The 25 most common ARIA mistakes found in production Angular apps —
+              ghost focus, role conflicts, redundant labels, missing keyboard support.
+            </div>
+            <span class="sc-status done">✓ Available</span>
+            <ul class="sc-topics">
+              <li>Ghost focus</li>
+              <li>Redundant roles</li>
+              <li>Missing keyboard</li>
+              <li>Incorrect nesting</li>
+            </ul>
+          </a>
+
+          <!-- Section 9 — AVAILABLE -->
+          <a class="section-card available" href="./aria-s9-cdk-primitives.html">
+            <div class="sc-num">Section 9</div>
+            <div class="sc-title">Angular CDK A11y Primitives</div>
+            <div class="sc-desc">
+              FocusTrap, LiveAnnouncer, FocusMonitor, HighContrastModeDetector, CdkListbox,
+              CdkMenu — the full CDK A11y toolkit with Angular 21 signal-based usage.
+            </div>
+            <span class="sc-status done">✓ Available</span>
+            <ul class="sc-topics">
+              <li>FocusTrap</li>
+              <li>LiveAnnouncer</li>
+              <li>CdkListbox</li>
+              <li>CdkMenu</li>
+            </ul>
+          </a>
+
+        </div><!-- /section-cards -->
+
+        <!-- ═══ SPEC REFERENCE ══════════════════════════════════════ -->
+        <div style="margin-top:3rem; padding:1.5rem; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);">
+          <h2 style="font-size:0.85rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--primary);margin-bottom:1rem;">
+            Official Specifications &amp; References
+          </h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0.75rem;">
+            <a href="https://www.w3.org/TR/wai-aria-1.2/" rel="noopener noreferrer"
+               style="color:var(--primary-light);font-size:0.875rem;text-decoration:none;padding:0.6rem 0.75rem;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);display:block;">
+              📋 WAI-ARIA 1.2 Specification
+            </a>
+            <a href="https://www.w3.org/TR/accname-1.2/" rel="noopener noreferrer"
+               style="color:var(--primary-light);font-size:0.875rem;text-decoration:none;padding:0.6rem 0.75rem;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);display:block;">
+              🏷️ Accessible Name Computation
+            </a>
+            <a href="https://www.w3.org/WAI/ARIA/apg/" rel="noopener noreferrer"
+               style="color:var(--primary-light);font-size:0.875rem;text-decoration:none;padding:0.6rem 0.75rem;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);display:block;">
+              🏗️ ARIA Authoring Practices Guide
+            </a>
+            <a href="https://www.w3.org/TR/html-aam/" rel="noopener noreferrer"
+               style="color:var(--primary-light);font-size:0.875rem;text-decoration:none;padding:0.6rem 0.75rem;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);display:block;">
+              🌐 HTML Accessibility API Mappings
+            </a>
+            <a href="https://material.angular.io/cdk/a11y/overview" rel="noopener noreferrer"
+               style="color:var(--primary-light);font-size:0.875rem;text-decoration:none;padding:0.6rem 0.75rem;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);display:block;">
+              🔧 Angular CDK A11y Overview
+            </a>
+            <a href="https://dequeuniversity.com/rules/axe" rel="noopener noreferrer"
+               style="color:var(--primary-light);font-size:0.875rem;text-decoration:none;padding:0.6rem 0.75rem;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);display:block;">
+              🔍 axe-core Rules Reference
+            </a>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- ═══ FOOTER ════════════════════════════════════════════════ -->
+      <footer role="contentinfo">
+        <p>
+          ARIA Complete Guide · Angular 21 · WAI-ARIA 1.2 · Updated May 2026 ·
+          <a href="./web-accessibility-wcag21.html">Companion: WCAG 2.1 Guide</a>
+        </p>
+      </footer>
+
+    </div><!-- /page-wrapper -->
+  </body>
+</html>

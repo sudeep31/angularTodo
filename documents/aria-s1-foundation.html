@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Section 1: ARIA Foundation — ARIA Complete Guide</title>
+    <style>
+      /* ─── Reset & Base ──────────────────────────────────────────── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg:            #0f172a;
+        --surface:       #1e293b;
+        --surface-2:     #273549;
+        --surface-3:     #1a2844;
+        --border:        #334155;
+        --primary:       #818cf8;
+        --primary-light: #a5b4fc;
+        --accent:        #34d399;
+        --warn:          #fbbf24;
+        --danger:        #f87171;
+        --purple:        #c084fc;
+        --cyan:          #67e8f9;
+        --orange:        #fb923c;
+        --text:          #e2e8f0;
+        --muted:         #94a3b8;
+        --code-bg:       #0d1117;
+        --font-sans:     'Segoe UI', system-ui, -apple-system, sans-serif;
+        --font-mono:     'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+        --radius:        0.75rem;
+        --radius-sm:     0.4rem;
+        --shadow:        0 4px 24px rgba(0,0,0,0.5);
+        --max-width:     960px;
+      }
+
+      html { scroll-behavior: smooth; }
+
+      body {
+        font-family: var(--font-sans);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.8;
+        font-size: 1rem;
+      }
+
+      /* ─── Skip Link ─────────────────────────────────────────────── */
+      .skip-link {
+        position: absolute; top: -100%; left: 1rem;
+        padding: 0.5rem 1rem;
+        background: var(--primary); color: #0f172a;
+        font-weight: 700; border-radius: 0 0 var(--radius) var(--radius);
+        z-index: 9999; transition: top 0.2s; text-decoration: none;
+      }
+      .skip-link:focus { top: 0; }
+
+      /* ─── Layout ────────────────────────────────────────────────── */
+      .page-wrapper { max-width: var(--max-width); margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+
+      /* ─── Top Nav Bar ───────────────────────────────────────────── */
+      .top-nav {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.75rem 1.25rem;
+        margin-bottom: 2rem;
+        font-size: 0.85rem;
+        gap: 1rem;
+      }
+      .top-nav a {
+        color: var(--primary-light); text-decoration: none;
+        padding: 0.3rem 0.75rem; border-radius: var(--radius-sm);
+        border: 1px solid var(--border); transition: border-color 0.15s, background 0.15s;
+        white-space: nowrap;
+      }
+      .top-nav a:hover { border-color: var(--primary); background: var(--surface-2); }
+      .top-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .top-nav .nav-center {
+        font-size: 0.75rem; color: var(--muted);
+        text-align: center; flex: 1; min-width: 0;
+      }
+      .top-nav .nav-center strong { color: var(--primary-light); }
+      .top-nav .nav-next { opacity: 0.45; pointer-events: none; }
+
+      /* ─── Hero ──────────────────────────────────────────────────── */
+      .hero {
+        background: linear-gradient(135deg, #1e1b4b 0%, #1e293b 50%, #0c1a2e 100%);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 3rem 2.5rem;
+        margin-bottom: 2rem;
+        text-align: center;
+        box-shadow: var(--shadow);
+      }
+      .hero-badge {
+        display: inline-block;
+        background: rgba(129,140,248,0.15);
+        border: 1px solid var(--primary);
+        color: var(--primary-light);
+        font-size: 0.72rem; font-weight: 700;
+        letter-spacing: 0.14em; text-transform: uppercase;
+        padding: 0.3rem 1rem; border-radius: 999px;
+        margin-bottom: 1.25rem;
+      }
+      .hero h1 {
+        font-size: clamp(1.75rem, 4vw, 2.8rem);
+        font-weight: 800; line-height: 1.15; color: #fff;
+        margin-bottom: 1rem;
+      }
+      .hero h1 span { color: var(--primary-light); }
+      .hero h1 .section-num { color: var(--muted); font-size: 0.55em; font-weight: 600; display: block; margin-bottom: 0.25rem; }
+      .hero p { font-size: 1.05rem; color: var(--muted); max-width: 700px; margin: 0 auto 1rem; }
+      .hero-meta {
+        display: flex; justify-content: center; gap: 1.5rem;
+        flex-wrap: wrap; margin-top: 1.25rem;
+      }
+      .hero-meta span {
+        font-size: 0.78rem; color: var(--muted);
+        display: flex; align-items: center; gap: 0.4rem;
+      }
+      .hero-meta span strong { color: var(--accent); }
+
+      /* ─── TOC ───────────────────────────────────────────────────── */
+      .toc {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--primary);
+        border-radius: var(--radius);
+        padding: 1.5rem 2rem;
+        margin-bottom: 3rem;
+      }
+      .toc-title {
+        font-size: 0.78rem; font-weight: 700;
+        letter-spacing: 0.12em; text-transform: uppercase;
+        color: var(--primary); margin-bottom: 1rem;
+      }
+      .toc ol {
+        padding-left: 1.5rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 0.3rem 2rem;
+      }
+      .toc li { font-size: 0.875rem; }
+      .toc a { color: var(--muted); text-decoration: none; transition: color 0.15s; }
+      .toc a:hover, .toc a:focus { color: var(--primary-light); text-decoration: underline; }
+
+      /* ─── Sections ──────────────────────────────────────────────── */
+      section { margin-bottom: 4.5rem; scroll-margin-top: 2rem; }
+      .section-header {
+        display: flex; align-items: center; gap: 0.75rem;
+        margin-bottom: 1.75rem; padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .section-number {
+        flex-shrink: 0; width: 2.25rem; height: 2.25rem;
+        background: linear-gradient(135deg, var(--primary), #6366f1);
+        color: #fff; font-size: 0.82rem; font-weight: 800;
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      }
+      h2 { font-size: 1.55rem; font-weight: 800; color: #fff; }
+      h3 { font-size: 1.1rem; font-weight: 700; color: var(--primary-light); margin: 2.25rem 0 0.75rem; }
+      h4 {
+        font-size: 0.9rem; font-weight: 700; color: var(--accent);
+        margin: 1.5rem 0 0.5rem;
+        text-transform: uppercase; letter-spacing: 0.07em;
+      }
+      p { margin-bottom: 1rem; color: var(--text); }
+      p:last-child { margin-bottom: 0; }
+
+      ul, ol { padding-left: 1.5rem; margin: 0.75rem 0; }
+      li { margin-bottom: 0.4rem; color: var(--text); font-size: 0.95rem; }
+
+      strong { color: #fff; }
+      em { color: var(--warn); font-style: italic; }
+
+      code {
+        font-family: var(--font-mono); font-size: 0.82em;
+        background: var(--surface-2); border: 1px solid var(--border);
+        padding: 0.15em 0.45em; border-radius: var(--radius-sm);
+        color: var(--primary-light);
+      }
+
+      /* ─── Callouts ──────────────────────────────────────────────── */
+      .callout {
+        display: flex; gap: 0.75rem;
+        padding: 1rem 1.25rem; border-radius: var(--radius);
+        margin: 1.25rem 0; border: 1px solid; font-size: 0.9rem;
+      }
+      .callout-icon { font-size: 1.25rem; flex-shrink: 0; line-height: 1.5; margin-top: 0.1rem; }
+      .callout p { margin: 0; color: inherit; line-height: 1.7; }
+      .callout.info    { background: rgba(129,140,248,0.08); border-color: rgba(129,140,248,0.3); color: var(--primary-light); }
+      .callout.warn    { background: rgba(251,191,36,0.08);  border-color: rgba(251,191,36,0.3);  color: var(--warn); }
+      .callout.success { background: rgba(52,211,153,0.08);  border-color: rgba(52,211,153,0.3);  color: var(--accent); }
+      .callout.danger  { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.3); color: var(--danger); }
+
+      /* ─── Cards ─────────────────────────────────────────────────── */
+      .card-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 1rem; margin: 1.5rem 0;
+      }
+      .card {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 1.25rem 1.5rem;
+        transition: border-color 0.15s, transform 0.15s;
+      }
+      .card:hover { border-color: var(--primary); transform: translateY(-1px); }
+      .card-icon { font-size: 1.75rem; margin-bottom: 0.6rem; }
+      .card h3 { margin: 0 0 0.4rem; font-size: 1rem; color: #fff; }
+      .card p { font-size: 0.85rem; color: var(--muted); margin: 0; line-height: 1.6; }
+
+      /* ─── Code Blocks ───────────────────────────────────────────── */
+      .code-block {
+        background: var(--code-bg); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 1.25rem 1.5rem;
+        overflow-x: auto; margin: 1.25rem 0; position: relative;
+      }
+      .code-block .lang-tag {
+        position: absolute; top: 0.6rem; right: 0.75rem;
+        font-size: 0.65rem; font-weight: 700;
+        letter-spacing: 0.1em; text-transform: uppercase;
+        color: var(--muted); background: var(--surface);
+        padding: 0.15rem 0.5rem; border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+      }
+      pre {
+        font-family: var(--font-mono); font-size: 0.82rem;
+        line-height: 1.75; color: #e2e8f0; white-space: pre;
+      }
+      .kw  { color: #c792ea; }
+      .fn  { color: #82aaff; }
+      .str { color: #c3e88d; }
+      .cmt { color: #546e7a; font-style: italic; }
+      .typ { color: #ffcb6b; }
+      .tag-c { color: #f07178; }
+      .atr { color: #ffcb6b; }
+      .val { color: #c3e88d; }
+      .op  { color: #89ddff; }
+      .num { color: #f78c6c; }
+
+      /* ─── Compare Grid ──────────────────────────────────────────── */
+      .compare-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(340px,1fr));
+        gap: 1rem; margin: 1.25rem 0;
+      }
+      .compare-card {
+        background: var(--code-bg); border: 1px solid var(--border);
+        border-radius: var(--radius); overflow: hidden;
+      }
+      .compare-header {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 0.6rem 1rem; font-size: 0.78rem; font-weight: 700;
+        letter-spacing: 0.05em;
+      }
+      .compare-header.good { background: rgba(52,211,153,0.12); color: var(--accent); }
+      .compare-header.bad  { background: rgba(248,113,113,0.1);  color: var(--danger); }
+      .compare-card pre    { padding: 1rem; font-size: 0.78rem; line-height: 1.7; color: #b0bec5; white-space: pre; }
+
+      /* ─── Accessibility Tree Diagram ────────────────────────────── */
+      .at-tree {
+        background: var(--code-bg); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 1.25rem 1.5rem;
+        font-family: var(--font-mono); font-size: 0.8rem; line-height: 2;
+        color: #b0bec5; margin: 1.25rem 0;
+      }
+      .at-tree > div { }
+      .at-indent-1 { padding-left: 1.5rem; }
+      .at-indent-2 { padding-left: 3rem; }
+      .at-role  { color: var(--primary-light); font-weight: 700; }
+      .at-state { color: var(--accent); }
+      .at-name  { color: var(--warn); }
+
+      /* ─── Screen Reader Simulation ──────────────────────────────── */
+      .sr-sim {
+        background: #0a0a14; border: 1px solid #4c1d95;
+        border-radius: var(--radius); overflow: hidden;
+        margin: 1.25rem 0;
+      }
+      .sr-sim-header {
+        background: #1c0945; padding: 0.6rem 1rem;
+        font-size: 0.75rem; font-weight: 700; color: #c084fc;
+        letter-spacing: 0.05em;
+        display: flex; align-items: center; gap: 0.5rem;
+      }
+      .sr-sim-header span {
+        background: #4c1d95; color: #e9d5ff;
+        padding: 0.1rem 0.5rem; border-radius: var(--radius-sm);
+      }
+      .sr-output {
+        padding: 1rem 1.25rem; font-family: var(--font-mono);
+        font-size: 0.82rem; line-height: 2; color: #e9d5ff;
+      }
+      .sr-announce { color: #e9d5ff; }
+      .sr-pause    { color: #4c1d95; }
+      .sr-key      { color: #94a3b8; font-style: italic; font-size: 0.75rem; }
+
+      /* ─── Table ─────────────────────────────────────────────────── */
+      .table-wrapper { overflow-x: auto; margin: 1.25rem 0; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+      thead th {
+        background: var(--surface); color: var(--primary-light);
+        font-weight: 700; font-size: 0.78rem;
+        text-transform: uppercase; letter-spacing: 0.06em;
+        padding: 0.75rem 1rem; text-align: left;
+        border-bottom: 2px solid var(--border);
+      }
+      tbody td {
+        padding: 0.75rem 1rem; border-bottom: 1px solid var(--border);
+        color: var(--text); vertical-align: top; line-height: 1.6;
+      }
+      tbody tr:hover td { background: var(--surface); }
+
+      /* ─── Checklist ─────────────────────────────────────────────── */
+      .checklist { list-style: none; padding: 0; margin: 1rem 0; }
+      .checklist li {
+        padding: 0.5rem 0 0.5rem 2rem; position: relative;
+        font-size: 0.9rem; border-bottom: 1px solid var(--border);
+        color: var(--text);
+      }
+      .checklist li:last-child { border-bottom: none; }
+      .checklist li::before {
+        content: '✓'; position: absolute; left: 0.4rem;
+        color: var(--accent); font-weight: 700;
+      }
+
+      /* ─── Bottom Nav ─────────────────────────────────────────────── */
+      .bottom-nav {
+        display: flex; align-items: center; justify-content: space-between;
+        border-top: 1px solid var(--border); padding-top: 2rem;
+        margin-top: 4rem; gap: 1rem; flex-wrap: wrap;
+      }
+      .bottom-nav a {
+        color: var(--primary-light); text-decoration: none;
+        padding: 0.5rem 1.25rem; border-radius: var(--radius-sm);
+        border: 1px solid var(--border); font-size: 0.875rem;
+        transition: border-color 0.15s, background 0.15s;
+        display: flex; align-items: center; gap: 0.4rem;
+      }
+      .bottom-nav a:hover { border-color: var(--primary); background: var(--surface); }
+      .bottom-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .bottom-nav .nav-hub { color: var(--muted); }
+      .bottom-nav .nav-next { opacity: 0.45; pointer-events: none; }
+
+      /* ─── Footer ────────────────────────────────────────────────── */
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 2rem 0 0; text-align: center;
+        font-size: 0.8rem; color: var(--muted);
+        margin-top: 3rem;
+      }
+      footer a { color: var(--primary-light); text-decoration: none; }
+      footer a:hover { text-decoration: underline; }
+    </style>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <div class="page-wrapper">
+
+      <!-- ═══ TOP NAVIGATION ═══════════════════════════════════════ -->
+      <nav class="top-nav" aria-label="Document navigation">
+        <a href="./aria-complete-guide.html" aria-label="Back to ARIA Guide Index">← Hub</a>
+        <div class="nav-center">
+          <strong>Section 1 of 9</strong> — ARIA Foundation
+        </div>
+        <a href="./aria-s2-roles.html" aria-label="Section 2: ARIA Roles">
+          Section 2 →
+        </a>
+      </nav>
+
+      <!-- ═══ HERO ══════════════════════════════════════════════════ -->
+      <header role="banner">
+        <div class="hero">
+          <div class="hero-badge">Section 1 · WAI-ARIA 1.2 · Angular 21 · May 2026</div>
+          <h1>
+            <span class="section-num">Section 1 of 9</span>
+            ARIA <span>Foundation</span>
+          </h1>
+          <p>
+            What ARIA is, how the browser builds the accessibility tree, the Name · Role · State · Value
+            model, accessible name computation, hiding techniques, and the five golden rules —
+            the foundation every ARIA pattern builds on.
+          </p>
+          <div class="hero-meta">
+            <span>📋 Spec: <strong>WAI-ARIA 1.2 (W3C Rec)</strong></span>
+            <span>🔧 Framework: <strong>Angular 21</strong></span>
+            <span>📅 Updated: <strong>May 2026</strong></span>
+            <span>🎯 Target: <strong>WCAG 2.1 AA</strong></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ═══ TABLE OF CONTENTS ═════════════════════════════════════ -->
+      <nav aria-label="Section 1 contents">
+        <div class="toc">
+          <p class="toc-title">In this section</p>
+          <ol>
+            <li><a href="#what-is-aria">1.1 — What is ARIA?</a></li>
+            <li><a href="#accessibility-tree">1.2 — The Accessibility Tree</a></li>
+            <li><a href="#pipeline">1.3 — How ARIA Flows to Screen Readers</a></li>
+            <li><a href="#name-role-state-value">1.4 — Name · Role · State · Value</a></li>
+            <li><a href="#name-computation">1.5 — Accessible Name Computation</a></li>
+            <li><a href="#hiding">1.6 — Hiding Content: aria-hidden, display:none, sr-only</a></li>
+            <li><a href="#categories">1.7 — Categories of ARIA Attributes</a></li>
+            <li><a href="#golden-rules">1.8 — The Five Golden Rules</a></li>
+          </ol>
+        </div>
+      </nav>
+
+      <!-- ═══ MAIN CONTENT ══════════════════════════════════════════ -->
+      <main id="main-content">
+
+        <!-- ─── 1.1 What is ARIA ─────────────────────────────────── -->
+        <section id="what-is-aria" aria-labelledby="h-what-is-aria">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">1.1</div>
+            <h2 id="h-what-is-aria">What is ARIA?</h2>
+          </div>
+
+          <p>
+            <strong>ARIA</strong> stands for <strong>Accessible Rich Internet Applications</strong>.
+            It is a set of HTML attributes defined by the W3C in the
+            <strong>WAI-ARIA 1.2 specification</strong> (W3C Recommendation, June 2023).
+            The current working draft of WAI-ARIA 1.3 was published in early 2025 and adds
+            refinements but does not yet change the core attribute set used in production.
+          </p>
+
+          <p>ARIA gives you three superpowers over native HTML:</p>
+
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">🎭</div>
+              <h3>Roles</h3>
+              <p>Tell assistive technology <em>what</em> an element is — a button, a dialog, a tab,
+                a live region. Example: <code>role="dialog"</code>.</p>
+            </div>
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">🏷️</div>
+              <h3>Properties</h3>
+              <p>Describe <em>relationships and metadata</em> — the label of an element, what it is
+                described by, whether it is required. These are mostly <strong>static</strong>.
+                Example: <code>aria-label</code>, <code>aria-describedby</code>.</p>
+            </div>
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">🔀</div>
+              <h3>States</h3>
+              <p>Communicate <em>current condition</em> — whether a checkbox is checked, a menu is
+                expanded, an input is invalid. These <strong>change dynamically</strong>.
+                Example: <code>aria-expanded</code>, <code>aria-checked</code>.</p>
+            </div>
+          </div>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong>The First Rule of ARIA:</strong> Do not use ARIA if a native HTML element or
+              attribute provides the same semantics. A <code>&lt;button&gt;</code> already has
+              role="button", keyboard operability, and state management built in. ARIA only
+              <em>adds meaning</em> — it never changes visual appearance or behaviour.
+              Misused ARIA creates worse experiences than no ARIA at all.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 1.2 The Accessibility Tree ──────────────────────── -->
+        <section id="accessibility-tree" aria-labelledby="h-a11y-tree">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">1.2</div>
+            <h2 id="h-a11y-tree">The Accessibility Tree: The Bridge Between HTML and Screen Readers</h2>
+          </div>
+
+          <p>
+            When a browser loads an HTML page, it builds two parallel structures from the same markup:
+          </p>
+
+          <ul>
+            <li>The <strong>DOM Tree</strong> — the full HTML structure, used for rendering and JavaScript</li>
+            <li>The <strong>Accessibility Tree</strong> — a filtered, enriched version exposed to
+              assistive technologies (screen readers, braille displays, voice control)</li>
+          </ul>
+
+          <p>
+            The accessibility tree <strong>strips out purely visual information</strong> (CSS, layout)
+            and <strong>adds semantic meaning</strong> from HTML tags and ARIA attributes.
+            Screen readers like NVDA, JAWS, and VoiceOver do not see your HTML directly —
+            they read the accessibility tree through platform APIs
+            (Windows: UI Automation / IAccessible2, macOS: NSAccessibility, Linux: AT-SPI2).
+          </p>
+
+          <p>
+            Here is how the same HTML is represented in the accessibility tree — notice what is kept,
+            what is enriched, and what is hidden:
+          </p>
+
+          <div class="compare-grid">
+            <div class="compare-card">
+              <div class="compare-header bad">
+                <span>🔴</span> HTML in the DOM
+              </div>
+              <pre>
+&lt;div class="todo-app"&gt;
+  &lt;div class="header"&gt;
+    &lt;div class="icon"&gt;✓&lt;/div&gt;
+    My Todos
+  &lt;/div&gt;
+  &lt;div class="list"&gt;
+    &lt;div class="item"&gt;
+      &lt;div class="check"&gt;&lt;/div&gt;
+      Buy groceries
+      &lt;div class="del"&gt;×&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+</pre>
+            </div>
+            <div class="compare-card">
+              <div class="compare-header bad">
+                <span>🔴</span> Accessibility Tree (div soup)
+              </div>
+              <pre>
+generic "todo-app"
+  generic "header"
+    generic "✓"       ← meaningless
+    text "My Todos"
+  generic "list"
+    generic "item"
+      generic ""       ← invisible
+      text "Buy groceries"
+      generic "×"       ← meaningless
+
+Screen reader reads:
+"My Todos Buy groceries"
+(no roles, no actions, no context)
+</pre>
+            </div>
+          </div>
+
+          <div class="compare-grid">
+            <div class="compare-card">
+              <div class="compare-header good">
+                <span>✅</span> Semantic HTML in the DOM
+              </div>
+              <pre>
+&lt;main aria-label="Todo app"&gt;
+  &lt;h1&gt;My Todos&lt;/h1&gt;
+  &lt;ul role="list" aria-label="Todo items"&gt;
+    &lt;li&gt;
+      &lt;input type="checkbox"
+        id="t1"
+        aria-label="Buy groceries,
+                    mark complete" /&gt;
+      &lt;label for="t1"&gt;Buy groceries&lt;/label&gt;
+      &lt;button
+        aria-label="Delete: Buy groceries"&gt;
+        &lt;svg aria-hidden="true"&gt;...&lt;/svg&gt;
+      &lt;/button&gt;
+    &lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/main&gt;
+</pre>
+            </div>
+            <div class="compare-card">
+              <div class="compare-header good">
+                <span>✅</span> Accessibility Tree (semantic)
+              </div>
+              <pre>
+main "Todo app"
+  heading level=1 "My Todos"
+  list "Todo items"
+    listitem
+      checkbox "Buy groceries,
+                mark complete"
+              checked=false
+      button "Delete: Buy groceries"
+
+Screen reader reads (on Tab):
+"Buy groceries, mark complete,
+ checkbox, unchecked"
+(then Tab)
+"Delete: Buy groceries, button"
+</pre>
+            </div>
+          </div>
+
+          <div class="callout info">
+            <span class="callout-icon" aria-hidden="true">💡</span>
+            <p>
+              <strong>Inspect the accessibility tree yourself:</strong> In Chrome DevTools →
+              Elements panel → select an element → Accessibility tab → toggle
+              "Enable full-page accessibility tree" to see exactly what a screen reader receives.
+              Firefox has an equivalent under Tools → Web Developer → Accessibility.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 1.3 Pipeline ─────────────────────────────────────── -->
+        <section id="pipeline" aria-labelledby="h-pipeline">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">1.3</div>
+            <h2 id="h-pipeline">How ARIA Attributes Flow to Screen Readers (the pipeline)</h2>
+          </div>
+
+          <p>
+            Understanding this pipeline explains why some ARIA changes work instantly while others
+            require specific patterns to be announced:
+          </p>
+
+          <ol>
+            <li>
+              <strong>You write HTML + ARIA</strong> — e.g.
+              <code>&lt;div role="alert"&gt;Error: name is required&lt;/div&gt;</code>
+            </li>
+            <li>
+              <strong>Browser builds the accessibility tree</strong> — the div is given role=alert,
+              name="Error: name is required", and marked as a live region.
+            </li>
+            <li>
+              <strong>Browser fires an accessibility event</strong> — on Linux this is an AT-SPI2
+              event; on Windows a UI Automation or IAccessible2 event; on macOS an NSAccessibility notification.
+            </li>
+            <li>
+              <strong>Screen reader receives the event</strong> — NVDA, JAWS, or VoiceOver intercepts
+              it via the platform accessibility API.
+            </li>
+            <li>
+              <strong>Screen reader queues the announcement</strong> — polite regions wait for silence;
+              assertive regions interrupt immediately.
+            </li>
+            <li>
+              <strong>Speech engine speaks</strong> — the user hears:
+              <em>"Error: name is required, alert."</em>
+            </li>
+          </ol>
+
+          <div class="at-tree" aria-label="Accessibility tree pipeline diagram">
+            <div>Your HTML + ARIA attributes</div>
+            <div class="at-indent-1">↓  Browser parses markup</div>
+            <div class="at-indent-1">↓  <span class="at-role">Accessibility Tree</span> built (role · name · state · value)</div>
+            <div class="at-indent-1">↓  Platform Accessibility API event fired</div>
+            <div class="at-indent-2">Windows: <span class="at-state">UI Automation (UIA)</span> · <span class="at-state">IAccessible2</span></div>
+            <div class="at-indent-2">macOS/iOS: <span class="at-state">NSAccessibility</span></div>
+            <div class="at-indent-2">Linux: <span class="at-state">AT-SPI2</span></div>
+            <div class="at-indent-2">Android: <span class="at-state">AccessibilityNodeInfo</span></div>
+            <div class="at-indent-1">↓  Screen reader intercepts event</div>
+            <div class="at-indent-2"><span class="at-name">NVDA</span> · <span class="at-name">JAWS</span> · <span class="at-name">VoiceOver</span> · <span class="at-name">TalkBack</span> · <span class="at-name">Narrator</span></div>
+            <div class="at-indent-1">↓  Speech queue updated (polite / assertive)</div>
+            <div class="at-indent-1">↓  <span class="at-role">User hears the announcement</span></div>
+          </div>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong>Critical Angular timing issue:</strong> if you set an <code>aria-live</code>
+              region's text content in the <em>same render cycle</em> as the region is inserted into
+              the DOM, many screen readers miss the announcement because they were not watching the
+              region yet. Always pre-render the region in the initial HTML (empty), then update its
+              content. Angular CDK's <code>LiveAnnouncer</code> handles this correctly — it is the
+              safe default.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 1.4 Name · Role · State · Value ─────────────────── -->
+        <section id="name-role-state-value" aria-labelledby="h-nrsv">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">1.4</div>
+            <h2 id="h-nrsv">The Four Core Concepts: Name · Role · State · Value</h2>
+          </div>
+
+          <p>
+            Every interactive element in the accessibility tree is described by four fundamental
+            properties. A screen reader uses all four when announcing an element to the user.
+            Understanding this model makes every ARIA decision obvious.
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="The four ARIA accessibility model concepts">
+              <thead>
+                <tr>
+                  <th scope="col">Concept</th>
+                  <th scope="col">What it answers</th>
+                  <th scope="col">How it is set</th>
+                  <th scope="col">Screen reader announces</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Name</strong><br><em>(Accessible Name)</em></td>
+                  <td>"What is this thing called?"</td>
+                  <td>
+                    <code>&lt;label&gt;</code> text · <code>aria-label</code> ·
+                    <code>aria-labelledby</code> · element text content · <code>alt</code>
+                  </td>
+                  <td>Read first: <em>"Buy groceries"</em></td>
+                </tr>
+                <tr>
+                  <td><strong>Role</strong></td>
+                  <td>"What kind of thing is this?"</td>
+                  <td>
+                    Native element (<code>&lt;button&gt;</code>, <code>&lt;input&gt;</code>) ·
+                    <code>role="…"</code> attribute
+                  </td>
+                  <td>Read second: <em>"…checkbox"</em></td>
+                </tr>
+                <tr>
+                  <td><strong>State</strong></td>
+                  <td>"What condition is it in right now?"</td>
+                  <td>
+                    <code>checked</code> · <code>disabled</code> · <code>aria-expanded</code> ·
+                    <code>aria-selected</code> · <code>aria-pressed</code>
+                  </td>
+                  <td>Read third: <em>"…unchecked"</em></td>
+                </tr>
+                <tr>
+                  <td><strong>Value</strong></td>
+                  <td>"What is its current value?" (for range/input elements)</td>
+                  <td>
+                    <code>value</code> attribute · <code>aria-valuenow</code> ·
+                    <code>aria-valuetext</code>
+                  </td>
+                  <td>Read as part of name: <em>"Volume, 60%"</em></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>When you focus the checkbox from our todo example, NVDA reads:</p>
+
+          <div class="sr-sim" aria-label="Screen reader output simulation">
+            <div class="sr-sim-header">
+              <span>NVDA</span> + Firefox — Focus on todo checkbox
+            </div>
+            <div class="sr-output">
+              <span class="sr-key">[Tab key pressed]</span><br>
+              <span class="sr-announce">"Buy groceries"</span><span class="sr-pause"> … </span><span class="sr-announce">"checkbox"</span><span class="sr-pause"> … </span><span class="sr-announce">"not checked"</span><br><br>
+              <span class="sr-key">[Space key pressed — toggles checkbox]</span><br>
+              <span class="sr-announce">"checked"</span>
+            </div>
+          </div>
+
+          <div class="callout danger">
+            <span class="callout-icon" aria-hidden="true">🚫</span>
+            <p>
+              If the accessible name is missing (no label, no aria-label, no text content),
+              the screen reader announces just the role and state — leaving the user with
+              <em>"checkbox, not checked"</em> and no idea what it represents.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 1.5 Accessible Name Computation ─────────────────── -->
+        <section id="name-computation" aria-labelledby="h-name-comp">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">1.5</div>
+            <h2 id="h-name-comp">Accessible Name Computation: How the Browser Calculates the Name</h2>
+          </div>
+
+          <p>
+            The browser uses the <strong>Accessible Name and Description Computation</strong> (ANDC)
+            algorithm (W3C spec, accname-1.2) to derive the accessible name from multiple possible
+            sources. The algorithm checks sources in <strong>priority order</strong> — the first match wins:
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="Accessible name computation priority order">
+              <thead>
+                <tr>
+                  <th scope="col">Priority</th>
+                  <th scope="col">Source</th>
+                  <th scope="col">Example</th>
+                  <th scope="col">Best used for</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>1 (highest)</strong></td>
+                  <td><code>aria-labelledby</code></td>
+                  <td><code>aria-labelledby="title-id desc-id"</code></td>
+                  <td>Reusing existing visible text as a label</td>
+                </tr>
+                <tr>
+                  <td><strong>2</strong></td>
+                  <td><code>aria-label</code></td>
+                  <td><code>aria-label="Delete: Buy groceries"</code></td>
+                  <td>Icon buttons, elements with no visible text</td>
+                </tr>
+                <tr>
+                  <td><strong>3</strong></td>
+                  <td>Native label mechanism</td>
+                  <td><code>&lt;label for="id"&gt;</code> · <code>alt=""</code> · <code>&lt;caption&gt;</code></td>
+                  <td>Form controls — always prefer this</td>
+                </tr>
+                <tr>
+                  <td><strong>4</strong></td>
+                  <td>Element's text content</td>
+                  <td><code>&lt;button&gt;Save&lt;/button&gt;</code></td>
+                  <td>Buttons, links with visible text</td>
+                </tr>
+                <tr>
+                  <td><strong>5</strong></td>
+                  <td><code>title</code> attribute</td>
+                  <td><code>title="Download PDF"</code></td>
+                  <td>Fallback only — avoid relying on it</td>
+                </tr>
+                <tr>
+                  <td><strong>6 (lowest)</strong></td>
+                  <td><code>placeholder</code></td>
+                  <td><code>placeholder="Search…"</code></td>
+                  <td>Never use as the only label — not persistent</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout danger">
+            <span class="callout-icon" aria-hidden="true">🚫</span>
+            <p>
+              <strong>Never use <code>placeholder</code> as the sole label for a form input.</strong>
+              Placeholder text disappears when the user starts typing, leaving no label visible or
+              accessible. It also fails WCAG 1.3.5 (Identify Input Purpose) and creates cognitive
+              load for users with memory impairments. Always pair it with a <code>&lt;label&gt;</code>.
+            </p>
+          </div>
+
+          <h3>Worked Example — Angular Template</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — Angular Template</span>
+            <pre>
+<span class="cmt">&lt;!-- EXAMPLE 1: aria-labelledby (priority 1)
+     Concatenates text of #dialog-title AND #action-type
+     Result → "Confirm Delete" --&gt;</span>
+<span class="tag-c">&lt;h2</span> <span class="atr">id</span>=<span class="val">"dialog-title"</span><span class="tag-c">&gt;</span>Confirm<span class="tag-c">&lt;/h2&gt;</span>
+<span class="tag-c">&lt;span</span> <span class="atr">id</span>=<span class="val">"action-type"</span><span class="tag-c">&gt;</span>Delete<span class="tag-c">&lt;/span&gt;</span>
+<span class="tag-c">&lt;button</span> <span class="atr">aria-labelledby</span>=<span class="val">"dialog-title action-type"</span><span class="tag-c">&gt;</span>
+  Yes<span class="tag-c">&lt;/button&gt;</span>
+<span class="cmt">&lt;!-- Screen reader: "Confirm Delete, button" (NOT "Yes") --&gt;</span>
+
+<span class="cmt">&lt;!-- EXAMPLE 2: aria-label (priority 2)
+     Overrides visible text "×".
+     Result → "Delete todo: Buy groceries" --&gt;</span>
+<span class="tag-c">&lt;button</span>
+  <span class="atr">[attr.aria-label]</span>=<span class="val">"'Delete todo: ' + todo().title"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;span</span> <span class="atr">aria-hidden</span>=<span class="val">"true"</span><span class="tag-c">&gt;</span>×<span class="tag-c">&lt;/span&gt;</span>
+<span class="tag-c">&lt;/button&gt;</span>
+<span class="cmt">&lt;!-- Screen reader: "Delete todo: Buy groceries, button" --&gt;</span>
+
+<span class="cmt">&lt;!-- EXAMPLE 3: &lt;label for&gt; (priority 3) — best for form inputs --&gt;</span>
+<span class="tag-c">&lt;label</span> <span class="atr">for</span>=<span class="val">"todo-title"</span><span class="tag-c">&gt;</span>Todo title<span class="tag-c">&lt;/label&gt;</span>
+<span class="tag-c">&lt;input</span> <span class="atr">id</span>=<span class="val">"todo-title"</span> <span class="atr">type</span>=<span class="val">"text"</span> <span class="tag-c">/&gt;</span>
+<span class="cmt">&lt;!-- Screen reader: "Todo title, edit text" --&gt;</span>
+
+<span class="cmt">&lt;!-- EXAMPLE 4: Text content (priority 4) --&gt;</span>
+<span class="tag-c">&lt;button&gt;</span>Save Changes<span class="tag-c">&lt;/button&gt;</span>
+<span class="cmt">&lt;!-- Screen reader: "Save Changes, button" --&gt;</span>
+
+<span class="cmt">&lt;!-- EXAMPLE 5 — WRONG: no name source at all --&gt;</span>
+<span class="tag-c">&lt;button&gt;</span>
+  <span class="tag-c">&lt;svg</span> <span class="atr">aria-hidden</span>=<span class="val">"true"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/svg&gt;</span>
+<span class="tag-c">&lt;/button&gt;</span>
+<span class="cmt">&lt;!-- Screen reader: "button" — no name, user is lost --&gt;</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 1.6 Hiding Content ────────────────────────────────── -->
+        <section id="hiding" aria-labelledby="h-hiding">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">1.6</div>
+            <h2 id="h-hiding">Hiding Content: <code>aria-hidden</code>, <code>display:none</code>, and <code>.sr-only</code></h2>
+          </div>
+
+          <p>
+            One of the most common accessibility mistakes is misunderstanding which CSS or ARIA attribute
+            hides content from which audience. Here is the definitive table:
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="Comparison of ways to hide content from visual and AT users">
+              <thead>
+                <tr>
+                  <th scope="col">Technique</th>
+                  <th scope="col">Hidden visually?</th>
+                  <th scope="col">Hidden from AT / screen reader?</th>
+                  <th scope="col">Focusable?</th>
+                  <th scope="col">Use for</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>display: none</code></td>
+                  <td>✅ Yes</td>
+                  <td>✅ Yes (removed from tree)</td>
+                  <td>❌ No</td>
+                  <td>Conditionally hidden UI (modals when closed, @if blocks)</td>
+                </tr>
+                <tr>
+                  <td><code>visibility: hidden</code></td>
+                  <td>✅ Yes</td>
+                  <td>✅ Yes (removed from tree)</td>
+                  <td>❌ No</td>
+                  <td>Hiding without collapsing layout space</td>
+                </tr>
+                <tr>
+                  <td><code>hidden</code> attribute</td>
+                  <td>✅ Yes</td>
+                  <td>✅ Yes</td>
+                  <td>❌ No</td>
+                  <td>Same as display:none — semantic HTML hide</td>
+                </tr>
+                <tr>
+                  <td><code>aria-hidden="true"</code></td>
+                  <td>❌ No (still visible)</td>
+                  <td>✅ Yes (removed from AT tree)</td>
+                  <td>⚠️ Still focusable! (dangerous)</td>
+                  <td>Decorative icons, duplicated text, visual-only flourishes</td>
+                </tr>
+                <tr>
+                  <td><code>.sr-only</code> (CSS class)</td>
+                  <td>✅ Yes (1×1px clip)</td>
+                  <td>❌ No (still in AT tree)</td>
+                  <td>✅ Yes (can receive focus)</td>
+                  <td>Skip links, extra context for AT users, live region containers</td>
+                </tr>
+                <tr>
+                  <td><code>opacity: 0</code></td>
+                  <td>✅ Yes</td>
+                  <td>❌ No (still in AT tree)</td>
+                  <td>✅ Yes</td>
+                  <td>Animated transitions — not for permanent hiding</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout danger">
+            <span class="callout-icon" aria-hidden="true">🚫</span>
+            <p>
+              <strong>Never put <code>aria-hidden="true"</code> on an element that can receive focus</strong>
+              (a button, link, input, or element with <code>tabindex</code>).
+              Screen reader users can still Tab to it — but when they get there,
+              the screen reader announces nothing. This is called a <em>ghost focus</em>
+              and is one of the most confusing experiences for blind users.
+            </p>
+          </div>
+
+          <h3>The .sr-only CSS Pattern — Correct Implementation</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">CSS — styles.css (global)</span>
+            <pre>
+<span class="cmt">/*
+  .sr-only — Visually hidden but accessible to screen readers.
+  Uses clip-path instead of clip (deprecated).
+  NEVER use display:none or visibility:hidden here.
+  The negative margin prevents it from affecting page flow.
+*/</span>
+<span class="fn">.sr-only</span> <span class="op">{</span>
+  position<span class="op">:</span> absolute<span class="op">;</span>
+  width<span class="op">:</span> <span class="num">1px</span><span class="op">;</span>
+  height<span class="op">:</span> <span class="num">1px</span><span class="op">;</span>
+  padding<span class="op">:</span> <span class="num">0</span><span class="op">;</span>
+  margin<span class="op">:</span> <span class="num">-1px</span><span class="op">;</span>
+  overflow<span class="op">:</span> hidden<span class="op">;</span>
+  clip-path<span class="op">:</span> inset(<span class="num">50%</span>)<span class="op">;</span>
+  white-space<span class="op">:</span> nowrap<span class="op">;</span>
+  border-width<span class="op">:</span> <span class="num">0</span><span class="op">;</span>
+<span class="op">}</span>
+
+<span class="cmt">/* Reveals on focus — for skip links */</span>
+<span class="fn">.sr-only:focus</span> <span class="op">{</span>
+  position<span class="op">:</span> static<span class="op">;</span>
+  width<span class="op">:</span> auto<span class="op">;</span>
+  height<span class="op">:</span> auto<span class="op">;</span>
+  padding<span class="op">:</span> inherit<span class="op">;</span>
+  margin<span class="op">:</span> inherit<span class="op">;</span>
+  overflow<span class="op">:</span> visible<span class="op">;</span>
+  clip-path<span class="op">:</span> none<span class="op">;</span>
+  white-space<span class="op">:</span> normal<span class="op">;</span>
+<span class="op">}</span>
+</pre>
+          </div>
+
+          <h3>In Angular: Use Tailwind's Built-in <code>sr-only</code> Utility</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — Angular template with Tailwind sr-only</span>
+            <pre>
+<span class="cmt">&lt;!-- Skip link: hidden until Tab is pressed --&gt;</span>
+<span class="tag-c">&lt;a</span>
+  <span class="atr">href</span>=<span class="val">"#main-content"</span>
+  <span class="atr">class</span>=<span class="val">"sr-only focus:not-sr-only
+         focus:absolute focus:top-2 focus:left-2 focus:z-50
+         focus:bg-indigo-600 focus:text-white focus:px-4 focus:py-2
+         focus:rounded focus:ring-2 focus:ring-white"</span><span class="tag-c">&gt;</span>
+  Skip to main content
+<span class="tag-c">&lt;/a&gt;</span>
+
+<span class="cmt">&lt;!-- Extra context for screen readers on an icon button --&gt;</span>
+<span class="tag-c">&lt;button</span> <span class="atr">type</span>=<span class="val">"button"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;svg</span> <span class="atr">aria-hidden</span>=<span class="val">"true"</span> <span class="atr">focusable</span>=<span class="val">"false"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/svg&gt;</span>
+  <span class="tag-c">&lt;span</span> <span class="atr">class</span>=<span class="val">"sr-only"</span><span class="tag-c">&gt;</span>Delete todo: Buy groceries<span class="tag-c">&lt;/span&gt;</span>
+<span class="tag-c">&lt;/button&gt;</span>
+<span class="cmt">&lt;!-- Screen reader: "Delete todo: Buy groceries, button" --&gt;</span>
+
+<span class="cmt">&lt;!-- Live region container: pre-rendered empty,
+     Angular signal updates populate it --&gt;</span>
+<span class="tag-c">&lt;div</span>
+  <span class="atr">aria-live</span>=<span class="val">"polite"</span>
+  <span class="atr">aria-atomic</span>=<span class="val">"true"</span>
+  <span class="atr">class</span>=<span class="val">"sr-only"</span><span class="tag-c">&gt;</span>
+  {{ statusAnnouncement() }}
+<span class="tag-c">&lt;/div&gt;</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 1.7 Categories ────────────────────────────────────── -->
+        <section id="categories" aria-labelledby="h-categories">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">1.7</div>
+            <h2 id="h-categories">Categories of ARIA Attributes at a Glance</h2>
+          </div>
+
+          <p>
+            WAI-ARIA 1.2 defines <strong>69 states and properties</strong> and
+            <strong>82 roles</strong>. They fall into clear categories. This overview
+            sets the map — each category gets its own dedicated section in this guide.
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="Overview of ARIA attribute categories">
+              <thead>
+                <tr>
+                  <th scope="col">Category</th>
+                  <th scope="col">Purpose</th>
+                  <th scope="col">Key attributes</th>
+                  <th scope="col">Guide section</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Landmark Roles</strong></td>
+                  <td>Page regions — let users jump between sections</td>
+                  <td><code>banner</code> · <code>main</code> · <code>navigation</code> · <code>complementary</code> · <code>contentinfo</code> · <code>search</code> · <code>form</code> · <code>region</code></td>
+                  <td>Section 2</td>
+                </tr>
+                <tr>
+                  <td><strong>Widget Roles</strong></td>
+                  <td>Interactive controls the browser does not natively provide</td>
+                  <td><code>button</code> · <code>checkbox</code> · <code>combobox</code> · <code>dialog</code> · <code>grid</code> · <code>listbox</code> · <code>menu</code> · <code>slider</code> · <code>tab</code> · <code>tooltip</code> · <code>tree</code></td>
+                  <td>Section 2</td>
+                </tr>
+                <tr>
+                  <td><strong>Document Structure Roles</strong></td>
+                  <td>Content structure and relationships</td>
+                  <td><code>article</code> · <code>definition</code> · <code>heading</code> · <code>img</code> · <code>list</code> · <code>listitem</code> · <code>note</code> · <code>presentation</code> · <code>none</code></td>
+                  <td>Section 2</td>
+                </tr>
+                <tr>
+                  <td><strong>Naming Properties</strong></td>
+                  <td>Provide the accessible name or description</td>
+                  <td><code>aria-label</code> · <code>aria-labelledby</code> · <code>aria-describedby</code> · <code>aria-description</code> (new in 1.3)</td>
+                  <td>Section 3</td>
+                </tr>
+                <tr>
+                  <td><strong>Relationship Properties</strong></td>
+                  <td>Link elements to each other</td>
+                  <td><code>aria-controls</code> · <code>aria-owns</code> · <code>aria-flowto</code> · <code>aria-errormessage</code> · <code>aria-details</code></td>
+                  <td>Section 3</td>
+                </tr>
+                <tr>
+                  <td><strong>Widget Properties</strong></td>
+                  <td>Configure widget behaviour</td>
+                  <td><code>aria-required</code> · <code>aria-readonly</code> · <code>aria-multiselectable</code> · <code>aria-orientation</code> · <code>aria-haspopup</code> · <code>aria-modal</code></td>
+                  <td>Section 3</td>
+                </tr>
+                <tr>
+                  <td><strong>States</strong></td>
+                  <td>Current dynamic condition of a widget</td>
+                  <td><code>aria-expanded</code> · <code>aria-selected</code> · <code>aria-checked</code> · <code>aria-pressed</code> · <code>aria-disabled</code> · <code>aria-invalid</code> · <code>aria-busy</code> · <code>aria-current</code> · <code>aria-hidden</code></td>
+                  <td>Section 4</td>
+                </tr>
+                <tr>
+                  <td><strong>Live Region Attributes</strong></td>
+                  <td>Control how dynamic content is announced</td>
+                  <td><code>aria-live</code> · <code>aria-atomic</code> · <code>aria-relevant</code> · <code>role="alert"</code> · <code>role="status"</code> · <code>role="log"</code> · <code>role="timer"</code></td>
+                  <td>Section 5</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ─── 1.8 Golden Rules ──────────────────────────────────── -->
+        <section id="golden-rules" aria-labelledby="h-golden">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">1.8</div>
+            <h2 id="h-golden">The Five Golden Rules Before Writing Any ARIA</h2>
+          </div>
+
+          <p>
+            Before reaching for an <code>aria-</code> attribute, run through these rules in order.
+            They prevent the vast majority of ARIA bugs seen in production Angular apps.
+          </p>
+
+          <ul class="checklist">
+            <li>
+              <strong>Rule 1 — Use native HTML first.</strong>
+              <code>&lt;button&gt;</code> over <code>&lt;div role="button"&gt;</code>,
+              <code>&lt;input type="checkbox"&gt;</code> over <code>&lt;div role="checkbox"&gt;</code>.
+              Native elements come with role, keyboard support, focus management, and state
+              — ARIA only gives you the role announcement, nothing else.
+            </li>
+            <li>
+              <strong>Rule 2 — Do not change native semantics.</strong>
+              Never write <code>&lt;h2 role="tab"&gt;</code> — heading semantics and tab semantics conflict.
+              If you need a tab, wrap the heading or use a different element.
+            </li>
+            <li>
+              <strong>Rule 3 — All interactive ARIA widgets must be keyboard operable.</strong>
+              Adding <code>role="button"</code> to a div does not add keyboard support.
+              You must also add <code>tabindex="0"</code> and handle <code>keydown</code>
+              for Enter and Space. Angular CDK handles this — prefer it over manual implementation.
+            </li>
+            <li>
+              <strong>Rule 4 — Do not hide focusable elements with aria-hidden.</strong>
+              If an element can receive Tab focus, it must be in the accessibility tree.
+              Use <code>display:none</code> or the <code>inert</code> attribute instead if you
+              want to remove it from both the visual and AT trees.
+            </li>
+            <li>
+              <strong>Rule 5 — All interactive elements must have an accessible name.</strong>
+              Every button, link, form field, and landmark must have a name.
+              Run your component through axe-core — a missing name is an automatic WCAG failure.
+            </li>
+          </ul>
+
+          <div class="callout success">
+            <span class="callout-icon" aria-hidden="true">✅</span>
+            <p>
+              <strong>Section 1 complete.</strong> You now understand what the accessibility tree is,
+              how ARIA attributes flow to screen readers, the Name/Role/State/Value model,
+              accessible name computation, and the five golden rules.
+              This is the foundation every subsequent section builds on.
+            </p>
+          </div>
+        </section>
+
+        <!-- ═══ BOTTOM NAVIGATION ════════════════════════════════════ -->
+        <nav class="bottom-nav" aria-label="Section navigation">
+          <a href="./aria-complete-guide.html" class="nav-hub">
+            ⬡ Hub Index
+          </a>
+          <span style="font-size:0.78rem;color:var(--muted);text-align:center;flex:1;">
+            Section 1 of 9 — ARIA Foundation
+          </span>
+          <a href="./aria-s2-roles.html" aria-label="Section 2: ARIA Roles">
+            Section 2: ARIA Roles →
+          </a>
+        </nav>
+
+      </main>
+
+      <!-- ═══ FOOTER ════════════════════════════════════════════════ -->
+      <footer role="contentinfo">
+        <p>
+          ARIA Complete Guide · Section 1 · Angular 21 · WAI-ARIA 1.2 (W3C Rec, June 2023) ·
+          Updated May 2026 ·
+          <a href="https://www.w3.org/TR/wai-aria-1.2/" rel="noopener noreferrer">W3C WAI-ARIA 1.2 Spec</a> ·
+          <a href="https://www.w3.org/TR/accname-1.2/" rel="noopener noreferrer">Accessible Name Computation</a> ·
+          <a href="https://www.w3.org/WAI/ARIA/apg/" rel="noopener noreferrer">ARIA Authoring Practices Guide</a>
+        </p>
+        <p style="margin-top:0.5rem;color:#374151;">
+          <a href="./aria-complete-guide.html">← Back to ARIA Guide Index</a> ·
+          <a href="./web-accessibility-wcag21.html">Companion: WCAG 2.1 Guide</a>
+        </p>
+      </footer>
+
+    </div><!-- /page-wrapper -->
+  </body>
+</html>

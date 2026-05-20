@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Section 2: ARIA Roles — ARIA Complete Guide</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg:            #0f172a;
+        --surface:       #1e293b;
+        --surface-2:     #273549;
+        --border:        #334155;
+        --primary:       #818cf8;
+        --primary-light: #a5b4fc;
+        --accent:        #34d399;
+        --warn:          #fbbf24;
+        --danger:        #f87171;
+        --purple:        #c084fc;
+        --cyan:          #67e8f9;
+        --text:          #e2e8f0;
+        --muted:         #94a3b8;
+        --code-bg:       #0d1117;
+        --font-sans:     'Segoe UI', system-ui, -apple-system, sans-serif;
+        --font-mono:     'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+        --radius:        0.75rem;
+        --radius-sm:     0.4rem;
+        --shadow:        0 4px 24px rgba(0,0,0,0.5);
+        --max-width:     960px;
+      }
+
+      html { scroll-behavior: smooth; }
+      body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.8; font-size: 1rem; }
+
+      .skip-link {
+        position: absolute; top: -100%; left: 1rem;
+        padding: 0.5rem 1rem; background: var(--primary); color: #0f172a;
+        font-weight: 700; border-radius: 0 0 var(--radius) var(--radius);
+        z-index: 9999; transition: top 0.2s; text-decoration: none;
+      }
+      .skip-link:focus { top: 0; }
+
+      .page-wrapper { max-width: var(--max-width); margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+
+      /* ─── Top Nav ───────────────────────────────────────────── */
+      .top-nav {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 0.75rem 1.25rem;
+        margin-bottom: 2rem; font-size: 0.85rem; gap: 1rem;
+      }
+      .top-nav a {
+        color: var(--primary-light); text-decoration: none;
+        padding: 0.3rem 0.75rem; border-radius: var(--radius-sm);
+        border: 1px solid var(--border); transition: border-color 0.15s, background 0.15s;
+        white-space: nowrap;
+      }
+      .top-nav a:hover { border-color: var(--primary); background: var(--surface-2); }
+      .top-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .top-nav .nav-center { font-size: 0.75rem; color: var(--muted); text-align: center; flex: 1; min-width: 0; }
+      .top-nav .nav-center strong { color: var(--primary-light); }
+      .top-nav .nav-next { opacity: 0.45; pointer-events: none; }
+
+      /* ─── Hero ──────────────────────────────────────────────── */
+      .hero {
+        background: linear-gradient(135deg, #1e1b4b 0%, #1e293b 50%, #0c1a2e 100%);
+        border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 3rem 2.5rem; margin-bottom: 2rem;
+        text-align: center; box-shadow: var(--shadow);
+      }
+      .hero-badge {
+        display: inline-block; background: rgba(129,140,248,0.15);
+        border: 1px solid var(--primary); color: var(--primary-light);
+        font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em;
+        text-transform: uppercase; padding: 0.3rem 1rem;
+        border-radius: 999px; margin-bottom: 1.25rem;
+      }
+      .hero h1 { font-size: clamp(1.75rem, 4vw, 2.8rem); font-weight: 800; line-height: 1.15; color: #fff; margin-bottom: 1rem; }
+      .hero h1 span { color: var(--primary-light); }
+      .hero h1 .section-num { color: var(--muted); font-size: 0.55em; font-weight: 600; display: block; margin-bottom: 0.25rem; }
+      .hero p { font-size: 1.05rem; color: var(--muted); max-width: 700px; margin: 0 auto 1rem; }
+      .hero-meta { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-top: 1.25rem; }
+      .hero-meta span { font-size: 0.78rem; color: var(--muted); display: flex; align-items: center; gap: 0.4rem; }
+      .hero-meta span strong { color: var(--accent); }
+
+      /* ─── TOC ───────────────────────────────────────────────── */
+      .toc {
+        background: var(--surface); border: 1px solid var(--border);
+        border-left: 4px solid var(--primary); border-radius: var(--radius);
+        padding: 1.5rem 2rem; margin-bottom: 3rem;
+      }
+      .toc-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--primary); margin-bottom: 1rem; }
+      .toc ol { padding-left: 1.5rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.3rem 2rem; }
+      .toc li { font-size: 0.875rem; }
+      .toc a { color: var(--muted); text-decoration: none; transition: color 0.15s; }
+      .toc a:hover, .toc a:focus { color: var(--primary-light); text-decoration: underline; }
+
+      /* ─── Sections ──────────────────────────────────────────── */
+      section { margin-bottom: 4.5rem; scroll-margin-top: 2rem; }
+      .section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+      .section-number { flex-shrink: 0; width: 2.25rem; height: 2.25rem; background: linear-gradient(135deg, var(--primary), #6366f1); color: #fff; font-size: 0.82rem; font-weight: 800; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+      h2 { font-size: 1.55rem; font-weight: 800; color: #fff; }
+      h3 { font-size: 1.1rem; font-weight: 700; color: var(--primary-light); margin: 2.25rem 0 0.75rem; }
+      h4 { font-size: 0.9rem; font-weight: 700; color: var(--accent); margin: 1.5rem 0 0.5rem; text-transform: uppercase; letter-spacing: 0.07em; }
+      p { margin-bottom: 1rem; color: var(--text); }
+      p:last-child { margin-bottom: 0; }
+      ul, ol { padding-left: 1.5rem; margin: 0.75rem 0; }
+      li { margin-bottom: 0.4rem; color: var(--text); font-size: 0.95rem; }
+      strong { color: #fff; }
+      em { color: var(--warn); font-style: italic; }
+      code { font-family: var(--font-mono); font-size: 0.82em; background: var(--surface-2); border: 1px solid var(--border); padding: 0.15em 0.45em; border-radius: var(--radius-sm); color: var(--primary-light); }
+
+      /* ─── Callouts ──────────────────────────────────────────── */
+      .callout { display: flex; gap: 0.75rem; padding: 1rem 1.25rem; border-radius: var(--radius); margin: 1.25rem 0; border: 1px solid; font-size: 0.9rem; }
+      .callout-icon { font-size: 1.25rem; flex-shrink: 0; line-height: 1.5; margin-top: 0.1rem; }
+      .callout p { margin: 0; color: inherit; line-height: 1.7; }
+      .callout.info    { background: rgba(129,140,248,0.08); border-color: rgba(129,140,248,0.3); color: var(--primary-light); }
+      .callout.warn    { background: rgba(251,191,36,0.08);  border-color: rgba(251,191,36,0.3);  color: var(--warn); }
+      .callout.success { background: rgba(52,211,153,0.08);  border-color: rgba(52,211,153,0.3);  color: var(--accent); }
+      .callout.danger  { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.3); color: var(--danger); }
+      .callout.purple  { background: rgba(192,132,252,0.08); border-color: rgba(192,132,252,0.3); color: var(--purple); }
+
+      /* ─── Code Blocks ───────────────────────────────────────── */
+      .code-block { background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; overflow-x: auto; margin: 1.25rem 0; position: relative; }
+      .code-block .lang-tag { position: absolute; top: 0.6rem; right: 0.75rem; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); background: var(--surface); padding: 0.15rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+      pre { font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.75; color: #e2e8f0; white-space: pre; }
+      .kw  { color: #c792ea; } .fn  { color: #82aaff; } .str { color: #c3e88d; }
+      .cmt { color: #546e7a; font-style: italic; } .typ { color: #ffcb6b; }
+      .tag-c { color: #f07178; } .atr { color: #ffcb6b; } .val { color: #c3e88d; }
+      .op  { color: #89ddff; } .num { color: #f78c6c; }
+
+      /* ─── Screen Reader Simulation ──────────────────────────── */
+      .sr-sim { background: #0a0a14; border: 1px solid #4c1d95; border-radius: var(--radius); overflow: hidden; margin: 1.25rem 0; }
+      .sr-sim-header { background: #1c0945; padding: 0.6rem 1rem; font-size: 0.75rem; font-weight: 700; color: #c084fc; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.5rem; }
+      .sr-sim-header span { background: #4c1d95; color: #e9d5ff; padding: 0.1rem 0.5rem; border-radius: var(--radius-sm); }
+      .sr-output { padding: 1rem 1.25rem; font-family: var(--font-mono); font-size: 0.82rem; line-height: 2; color: #e9d5ff; }
+      .sr-announce { color: #e9d5ff; } .sr-pause { color: #4c1d95; } .sr-key { color: #94a3b8; font-style: italic; font-size: 0.75rem; }
+
+      /* ─── Role Reference Tables ─────────────────────────────── */
+      .table-wrapper { overflow-x: auto; margin: 1.25rem 0; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+      thead th { background: var(--surface); color: var(--primary-light); font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.75rem 1rem; text-align: left; border-bottom: 2px solid var(--border); }
+      tbody td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; line-height: 1.6; }
+      tbody tr:hover td { background: var(--surface); }
+
+      /* ─── Role Category Pill ────────────────────────────────── */
+      .role-tag {
+        display: inline-block; font-size: 0.68rem; font-weight: 700;
+        letter-spacing: 0.07em; text-transform: uppercase;
+        padding: 0.15rem 0.55rem; border-radius: 999px; white-space: nowrap;
+      }
+      .role-landmark { background: rgba(129,140,248,0.15); color: var(--primary-light); border: 1px solid rgba(129,140,248,0.3); }
+      .role-widget   { background: rgba(52,211,153,0.12);  color: var(--accent);         border: 1px solid rgba(52,211,153,0.3); }
+      .role-structure{ background: rgba(251,191,36,0.12);  color: var(--warn);           border: 1px solid rgba(251,191,36,0.3); }
+      .role-live     { background: rgba(248,113,113,0.12); color: var(--danger);         border: 1px solid rgba(248,113,113,0.3); }
+      .role-abstract { background: rgba(148,163,184,0.1);  color: var(--muted);          border: 1px solid var(--border); }
+
+      /* ─── Role Detail Card ──────────────────────────────────── */
+      .role-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 1rem; margin: 1.5rem 0; }
+      .role-card {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 1.25rem 1.5rem;
+      }
+      .role-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.75rem; }
+      .role-card code { font-size: 0.9rem; }
+      .role-card .rc-what { font-size: 0.83rem; color: var(--muted); margin-bottom: 0.5rem; line-height: 1.5; }
+      .role-card .rc-announces { font-size: 0.8rem; font-family: var(--font-mono); background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.5rem 0.75rem; color: #e9d5ff; margin-bottom: 0.5rem; }
+      .role-card .rc-req { font-size: 0.78rem; color: var(--muted); }
+      .role-card .rc-req strong { color: var(--warn); }
+
+      /* ─── Bottom Nav ─────────────────────────────────────────── */
+      .bottom-nav { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 2rem; margin-top: 4rem; gap: 1rem; flex-wrap: wrap; }
+      .bottom-nav a { color: var(--primary-light); text-decoration: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.875rem; transition: border-color 0.15s, background 0.15s; display: flex; align-items: center; gap: 0.4rem; }
+      .bottom-nav a:hover { border-color: var(--primary); background: var(--surface); }
+      .bottom-nav a:focus { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .bottom-nav .nav-next { opacity: 0.45; pointer-events: none; }
+
+      /* ─── Footer ────────────────────────────────────────────── */
+      footer { border-top: 1px solid var(--border); padding: 2rem 0 0; text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 3rem; }
+      footer a { color: var(--primary-light); text-decoration: none; }
+      footer a:hover { text-decoration: underline; }
+    </style>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <div class="page-wrapper">
+
+      <!-- ═══ TOP NAV ═══════════════════════════════════════════════ -->
+      <nav class="top-nav" aria-label="Document navigation">
+        <a href="./aria-s1-foundation.html">← Section 1</a>
+        <div class="nav-center">
+          <strong>Section 2 of 9</strong> — ARIA Roles
+        </div>
+        <a href="./aria-s3-properties.html" aria-label="Section 3: ARIA Properties">
+          Section 3 →
+        </a>
+      </nav>
+
+      <!-- ═══ HERO ══════════════════════════════════════════════════ -->
+      <header role="banner">
+        <div class="hero">
+          <div class="hero-badge">Section 2 · WAI-ARIA 1.2 · Angular 21 · May 2026</div>
+          <h1>
+            <span class="section-num">Section 2 of 9</span>
+            ARIA <span>Roles</span>
+          </h1>
+          <p>
+            Every WAI-ARIA 1.2 role — landmark, widget, document structure, and live region —
+            with what each one does, what a screen reader announces, required attributes,
+            and the correct Angular 21 patterns.
+          </p>
+          <div class="hero-meta">
+            <span>📋 Spec: <strong>WAI-ARIA 1.2 (W3C Rec)</strong></span>
+            <span>🔧 Framework: <strong>Angular 21</strong></span>
+            <span>📅 Updated: <strong>May 2026</strong></span>
+            <span>🎯 Target: <strong>WCAG 2.1 AA</strong></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ═══ TABLE OF CONTENTS ═════════════════════════════════════ -->
+      <nav aria-label="Section 2 contents">
+        <div class="toc">
+          <p class="toc-title">In this section</p>
+          <ol>
+            <li><a href="#role-overview">2.1 — What is a Role?</a></li>
+            <li><a href="#landmark-roles">2.2 — Landmark Roles (8 roles)</a></li>
+            <li><a href="#widget-roles">2.3 — Widget Roles (29 roles)</a></li>
+            <li><a href="#structure-roles">2.4 — Document Structure Roles (25 roles)</a></li>
+            <li><a href="#live-region-roles">2.5 — Live Region Roles</a></li>
+            <li><a href="#none-presentation">2.6 — role="none" and role="presentation"</a></li>
+            <li><a href="#angular-patterns">2.7 — Angular 21 Role Patterns</a></li>
+            <li><a href="#screen-reader-matrix">2.8 — Screen Reader Announcement Matrix</a></li>
+          </ol>
+        </div>
+      </nav>
+
+      <!-- ═══ MAIN CONTENT ══════════════════════════════════════════ -->
+      <main id="main-content">
+
+        <!-- ─── 2.1 What is a Role ────────────────────────────────── -->
+        <section id="role-overview" aria-labelledby="h-role-overview">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">2.1</div>
+            <h2 id="h-role-overview">What is a Role?</h2>
+          </div>
+
+          <p>
+            An ARIA <strong>role</strong> is the single most important piece of information in the
+            accessibility tree. It tells a screen reader <em>what kind of thing an element is</em> —
+            a button, a heading, a dialog, a navigation landmark — and determines which keyboard
+            interactions users expect, what the screen reader announces, and how the element
+            participates in the page structure.
+          </p>
+
+          <p>
+            Every HTML element already has an <strong>implicit ARIA role</strong> derived from the
+            tag name. The <code>role</code> attribute lets you override or supplement that when you
+            build custom components:
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="Native HTML elements and their implicit ARIA roles">
+              <thead>
+                <tr>
+                  <th scope="col">HTML element</th>
+                  <th scope="col">Implicit ARIA role</th>
+                  <th scope="col">Screen reader announces</th>
+                  <th scope="col">How to use</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><code>&lt;button&gt;</code></td><td><code>button</code></td><td>"Save, button"</td><td><code>&lt;button type="button"&gt;Save&lt;/button&gt;</code></td></tr>
+                <tr><td><code>&lt;a href&gt;</code></td><td><code>link</code></td><td>"Home, link"</td><td><code>&lt;a href="/home"&gt;Home&lt;/a&gt;</code></td></tr>
+                <tr><td><code>&lt;h1&gt;–&lt;h6&gt;</code></td><td><code>heading</code> (level 1–6)</td><td>"Main title, heading level 1"</td><td><code>&lt;h1&gt;Main title&lt;/h1&gt;</code></td></tr>
+                <tr><td><code>&lt;nav&gt;</code></td><td><code>navigation</code></td><td>"Navigation" (landmark)</td><td><code>&lt;nav aria-label="Primary"&gt;…&lt;/nav&gt;</code></td></tr>
+                <tr><td><code>&lt;main&gt;</code></td><td><code>main</code></td><td>"Main" (landmark)</td><td><code>&lt;main id="main-content"&gt;…&lt;/main&gt;</code></td></tr>
+                <tr><td><code>&lt;ul&gt;</code> / <code>&lt;ol&gt;</code></td><td><code>list</code></td><td>"List, 3 items"</td><td><code>&lt;ul&gt;&lt;li&gt;Buy milk&lt;/li&gt;&lt;/ul&gt;</code></td></tr>
+                <tr><td><code>&lt;li&gt;</code></td><td><code>listitem</code></td><td>"Item 1 of 3"</td><td><code>&lt;li&gt;Buy milk&lt;/li&gt;</code></td></tr>
+                <tr><td><code>&lt;input type="checkbox"&gt;</code></td><td><code>checkbox</code></td><td>"Accept terms, checkbox, unchecked"</td><td><code>&lt;input type="checkbox" id="t"&gt;&lt;label for="t"&gt;Accept terms&lt;/label&gt;</code></td></tr>
+                <tr><td><code>&lt;input type="text"&gt;</code></td><td><code>textbox</code></td><td>"Name, edit text"</td><td><code>&lt;label for="n"&gt;Name&lt;/label&gt;&lt;input type="text" id="n"&gt;</code></td></tr>
+                <tr><td><code>&lt;select&gt;</code></td><td><code>listbox</code></td><td>"Priority, listbox"</td><td><code>&lt;label for="p"&gt;Priority&lt;/label&gt;&lt;select id="p"&gt;…&lt;/select&gt;</code></td></tr>
+                <tr><td><code>&lt;table&gt;</code></td><td><code>table</code></td><td>"Todo table, 5 rows, 3 columns"</td><td><code>&lt;table aria-label="Todo list"&gt;…&lt;/table&gt;</code></td></tr>
+                <tr><td><code>&lt;div&gt;</code> / <code>&lt;span&gt;</code></td><td><code>generic</code> (no role)</td><td>Nothing announced</td><td><code>&lt;div&gt;Container only&lt;/div&gt;</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong>WAI-ARIA 1.2 defines 82 roles</strong> across five categories: Landmark,
+              Widget, Document Structure, Live Region, and Abstract. Abstract roles are internal
+              to the taxonomy — you must never use them in HTML. The remaining four categories are
+              covered in this section.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 2.2 Landmark Roles ────────────────────────────────── -->
+        <section id="landmark-roles" aria-labelledby="h-landmark">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">2.2</div>
+            <h2 id="h-landmark">Landmark Roles</h2>
+          </div>
+
+          <p>
+            Landmark roles carve the page into named <strong>navigable regions</strong>.
+            Screen reader users rely on landmarks to jump between sections without reading every
+            element — NVDA uses <kbd>D</kbd>, JAWS uses <kbd>R</kbd>, and VoiceOver uses
+            <kbd>W</kbd> (rotor) to navigate landmarks.
+          </p>
+
+          <p>
+            <strong>Native HTML elements already map to landmark roles</strong> — always prefer the
+            native element. The <code>role</code> attribute is only needed on non-semantic elements.
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="All 8 ARIA landmark roles with native HTML equivalents">
+              <thead>
+                <tr>
+                  <th scope="col">Role</th>
+                  <th scope="col">Native HTML</th>
+                  <th scope="col">Purpose</th>
+                  <th scope="col">Quantity per page</th>
+                  <th scope="col">NVDA/JAWS announces</th>
+                  <th scope="col">How to use</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>banner</code></td>
+                  <td><code>&lt;header&gt;</code> (top-level)</td>
+                  <td>Site-wide header — logo, main nav, search</td>
+                  <td>Max 1 (top-level only)</td>
+                  <td>"Banner landmark"</td>
+                  <td><code>&lt;header&gt;…&lt;/header&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>main</code></td>
+                  <td><code>&lt;main&gt;</code></td>
+                  <td>Primary page content — skip-to-main target</td>
+                  <td><strong>Exactly 1</strong></td>
+                  <td>"Main landmark"</td>
+                  <td><code>&lt;main id="main-content"&gt;…&lt;/main&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>navigation</code></td>
+                  <td><code>&lt;nav&gt;</code></td>
+                  <td>Sets of navigation links</td>
+                  <td>Multiple allowed — label each with <code>aria-label</code></td>
+                  <td>"Navigation landmark" / "Primary navigation landmark"</td>
+                  <td><code>&lt;nav aria-label="Primary"&gt;…&lt;/nav&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>complementary</code></td>
+                  <td><code>&lt;aside&gt;</code></td>
+                  <td>Supporting content tangentially related to main</td>
+                  <td>Multiple allowed</td>
+                  <td>"Complementary landmark"</td>
+                  <td><code>&lt;aside aria-label="Filters"&gt;…&lt;/aside&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>contentinfo</code></td>
+                  <td><code>&lt;footer&gt;</code> (top-level)</td>
+                  <td>Site-wide footer — copyright, links, contact</td>
+                  <td>Max 1 (top-level only)</td>
+                  <td>"Content information landmark"</td>
+                  <td><code>&lt;footer&gt;…&lt;/footer&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>search</code></td>
+                  <td><code>&lt;search&gt;</code> (HTML 5.3)</td>
+                  <td>Search functionality</td>
+                  <td>Multiple allowed — label each</td>
+                  <td>"Search landmark"</td>
+                  <td><code>&lt;search aria-label="Search todos"&gt;…&lt;/search&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>form</code></td>
+                  <td><code>&lt;form&gt;</code> with accessible name</td>
+                  <td>Form region (only a landmark when labelled)</td>
+                  <td>Multiple allowed — must have <code>aria-label</code> or <code>aria-labelledby</code></td>
+                  <td>"Form landmark" (unnamed forms are not landmarks)</td>
+                  <td><code>&lt;form aria-label="Add todo"&gt;…&lt;/form&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>region</code></td>
+                  <td><code>&lt;section&gt;</code> with accessible name</td>
+                  <td>Generic significant section — only use with a label</td>
+                  <td>Use sparingly — requires <code>aria-label</code> or <code>aria-labelledby</code></td>
+                  <td>"Region landmark" / "Filters region landmark"</td>
+                  <td><code>&lt;section aria-label="Filter panel"&gt;…&lt;/section&gt;</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout info">
+            <span class="callout-icon" aria-hidden="true">💡</span>
+            <p>
+              <strong>Label multiple landmarks of the same type.</strong> If you have two
+              <code>&lt;nav&gt;</code> elements, add <code>aria-label="Primary"</code> and
+              <code>aria-label="Footer"</code> so screen reader users know which is which.
+              Unlabelled duplicate landmarks are one of the most common ARIA mistakes in Angular apps.
+            </p>
+          </div>
+
+          <h3>Angular 21 Landmark Pattern</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — Angular app.html</span>
+            <pre>
+<span class="cmt">&lt;!-- Skip link — always first child of &lt;body&gt; --&gt;</span>
+<span class="tag-c">&lt;a</span> <span class="atr">href</span>=<span class="val">"#main-content"</span>
+   <span class="atr">class</span>=<span class="val">"sr-only focus:not-sr-only focus:absolute focus:top-2
+          focus:left-2 focus:z-50 focus:bg-indigo-600 focus:text-white
+          focus:px-4 focus:py-2 focus:rounded"</span><span class="tag-c">&gt;</span>
+  Skip to main content
+<span class="tag-c">&lt;/a&gt;</span>
+
+<span class="cmt">&lt;!-- banner landmark: &lt;header&gt; as direct child of &lt;body&gt; --&gt;</span>
+<span class="tag-c">&lt;header</span> <span class="atr">role</span>=<span class="val">"banner"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;nav</span> <span class="atr">aria-label</span>=<span class="val">"Primary"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/nav&gt;</span>
+<span class="tag-c">&lt;/header&gt;</span>
+
+<span class="cmt">&lt;!-- main landmark: exactly one per page --&gt;</span>
+<span class="tag-c">&lt;main</span> <span class="atr">id</span>=<span class="val">"main-content"</span><span class="tag-c">&gt;</span>
+
+  <span class="cmt">&lt;!-- filter sidebar: complementary landmark --&gt;</span>
+  <span class="tag-c">&lt;aside</span> <span class="atr">aria-label</span>=<span class="val">"Todo filters"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/aside&gt;</span>
+
+  <span class="cmt">&lt;!-- search region --&gt;</span>
+  <span class="tag-c">&lt;search</span> <span class="atr">aria-label</span>=<span class="val">"Search todos"</span><span class="tag-c">&gt;</span>
+    <span class="tag-c">&lt;input</span> <span class="atr">type</span>=<span class="val">"search"</span> <span class="atr">name</span>=<span class="val">"q"</span> <span class="tag-c">/&gt;</span>
+  <span class="tag-c">&lt;/search&gt;</span>
+
+  <span class="cmt">&lt;!-- form landmark: must have accessible name --&gt;</span>
+  <span class="tag-c">&lt;form</span> <span class="atr">aria-label</span>=<span class="val">"Add new todo"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/form&gt;</span>
+
+<span class="tag-c">&lt;/main&gt;</span>
+
+<span class="cmt">&lt;!-- contentinfo landmark: &lt;footer&gt; as direct child of &lt;body&gt; --&gt;</span>
+<span class="tag-c">&lt;footer</span> <span class="atr">role</span>=<span class="val">"contentinfo"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/footer&gt;</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 2.3 Widget Roles ──────────────────────────────────── -->
+        <section id="widget-roles" aria-labelledby="h-widget">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">2.3</div>
+            <h2 id="h-widget">Widget Roles</h2>
+          </div>
+
+          <p>
+            Widget roles represent <strong>interactive UI controls</strong>. They are the most
+            complex and misused category. When you assign a widget role to a non-native element,
+            you take on full responsibility for:
+          </p>
+          <ul>
+            <li>Adding an <strong>accessible name</strong> (<code>aria-label</code> or <code>aria-labelledby</code>)</li>
+            <li>Making the element <strong>keyboard focusable</strong> (<code>tabindex="0"</code>)</li>
+            <li>Implementing all <strong>keyboard interactions</strong> the role implies (Enter, Space, arrows)</li>
+            <li>Managing all required <strong>ARIA states</strong> (<code>aria-expanded</code>, <code>aria-checked</code>, etc.)</li>
+          </ul>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong>The Widget Role Tax.</strong> When you use <code>role="button"</code> on a
+              <code>&lt;div&gt;</code> instead of a native <code>&lt;button&gt;</code>, you
+              inherit <em>zero</em> of the native behaviour — no focus, no Enter/Space, no form
+              submission, no disabled state. Native HTML elements are always the right choice.
+              Use widget roles only when building genuinely custom composites that have no native equivalent.
+            </p>
+          </div>
+
+          <h3>Single-Value Widget Roles</h3>
+          <p>These represent standalone interactive controls:</p>
+
+          <div class="role-cards">
+
+            <div class="role-card">
+              <div class="role-card-head">
+                <code>button</code>
+                <span class="role-tag role-widget">Widget</span>
+              </div>
+              <p class="rc-what">A clickable control that triggers an action. Implicit in <code>&lt;button&gt;</code>, <code>&lt;input type="button"&gt;</code>.</p>
+              <div class="rc-announces">"Save changes, button"</div>
+              <p class="rc-req"><strong>Required ARIA:</strong> accessible name. Optional: <code>aria-pressed</code> (toggle), <code>aria-expanded</code> (disclosure), <code>aria-disabled</code>.</p>
+            </div>
+
+            <div class="role-card">
+              <div class="role-card-head">
+                <code>checkbox</code>
+                <span class="role-tag role-widget">Widget</span>
+              </div>
+              <p class="rc-what">A two- or tri-state control. Implicit in <code>&lt;input type="checkbox"&gt;</code>. Tri-state uses <code>aria-checked="mixed"</code>.</p>
+              <div class="rc-announces">"Accept terms, checkbox, unchecked"</div>
+              <p class="rc-req"><strong>Required ARIA:</strong> accessible name + <code>aria-checked</code> (true/false/mixed).</p>
+            </div>
+
+            <div class="role-card">
+              <div class="role-card-head">
+                <code>radio</code>
+                <span class="role-tag role-widget">Widget</span>
+              </div>
+              <p class="rc-what">One option in a mutually exclusive group. Always nest inside <code>radiogroup</code>. Implicit in <code>&lt;input type="radio"&gt;</code>.</p>
+              <div class="rc-announces">"High, radio button, 1 of 3, checked"</div>
+              <p class="rc-req"><strong>Required ARIA:</strong> accessible name + <code>aria-checked</code>. Parent needs <code>role="radiogroup"</code>.</p>
+            </div>
+
+            <div class="role-card">
+              <div class="role-card-head">
+                <code>switch</code>
+                <span class="role-tag role-widget">Widget</span>
+              </div>
+              <p class="rc-what">An on/off toggle — semantically different from checkbox. Use for settings that take effect immediately (like a dark mode toggle).</p>
+              <div class="rc-announces">"Dark mode, switch, on"</div>
+              <p class="rc-req"><strong>Required ARIA:</strong> accessible name + <code>aria-checked</code> (true/false — not "mixed").</p>
+            </div>
+
+            <div class="role-card">
+              <div class="role-card-head">
+                <code>link</code>
+                <span class="role-tag role-widget">Widget</span>
+              </div>
+              <p class="rc-what">Navigates to a URL or location. Implicit in <code>&lt;a href&gt;</code>. Only use the role attribute if you cannot use a real anchor.</p>
+              <div class="rc-announces">"Home, link"</div>
+              <p class="rc-req"><strong>Required ARIA:</strong> accessible name. <code>tabindex="0"</code> if not an <code>&lt;a&gt;</code>.</p>
+            </div>
+
+            <div class="role-card">
+              <div class="role-card-head">
+                <code>textbox</code>
+                <span class="role-tag role-widget">Widget</span>
+              </div>
+              <p class="rc-what">Single-line text input. Implicit in <code>&lt;input type="text|email|tel|…"&gt;</code>. Use <code>aria-multiline="true"</code> for multi-line.</p>
+              <div class="rc-announces">"Search, edit text"</div>
+              <p class="rc-req"><strong>Required ARIA:</strong> accessible name via <code>&lt;label&gt;</code>.</p>
+            </div>
+
+            <div class="role-card">
+              <div class="role-card-head">
+                <code>searchbox</code>
+                <span class="role-tag role-widget">Widget</span>
+              </div>
+              <p class="rc-what">Specialised textbox for search input. Implicit in <code>&lt;input type="search"&gt;</code>. Announces "search box" instead of "edit".</p>
+              <div class="rc-announces">"Search todos, search box"</div>
+              <p class="rc-req"><strong>Required ARIA:</strong> accessible name.</p>
+            </div>
+
+            <div class="role-card">
+              <div class="role-card-head">
+                <code>spinbutton</code>
+                <span class="role-tag role-widget">Widget</span>
+              </div>
+              <p class="rc-what">Numeric range input (increment/decrement). Implicit in <code>&lt;input type="number"&gt;</code>.</p>
+              <div class="rc-announces">"Quantity, spin button, 1, minimum 0, maximum 100"</div>
+              <p class="rc-req"><strong>Required ARIA:</strong> <code>aria-valuenow</code>, <code>aria-valuemin</code>, <code>aria-valuemax</code>, accessible name.</p>
+            </div>
+
+            <div class="role-card">
+              <div class="role-card-head">
+                <code>slider</code>
+                <span class="role-tag role-widget">Widget</span>
+              </div>
+              <p class="rc-what">Range control with a draggable thumb. Implicit in <code>&lt;input type="range"&gt;</code>. Arrow keys must adjust value.</p>
+              <div class="rc-announces">"Volume, slider, 60%"</div>
+              <p class="rc-req"><strong>Required ARIA:</strong> <code>aria-valuenow</code>, <code>aria-valuemin</code>, <code>aria-valuemax</code>. Optional: <code>aria-valuetext</code> for human-readable value.</p>
+            </div>
+
+            <div class="role-card">
+              <div class="role-card-head">
+                <code>progressbar</code>
+                <span class="role-tag role-widget">Widget</span>
+              </div>
+              <p class="rc-what">Indicates progress of a task. When indeterminate (loading), omit <code>aria-valuenow</code>.</p>
+              <div class="rc-announces">"Uploading, progress bar, 45%"</div>
+              <p class="rc-req"><strong>Required ARIA:</strong> accessible name. <code>aria-valuenow</code> + <code>aria-valuemin</code> + <code>aria-valuemax</code> for determinate.</p>
+            </div>
+
+            <div class="role-card">
+              <div class="role-card-head">
+                <code>scrollbar</code>
+                <span class="role-tag role-widget">Widget</span>
+              </div>
+              <p class="rc-what">Custom scrollbar control. Rarely needed — native OS scrollbars are already accessible.</p>
+              <div class="rc-announces">"Vertical scrollbar, 25%"</div>
+              <p class="rc-req"><strong>Required ARIA:</strong> <code>aria-valuenow</code>, <code>aria-valuemin</code>, <code>aria-valuemax</code>, <code>aria-orientation</code>, <code>aria-controls</code>.</p>
+            </div>
+
+            <div class="role-card">
+              <div class="role-card-head">
+                <code>separator</code> (focusable)
+                <span class="role-tag role-widget">Widget</span>
+              </div>
+              <p class="rc-what">A <em>focusable</em> divider that can be moved (e.g. a resizable panel splitter). Non-focusable separators use the document structure variant.</p>
+              <div class="rc-announces">"Separator, vertical, 30%"</div>
+              <p class="rc-req"><strong>Required ARIA:</strong> <code>aria-valuenow</code>, <code>aria-valuemin</code>, <code>aria-valuemax</code>, <code>aria-orientation</code>.</p>
+            </div>
+
+          </div>
+
+          <h3>Composite Widget Roles</h3>
+          <p>
+            Composite widgets are containers for collections of child widgets. They use
+            <strong>roving tabindex</strong> or <strong>aria-activedescendant</strong> to manage
+            keyboard navigation within the group — only one element in the composite is in the
+            tab order at a time.
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="Composite ARIA widget roles">
+              <thead>
+                <tr>
+                  <th scope="col">Role</th>
+                  <th scope="col">Child roles</th>
+                  <th scope="col">Keyboard pattern</th>
+                  <th scope="col">Use for</th>
+                  <th scope="col">How to use</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>tablist</code></td>
+                  <td><code>tab</code> → <code>tabpanel</code></td>
+                  <td>Arrow keys between tabs, Tab into panel</td>
+                  <td>Tab navigation UI</td>
+                  <td><code>&lt;div role="tablist" aria-label="Filters"&gt;…&lt;/div&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>listbox</code></td>
+                  <td><code>option</code> (+ <code>group</code>)</td>
+                  <td>Arrow keys, Space to select, Type-ahead</td>
+                  <td>Custom select dropdowns</td>
+                  <td><code>&lt;ul role="listbox" aria-label="Priority"&gt;…&lt;/ul&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>combobox</code></td>
+                  <td><code>textbox</code> + <code>listbox</code> or <code>tree</code></td>
+                  <td>Type to filter, Arrow down to list, Escape to close</td>
+                  <td>Autocomplete, Select+search</td>
+                  <td><code>&lt;input role="combobox" aria-haspopup="listbox" aria-autocomplete="list"&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>menu</code> / <code>menubar</code></td>
+                  <td><code>menuitem</code>, <code>menuitemcheckbox</code>, <code>menuitemradio</code></td>
+                  <td>Arrow keys to navigate, Enter to activate, Escape to close</td>
+                  <td>Application menus (not navigation menus)</td>
+                  <td><code>&lt;ul role="menu"&gt;&lt;li role="menuitem"&gt;Edit&lt;/li&gt;&lt;/ul&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>tree</code></td>
+                  <td><code>treeitem</code> (+ <code>group</code>)</td>
+                  <td>Up/Down arrows, Right to expand, Left to collapse</td>
+                  <td>Hierarchical file browser, nested categories</td>
+                  <td><code>&lt;ul role="tree"&gt;&lt;li role="treeitem"&gt;Folder&lt;/li&gt;&lt;/ul&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>treegrid</code></td>
+                  <td><code>row</code>, <code>gridcell</code></td>
+                  <td>Arrow keys in two dimensions, Enter/F2 to edit</td>
+                  <td>Hierarchical data grid</td>
+                  <td><code>&lt;table role="treegrid" aria-label="Files"&gt;…&lt;/table&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>grid</code></td>
+                  <td><code>row</code>, <code>gridcell</code>, <code>rowgroup</code></td>
+                  <td>Arrow keys in two dimensions, Enter/F2 to edit cells</td>
+                  <td>Spreadsheet-like editable data tables</td>
+                  <td><code>&lt;table role="grid" aria-label="Todos"&gt;…&lt;/table&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>radiogroup</code></td>
+                  <td><code>radio</code></td>
+                  <td>Arrow keys to move selection within group</td>
+                  <td>Groups a set of radio buttons</td>
+                  <td><code>&lt;div role="radiogroup" aria-label="Priority"&gt;…&lt;/div&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>group</code></td>
+                  <td>Any widget</td>
+                  <td>No navigation pattern — container only</td>
+                  <td>Logically groups related form controls</td>
+                  <td><code>&lt;fieldset&gt;&lt;legend&gt;Contact&lt;/legend&gt;…&lt;/fieldset&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>toolbar</code></td>
+                  <td><code>button</code>, <code>checkbox</code>, etc.</td>
+                  <td>Arrow keys between items, Tab out of toolbar</td>
+                  <td>Rich text editor toolbars, formatting bars</td>
+                  <td><code>&lt;div role="toolbar" aria-label="Formatting"&gt;…&lt;/div&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>spinbutton</code></td>
+                  <td>—</td>
+                  <td>Up/Down arrows to increment, Page Up/Down for large steps</td>
+                  <td>Already listed above — classified as both</td>
+                  <td><code>&lt;input type="number" min="0" max="100" value="5"&gt;</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Tooltip &amp; Dialog Widget Roles</h3>
+
+          <div class="role-cards">
+            <div class="role-card">
+              <div class="role-card-head">
+                <code>tooltip</code>
+                <span class="role-tag role-widget">Widget</span>
+              </div>
+              <p class="rc-what">A popup that displays information about an element. Referenced by <code>aria-describedby</code> on the trigger. Does <em>not</em> receive focus.</p>
+              <div class="rc-announces">Announced inline with the trigger: "Delete todo, button, Delete: Removes this todo item"</div>
+              <p class="rc-req"><strong>Required:</strong> trigger must have <code>aria-describedby</code> pointing to the tooltip's ID. Tooltip must be rendered in DOM (not CSS only).</p>
+            </div>
+
+            <div class="role-card">
+              <div class="role-card-head">
+                <code>dialog</code>
+                <span class="role-tag role-widget">Widget</span>
+              </div>
+              <p class="rc-what">A modal or non-modal dialog window. Focus must move inside on open; Escape closes; focus returns to trigger on close.</p>
+              <div class="rc-announces">"Confirm delete, dialog" (then reads first focusable element)</div>
+              <p class="rc-req"><strong>Required:</strong> accessible name via <code>aria-labelledby</code>. Optional: <code>aria-describedby</code>, <code>aria-modal="true"</code> (to suppress background from some AT).</p>
+            </div>
+
+            <div class="role-card">
+              <div class="role-card-head">
+                <code>alertdialog</code>
+                <span class="role-tag role-widget">Widget</span>
+              </div>
+              <p class="rc-what">A dialog that contains an alert — requires immediate user response. Like <code>dialog</code> but also has live region behaviour (assertive).</p>
+              <div class="rc-announces">"Delete all todos? Alert dialog" — interrupts immediately</div>
+              <p class="rc-req"><strong>Required:</strong> accessible name + <code>aria-describedby</code> pointing to the message.</p>
+            </div>
+          </div>
+
+          <div class="callout info">
+            <span class="callout-icon" aria-hidden="true">💡</span>
+            <p>
+              <strong>In Angular 21, use the CDK Dialog (<code>CdkDialogModule</code>) or Angular Material
+              <code>MatDialog</code></strong> for any modal — they handle focus trapping, Escape,
+              <code>aria-modal</code>, and focus restoration automatically. Hand-rolling a modal
+              is one of the most error-prone ARIA implementation tasks.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 2.4 Document Structure Roles ─────────────────────── -->
+        <section id="structure-roles" aria-labelledby="h-structure">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">2.4</div>
+            <h2 id="h-structure">Document Structure Roles</h2>
+          </div>
+
+          <p>
+            Document structure roles describe the <strong>organisation and structure of content</strong>
+            — not interactive controls. Most have native HTML equivalents. Use the native element
+            first; fall back to the role only when semantic HTML is not available.
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="ARIA document structure roles">
+              <thead>
+                <tr>
+                  <th scope="col">Role</th>
+                  <th scope="col">Native HTML</th>
+                  <th scope="col">What it means</th>
+                  <th scope="col">Screen reader behaviour</th>
+                  <th scope="col">How to use</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>heading</code></td>
+                  <td><code>&lt;h1&gt;–&lt;h6&gt;</code></td>
+                  <td>Section heading with level (<code>aria-level</code>)</td>
+                  <td>"Introduction, heading level 2"</td>
+                  <td><code>&lt;h2&gt;Introduction&lt;/h2&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>list</code></td>
+                  <td><code>&lt;ul&gt;</code>, <code>&lt;ol&gt;</code></td>
+                  <td>An ordered or unordered collection of items</td>
+                  <td>"List with 5 items"</td>
+                  <td><code>&lt;ul&gt;&lt;li&gt;Item 1&lt;/li&gt;&lt;/ul&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>listitem</code></td>
+                  <td><code>&lt;li&gt;</code></td>
+                  <td>A single item in a list</td>
+                  <td>"Bullet, item 1 of 5"</td>
+                  <td><code>&lt;li&gt;Buy milk&lt;/li&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>article</code></td>
+                  <td><code>&lt;article&gt;</code></td>
+                  <td>Independently distributable content (blog post, card)</td>
+                  <td>VoiceOver: "Article" (others may not announce)</td>
+                  <td><code>&lt;article&gt;…&lt;/article&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>definition</code></td>
+                  <td><code>&lt;dfn&gt;</code></td>
+                  <td>The defining instance of a term</td>
+                  <td>Some SR: "definition"</td>
+                  <td><code>&lt;dfn&gt;ARIA&lt;/dfn&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>term</code></td>
+                  <td><code>&lt;dt&gt;</code></td>
+                  <td>Term in a definition list</td>
+                  <td>"term"</td>
+                  <td><code>&lt;dl&gt;&lt;dt&gt;ARIA&lt;/dt&gt;&lt;dd&gt;…&lt;/dd&gt;&lt;/dl&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>img</code></td>
+                  <td><code>&lt;img alt=""&gt;</code></td>
+                  <td>A graphical element. Use on <code>&lt;figure&gt;</code> or <code>&lt;svg&gt;</code> needing a description.</td>
+                  <td>"[alt text], image"</td>
+                  <td><code>&lt;img src="logo.png" alt="Company logo"&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>figure</code></td>
+                  <td><code>&lt;figure&gt;</code></td>
+                  <td>Self-contained content (image + caption)</td>
+                  <td>Some SR announce "figure"</td>
+                  <td><code>&lt;figure&gt;&lt;img src="c.png" alt="Chart"&gt;&lt;figcaption&gt;Chart 1&lt;/figcaption&gt;&lt;/figure&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>table</code></td>
+                  <td><code>&lt;table&gt;</code></td>
+                  <td>Tabular data with row/column headers</td>
+                  <td>"Table with 5 rows and 3 columns"</td>
+                  <td><code>&lt;table&gt;&lt;caption&gt;Todos&lt;/caption&gt;…&lt;/table&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>row</code></td>
+                  <td><code>&lt;tr&gt;</code></td>
+                  <td>A row of cells in a table or grid</td>
+                  <td>"Row 2 of 5"</td>
+                  <td><code>&lt;tr&gt;&lt;td&gt;Buy milk&lt;/td&gt;&lt;/tr&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>cell</code></td>
+                  <td><code>&lt;td&gt;</code></td>
+                  <td>A data cell in a table</td>
+                  <td>Cell content, then column header</td>
+                  <td><code>&lt;td&gt;Buy milk&lt;/td&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>columnheader</code></td>
+                  <td><code>&lt;th scope="col"&gt;</code></td>
+                  <td>Column header cell</td>
+                  <td>Announces before cell data: "Priority, High"</td>
+                  <td><code>&lt;th scope="col"&gt;Priority&lt;/th&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>rowheader</code></td>
+                  <td><code>&lt;th scope="row"&gt;</code></td>
+                  <td>Row header cell</td>
+                  <td>Announces with row: "Buy groceries row"</td>
+                  <td><code>&lt;th scope="row"&gt;Buy groceries&lt;/th&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>note</code></td>
+                  <td>—</td>
+                  <td>A section of parenthetic or ancillary content</td>
+                  <td>Some SR: "note"</td>
+                  <td><code>&lt;div role="note"&gt;See also: …&lt;/div&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>blockquote</code></td>
+                  <td><code>&lt;blockquote&gt;</code></td>
+                  <td>A section quoted from another source</td>
+                  <td>NVDA: "block quote" (others may not)</td>
+                  <td><code>&lt;blockquote&gt;Quote text&lt;/blockquote&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>code</code></td>
+                  <td><code>&lt;code&gt;</code></td>
+                  <td>A fragment of computer code</td>
+                  <td>NVDA (future): "code" wrapper</td>
+                  <td><code>&lt;code&gt;let x = 1&lt;/code&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>paragraph</code></td>
+                  <td><code>&lt;p&gt;</code></td>
+                  <td>A paragraph of text</td>
+                  <td>Not typically announced as "paragraph"</td>
+                  <td><code>&lt;p&gt;Body text content here.&lt;/p&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>generic</code></td>
+                  <td><code>&lt;div&gt;</code>, <code>&lt;span&gt;</code></td>
+                  <td>No semantic meaning — content passes through</td>
+                  <td>Nothing announced for the container itself</td>
+                  <td><code>&lt;div&gt;No semantics&lt;/div&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>none</code> / <code>presentation</code></td>
+                  <td>—</td>
+                  <td>Strips element and children from AT tree</td>
+                  <td>Completely silent — covered in Section 2.6</td>
+                  <td><code>&lt;table role="none"&gt;…&lt;/table&gt;</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout danger">
+            <span class="callout-icon" aria-hidden="true">🚫</span>
+            <p>
+              <strong>Never use <code>role="heading"</code> without <code>aria-level</code>.</strong>
+              The default level is 2, which will disrupt your heading hierarchy if the surrounding
+              context expects a different level. Always write
+              <code>role="heading" aria-level="3"</code>. Better still — use <code>&lt;h3&gt;</code>.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 2.5 Live Region Roles ─────────────────────────────── -->
+        <section id="live-region-roles" aria-labelledby="h-live">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">2.5</div>
+            <h2 id="h-live">Live Region Roles</h2>
+          </div>
+
+          <p>
+            Live region roles are special roles that carry implicit <code>aria-live</code> behaviour.
+            When content inside these elements changes, the screen reader announces it automatically —
+            you do not need to add <code>aria-live</code> explicitly (though you can to override).
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="ARIA live region roles with implicit aria-live values">
+              <thead>
+                <tr>
+                  <th scope="col">Role</th>
+                  <th scope="col">Implicit aria-live</th>
+                  <th scope="col">Implicit aria-atomic</th>
+                  <th scope="col">Use for</th>
+                  <th scope="col">Screen reader announces</th>
+                  <th scope="col">How to use</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>alert</code></td>
+                  <td><code>assertive</code></td>
+                  <td><code>true</code></td>
+                  <td>Error messages, critical notifications — interrupts the user immediately</td>
+                  <td>"Name is required, alert" — interrupts current speech</td>
+                  <td><code>&lt;div role="alert"&gt;Error: Name is required&lt;/div&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>status</code></td>
+                  <td><code>polite</code></td>
+                  <td><code>true</code></td>
+                  <td>Non-critical status updates ("3 todos remaining", "Saved")</td>
+                  <td>"3 todos remaining" — waits for silence</td>
+                  <td><code>&lt;div role="status"&gt;3 todos remaining&lt;/div&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>log</code></td>
+                  <td><code>polite</code></td>
+                  <td><code>false</code></td>
+                  <td>Chat logs, activity feeds — announces new entries only</td>
+                  <td>New entry text, politely</td>
+                  <td><code>&lt;div role="log"&gt;…new messages…&lt;/div&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>marquee</code></td>
+                  <td><code>off</code></td>
+                  <td><code>false</code></td>
+                  <td>Scrolling tickers — AT ignores by default (use sparingly)</td>
+                  <td>Not announced automatically</td>
+                  <td><code>&lt;div role="marquee"&gt;Breaking news…&lt;/div&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>timer</code></td>
+                  <td><code>off</code></td>
+                  <td><code>false</code></td>
+                  <td>Countdown/count-up timers — use <code>aria-live="polite"</code> on a separate announcement region</td>
+                  <td>Not announced automatically unless aria-live overridden</td>
+                  <td><code>&lt;div role="timer" aria-live="polite"&gt;02:30&lt;/div&gt;</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong>Timing trap with role="alert":</strong> If you inject an element with
+              <code>role="alert"</code> into the DOM at the same moment the content appears,
+              some screen readers miss it. The safe pattern is to always pre-render the element
+              (empty) and then update its text content. Angular CDK's <code>LiveAnnouncer</code>
+              implements this correctly — use it for all programmatic announcements.
+            </p>
+          </div>
+
+          <h3>Angular 21 — role="alert" Safe Pattern</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML + TypeScript — Angular</span>
+            <pre>
+<span class="cmt">&lt;!-- ✅ CORRECT: region pre-rendered in initial HTML, empty --&gt;</span>
+<span class="tag-c">&lt;div</span>
+  <span class="atr">role</span>=<span class="val">"alert"</span>
+  <span class="atr">aria-live</span>=<span class="val">"assertive"</span>
+  <span class="atr">aria-atomic</span>=<span class="val">"true"</span>
+  <span class="atr">class</span>=<span class="val">"sr-only"</span><span class="tag-c">&gt;</span>
+  {{ errorMessage() }}
+<span class="tag-c">&lt;/div&gt;</span>
+
+<span class="cmt">&lt;!-- ❌ WRONG: dynamically @if'd alert — many SR miss it --&gt;</span>
+<span class="tag-c">@if</span> (errorMessage()) {
+  <span class="tag-c">&lt;div</span> <span class="atr">role</span>=<span class="val">"alert"</span><span class="tag-c">&gt;</span>{{ errorMessage() }}<span class="tag-c">&lt;/div&gt;</span>
+}
+</pre>
+          </div>
+
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — Angular 21 with CDK LiveAnnouncer</span>
+            <pre>
+<span class="kw">import</span> { LiveAnnouncer } <span class="kw">from</span> <span class="str">'@angular/cdk/a11y'</span><span class="op">;</span>
+<span class="kw">import</span> { inject, Component } <span class="kw">from</span> <span class="str">'@angular/core'</span><span class="op">;</span>
+
+<span class="fn">@Component</span>({ <span class="cmt">/* ... */</span> })
+<span class="kw">export class</span> <span class="typ">TodoListComponent</span> {
+  <span class="kw">private readonly</span> liveAnnouncer <span class="op">=</span> inject(<span class="typ">LiveAnnouncer</span>)<span class="op">;</span>
+
+  <span class="kw">async</span> deleteTodo(title<span class="op">:</span> <span class="typ">string</span>) {
+    <span class="kw">await</span> <span class="kw">this</span>.todoService.delete()<span class="op">;</span>
+    <span class="cmt">// Polite announcement — waits for current speech to finish</span>
+    <span class="kw">await this</span>.liveAnnouncer.announce(<span class="str">`Todo deleted: </span><span class="op">${</span>title<span class="op">}</span><span class="str">`</span>, <span class="str">'polite'</span>)<span class="op">;</span>
+  }
+
+  <span class="kw">async</span> handleError(msg<span class="op">:</span> <span class="typ">string</span>) {
+    <span class="cmt">// Assertive announcement — interrupts immediately</span>
+    <span class="kw">await this</span>.liveAnnouncer.announce(msg, <span class="str">'assertive'</span>)<span class="op">;</span>
+  }
+}
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 2.6 role=none / presentation ─────────────────────── -->
+        <section id="none-presentation" aria-labelledby="h-none">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">2.6</div>
+            <h2 id="h-none"><code>role="none"</code> and <code>role="presentation"</code></h2>
+          </div>
+
+          <p>
+            <code>role="none"</code> and <code>role="presentation"</code> are synonyms.
+            They <strong>remove the element's semantic meaning from the accessibility tree</strong>
+            while leaving the element's subtree content visible to AT.
+          </p>
+
+          <p>Use cases:</p>
+          <ul>
+            <li>Stripping table layout semantics from a <code>&lt;table&gt;</code> used purely for visual layout (legacy HTML)</li>
+            <li>Removing list semantics from a <code>&lt;ul&gt;</code> used as a flex container (e.g., navigation bar where bullets are irrelevant)</li>
+            <li>Removing heading semantics from a styled <code>&lt;h2&gt;</code> inside a widget where the heading role conflicts with the widget role</li>
+          </ul>
+
+          <div class="callout danger">
+            <span class="callout-icon" aria-hidden="true">🚫</span>
+            <p>
+              <strong><code>role="none"</code> is silently ignored when:</strong>
+              the element has a global ARIA state/property (<code>aria-label</code>,
+              <code>aria-expanded</code>, etc.), is focusable, or is a required child of a
+              composite widget. Do not use it on interactive elements — the browser will ignore it.
+            </p>
+          </div>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML</span>
+            <pre>
+<span class="cmt">&lt;!-- ✅ Strip layout-table semantics --&gt;</span>
+<span class="tag-c">&lt;table</span> <span class="atr">role</span>=<span class="val">"none"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;tr&gt;&lt;td&gt;</span>Column A<span class="tag-c">&lt;/td&gt;&lt;td&gt;</span>Column B<span class="tag-c">&lt;/td&gt;&lt;/tr&gt;</span>
+<span class="tag-c">&lt;/table&gt;</span>
+<span class="cmt">&lt;!-- AT sees the text "Column A Column B" without table structure --&gt;</span>
+
+<span class="cmt">&lt;!-- ✅ Remove list semantics from flex nav bar --&gt;</span>
+<span class="tag-c">&lt;ul</span> <span class="atr">role</span>=<span class="val">"none"</span> <span class="atr">class</span>=<span class="val">"flex gap-4"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">&lt;li</span> <span class="atr">role</span>=<span class="val">"none"</span><span class="tag-c">&gt;&lt;a</span> <span class="atr">href</span>=<span class="val">"/"</span><span class="tag-c">&gt;</span>Home<span class="tag-c">&lt;/a&gt;&lt;/li&gt;</span>
+<span class="tag-c">&lt;/ul&gt;</span>
+<span class="cmt">&lt;!-- AT reads only the links, not "list with 1 item" --&gt;</span>
+
+<span class="cmt">&lt;!-- ❌ WRONG: ignored because element has aria-label --&gt;</span>
+<span class="tag-c">&lt;div</span> <span class="atr">role</span>=<span class="val">"none"</span> <span class="atr">aria-label</span>=<span class="val">"Something"</span><span class="tag-c">&gt;</span>...<span class="tag-c">&lt;/div&gt;</span>
+<span class="cmt">&lt;!-- aria-label causes role="none" to be ignored --&gt;</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 2.7 Angular Patterns ──────────────────────────────── -->
+        <section id="angular-patterns" aria-labelledby="h-ng-patterns">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">2.7</div>
+            <h2 id="h-ng-patterns">Angular 21 Role Patterns</h2>
+          </div>
+
+          <h3>Binding Roles Dynamically with Signals</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — Angular 21</span>
+            <pre>
+<span class="fn">@Component</span>({
+  selector<span class="op">:</span> <span class="str">'app-disclosure'</span>,
+  changeDetection<span class="op">:</span> ChangeDetectionStrategy.OnPush,
+  template<span class="op">:</span> <span class="str">`
+    &lt;!-- Toggle button with aria-expanded --&gt;
+    &lt;button
+      type="button"
+      [attr.aria-expanded]="isOpen()"
+      [attr.aria-controls]="panelId"
+      (click)="toggle()"&gt;
+      {{ label() }}
+    &lt;/button&gt;
+
+    &lt;!-- Controlled panel --&gt;
+    &lt;div
+      [id]="panelId"
+      role="region"
+      [attr.aria-labelledby]="triggerId"
+      [hidden]="!isOpen()"&gt;
+      &lt;ng-content /&gt;
+    &lt;/div&gt;
+  `</span>,
+})
+<span class="kw">export class</span> <span class="typ">DisclosureComponent</span> {
+  <span class="kw">readonly</span> panelId <span class="op">=</span> <span class="str">`panel-</span><span class="op">${</span>Math.random().toString(<span class="num">36</span>).slice(<span class="num">2</span>)<span class="op">}</span><span class="str">`</span><span class="op">;</span>
+  <span class="kw">readonly</span> triggerId <span class="op">=</span> <span class="str">`trigger-</span><span class="op">${</span>Math.random().toString(<span class="num">36</span>).slice(<span class="num">2</span>)<span class="op">}</span><span class="str">`</span><span class="op">;</span>
+  label <span class="op">=</span> input<span class="op">&lt;</span><span class="typ">string</span><span class="op">&gt;</span>(<span class="str">''</span>)<span class="op">;</span>
+  isOpen <span class="op">=</span> signal(<span class="kw">false</span>)<span class="op">;</span>
+  toggle() { <span class="kw">this</span>.isOpen.update(v <span class="op">=&gt;</span> !v)<span class="op">; </span>}
+}
+</pre>
+          </div>
+
+          <h3>Tab Panel Pattern — Roving tabindex</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — Angular template (ARIA tabs)</span>
+            <pre>
+<span class="cmt">&lt;!-- tablist: parent container --&gt;</span>
+<span class="tag-c">&lt;div</span> <span class="atr">role</span>=<span class="val">"tablist"</span> <span class="atr">aria-label</span>=<span class="val">"Todo filters"</span><span class="tag-c">&gt;</span>
+  <span class="tag-c">@for</span> (tab of tabs(); track tab.id) {
+    <span class="tag-c">&lt;button</span>
+      <span class="atr">role</span>=<span class="val">"tab"</span>
+      <span class="atr">[id]</span>=<span class="val">"'tab-' + tab.id"</span>
+      <span class="atr">[attr.aria-selected]</span>=<span class="val">"activeTab() === tab.id"</span>
+      <span class="atr">[attr.aria-controls]</span>=<span class="val">"'panel-' + tab.id"</span>
+      <span class="atr">[tabindex]</span>=<span class="val">"activeTab() === tab.id ? 0 : -1"</span>
+      <span class="atr">(click)</span>=<span class="val">"setTab(tab.id)"</span>
+      <span class="atr">(keydown)</span>=<span class="val">"onTabKey($event, tab.id)"</span><span class="tag-c">&gt;</span>
+      {{ tab.label }}
+    <span class="tag-c">&lt;/button&gt;</span>
+  }
+<span class="tag-c">&lt;/div&gt;</span>
+
+<span class="cmt">&lt;!-- tabpanel --&gt;</span>
+<span class="tag-c">@for</span> (tab of tabs(); track tab.id) {
+  <span class="tag-c">&lt;div</span>
+    <span class="atr">role</span>=<span class="val">"tabpanel"</span>
+    <span class="atr">[id]</span>=<span class="val">"'panel-' + tab.id"</span>
+    <span class="atr">[attr.aria-labelledby]</span>=<span class="val">"'tab-' + tab.id"</span>
+    <span class="atr">[hidden]</span>=<span class="val">"activeTab() !== tab.id"</span>
+    <span class="atr">tabindex</span>=<span class="val">"0"</span><span class="tag-c">&gt;</span>
+    <span class="tag-c">&lt;ng-content</span> <span class="atr">[select]</span>=<span class="val">"'[tab=' + tab.id + ']'"</span> <span class="tag-c">/&gt;</span>
+  <span class="tag-c">&lt;/div&gt;</span>
+}
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 2.8 Screen Reader Matrix ──────────────────────────── -->
+        <section id="screen-reader-matrix" aria-labelledby="h-sr-matrix">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">2.8</div>
+            <h2 id="h-sr-matrix">Screen Reader Announcement Matrix</h2>
+          </div>
+
+          <p>
+            How screen readers announce common roles varies by AT and browser pairing.
+            This matrix shows what a user actually hears when focusing each role —
+            based on May 2026 versions of NVDA 2025.1, JAWS 2025, VoiceOver (macOS 15 Sequoia),
+            and TalkBack (Android 15).
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="Screen reader announcement matrix for common ARIA roles">
+              <thead>
+                <tr>
+                  <th scope="col">Role / Element</th>
+                  <th scope="col">HTML</th>
+                  <th scope="col">NVDA + Firefox</th>
+                  <th scope="col">JAWS + Chrome</th>
+                  <th scope="col">VoiceOver + Safari (macOS)</th>
+                  <th scope="col">TalkBack + Chrome (Android)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>button</code></td>
+                  <td><code>&lt;button type="button"&gt;Save&lt;/button&gt;</code></td>
+                  <td>"Save, button"</td>
+                  <td>"Save, button"</td>
+                  <td>"Save, button"</td>
+                  <td>"Save, button, double tap to activate"</td>
+                </tr>
+                <tr>
+                  <td><code>checkbox</code> (unchecked)</td>
+                  <td><code>&lt;input type="checkbox" id="t"&gt;&lt;label for="t"&gt;Accept terms&lt;/label&gt;</code></td>
+                  <td>"Accept terms, checkbox, not checked"</td>
+                  <td>"Accept terms, checkbox, unchecked"</td>
+                  <td>"Accept terms, checkbox, unchecked"</td>
+                  <td>"Accept terms, checkbox, not checked, double tap to toggle"</td>
+                </tr>
+                <tr>
+                  <td><code>link</code></td>
+                  <td><code>&lt;a href="/home"&gt;Home&lt;/a&gt;</code></td>
+                  <td>"Home, link"</td>
+                  <td>"Home, link"</td>
+                  <td>"Home, link"</td>
+                  <td>"Home, link, double tap to activate"</td>
+                </tr>
+                <tr>
+                  <td><code>combobox</code> (collapsed)</td>
+                  <td><code>&lt;select id="p"&gt;&lt;option&gt;High&lt;/option&gt;&lt;/select&gt;</code></td>
+                  <td>"Priority, combo box, collapsed"</td>
+                  <td>"Priority, combo box, has auto complete, collapsed"</td>
+                  <td>"Priority, pop up button, 1 item"</td>
+                  <td>"Priority, drop down list, collapsed"</td>
+                </tr>
+                <tr>
+                  <td><code>dialog</code></td>
+                  <td><code>&lt;div role="dialog" aria-labelledby="dh"&gt;…&lt;/div&gt;</code></td>
+                  <td>"Confirm delete, dialog" + first focusable element</td>
+                  <td>"Confirm delete, dialog" + first focusable element</td>
+                  <td>"Confirm delete, web dialog"</td>
+                  <td>"Confirm delete, dialog"</td>
+                </tr>
+                <tr>
+                  <td><code>tab</code> (selected)</td>
+                  <td><code>&lt;button role="tab" aria-selected="true"&gt;All todos&lt;/button&gt;</code></td>
+                  <td>"All todos, tab, 1 of 3, selected"</td>
+                  <td>"All todos, tab, selected, 1 of 3"</td>
+                  <td>"All todos, tab, 1 of 3"</td>
+                  <td>"All todos, tab, selected, 1 of 3"</td>
+                </tr>
+                <tr>
+                  <td><code>alert</code></td>
+                  <td><code>&lt;div role="alert"&gt;Name is required&lt;/div&gt;</code></td>
+                  <td>"Name is required, alert" (interrupts)</td>
+                  <td>"Name is required, alert" (interrupts)</td>
+                  <td>"Name is required" (interrupts)</td>
+                  <td>"Name is required, alert" (interrupts)</td>
+                </tr>
+                <tr>
+                  <td><code>status</code></td>
+                  <td><code>&lt;div role="status"&gt;Saved&lt;/div&gt;</code></td>
+                  <td>"Saved, (politely, waits for silence)"</td>
+                  <td>"Saved" (politely)</td>
+                  <td>"Saved" (politely)</td>
+                  <td>"Saved" (politely)</td>
+                </tr>
+                <tr>
+                  <td><code>navigation</code> landmark</td>
+                  <td><code>&lt;nav aria-label="Primary"&gt;…&lt;/nav&gt;</code></td>
+                  <td>"Primary navigation, landmark"</td>
+                  <td>"Primary navigation region"</td>
+                  <td>"Primary navigation, navigation landmark"</td>
+                  <td>"Navigation"</td>
+                </tr>
+                <tr>
+                  <td><code>main</code> landmark</td>
+                  <td><code>&lt;main id="main-content"&gt;…&lt;/main&gt;</code></td>
+                  <td>"Main, landmark"</td>
+                  <td>"Main region"</td>
+                  <td>"Main, main landmark"</td>
+                  <td>"Main"</td>
+                </tr>
+                <tr>
+                  <td><code>progressbar</code></td>
+                  <td><code>&lt;progress aria-label="Uploading" value="45" max="100"&gt;&lt;/progress&gt;</code></td>
+                  <td>"Uploading, progress bar, 45%"</td>
+                  <td>"Uploading, progress bar, 45 percent"</td>
+                  <td>"Uploading, progress indicator, 45%"</td>
+                  <td>"Uploading, 45%"</td>
+                </tr>
+                <tr>
+                  <td><code>slider</code></td>
+                  <td><code>&lt;input type="range" aria-label="Volume" min="0" max="100" value="60"&gt;</code></td>
+                  <td>"Volume, slider, 60%"</td>
+                  <td>"Volume, slider, 60 percent"</td>
+                  <td>"Volume, slider, 60%"</td>
+                  <td>"Volume, seek bar, 60%"</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="sr-sim" aria-label="Screen reader simulation — tab widget">
+            <div class="sr-sim-header">
+              <span>NVDA</span> + Firefox — Navigating a tab widget
+            </div>
+            <div class="sr-output">
+              <span class="sr-key">[Tab to tab list]</span><br>
+              <span class="sr-announce">"Todo filters, tab list"</span><br>
+              <span class="sr-announce">"All, tab, 1 of 3, selected"</span><br><br>
+              <span class="sr-key">[Right arrow → next tab]</span><br>
+              <span class="sr-announce">"Active, tab, 2 of 3"</span><br><br>
+              <span class="sr-key">[Right arrow → next tab]</span><br>
+              <span class="sr-announce">"Completed, tab, 3 of 3"</span><br><br>
+              <span class="sr-key">[Tab → enter panel]</span><br>
+              <span class="sr-announce">"Completed, tab panel"</span>
+            </div>
+          </div>
+
+          <div class="callout success">
+            <span class="callout-icon" aria-hidden="true">✅</span>
+            <p>
+              <strong>Section 2 complete.</strong> You now know every WAI-ARIA 1.2 role category,
+              what each role announces across the major screen readers, and the Angular 21 patterns
+              for landmarks, tabs, dialogs, and live region roles. Section 3 covers ARIA Properties
+              — <code>aria-label</code>, <code>aria-labelledby</code>, <code>aria-describedby</code>,
+              and all relationship and widget configuration properties.
+            </p>
+          </div>
+        </section>
+
+        <!-- ═══ BOTTOM NAVIGATION ════════════════════════════════════ -->
+        <nav class="bottom-nav" aria-label="Section navigation">
+          <a href="./aria-s1-foundation.html">← Section 1: Foundation</a>
+          <span style="font-size:0.78rem;color:var(--muted);text-align:center;flex:1;">
+            Section 2 of 9 — ARIA Roles
+          </span>
+          <a href="./aria-s3-properties.html" aria-label="Section 3: ARIA Properties">
+            Section 3: Properties →
+          </a>
+        </nav>
+
+      </main>
+
+      <!-- ═══ FOOTER ════════════════════════════════════════════════ -->
+      <footer role="contentinfo">
+        <p>
+          ARIA Complete Guide · Section 2 · Angular 21 · WAI-ARIA 1.2 (W3C Rec, June 2023) ·
+          Updated May 2026 ·
+          <a href="https://www.w3.org/TR/wai-aria-1.2/" rel="noopener noreferrer">W3C WAI-ARIA 1.2 Spec</a> ·
+          <a href="https://www.w3.org/WAI/ARIA/apg/" rel="noopener noreferrer">ARIA Authoring Practices Guide</a>
+        </p>
+        <p style="margin-top:0.5rem;color:#374151;">
+          <a href="./aria-complete-guide.html">← Back to ARIA Guide Index</a> ·
+          <a href="./aria-s1-foundation.html">← Section 1: Foundation</a>
+        </p>
+      </footer>
+
+    </div><!-- /page-wrapper -->
+  </body>
+</html>

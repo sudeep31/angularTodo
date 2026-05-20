@@ -1,0 +1,2634 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Web Accessibility (A11y) &amp; WCAG 2.1 Compliance — Angular 21 Guide</title>
+    <style>
+      /* ─── Reset & Base ─────────────────────────────────────────── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --color-bg:            #0f172a;
+        --color-surface:       #1e293b;
+        --color-surface-2:     #273549;
+        --color-border:        #334155;
+        --color-primary:       #818cf8;
+        --color-primary-light: #a5b4fc;
+        --color-accent:        #34d399;
+        --color-warn:          #fbbf24;
+        --color-danger:        #f87171;
+        --color-text:          #e2e8f0;
+        --color-muted:         #94a3b8;
+        --color-code-bg:       #0d1117;
+        --font-sans:           'Segoe UI', system-ui, -apple-system, sans-serif;
+        --font-mono:           'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+        --radius:              0.75rem;
+        --shadow:              0 4px 24px rgba(0,0,0,0.5);
+        --max-width:           900px;
+      }
+
+      html { scroll-behavior: smooth; }
+
+      body {
+        font-family: var(--font-sans);
+        background: var(--color-bg);
+        color: var(--color-text);
+        line-height: 1.75;
+        font-size: 1rem;
+      }
+
+      /* ─── Skip Link (A11y first!) ──────────────────────────────── */
+      .skip-link {
+        position: absolute;
+        top: -100%;
+        left: 1rem;
+        padding: 0.5rem 1rem;
+        background: var(--color-primary);
+        color: #0f172a;
+        font-weight: 700;
+        border-radius: 0 0 var(--radius) var(--radius);
+        z-index: 9999;
+        transition: top 0.2s;
+        text-decoration: none;
+      }
+      .skip-link:focus { top: 0; }
+
+      /* ─── Layout ───────────────────────────────────────────────── */
+      .page-wrapper {
+        max-width: var(--max-width);
+        margin: 0 auto;
+        padding: 2rem 1.5rem 6rem;
+      }
+
+      /* ─── Hero ─────────────────────────────────────────────────── */
+      .hero {
+        background: linear-gradient(135deg, #1e1b4b 0%, #1e293b 60%, #042f2e 100%);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        padding: 3rem 2.5rem;
+        margin-bottom: 3rem;
+        text-align: center;
+        box-shadow: var(--shadow);
+      }
+      .hero-badge {
+        display: inline-block;
+        background: rgba(129,140,248,0.15);
+        border: 1px solid var(--color-primary);
+        color: var(--color-primary-light);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 0.3rem 1rem;
+        border-radius: 999px;
+        margin-bottom: 1.25rem;
+      }
+      .hero h1 {
+        font-size: clamp(1.75rem, 4vw, 2.75rem);
+        font-weight: 800;
+        line-height: 1.2;
+        color: #fff;
+        margin-bottom: 1rem;
+      }
+      .hero h1 span { color: var(--color-primary-light); }
+      .hero p {
+        font-size: 1.125rem;
+        color: var(--color-muted);
+        max-width: 680px;
+        margin: 0 auto;
+      }
+
+      /* ─── Table of Contents ────────────────────────────────────── */
+      .toc {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-left: 4px solid var(--color-primary);
+        border-radius: var(--radius);
+        padding: 1.5rem 2rem;
+        margin-bottom: 3rem;
+      }
+      .toc h2 {
+        font-size: 0.85rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--color-primary);
+        margin-bottom: 0.75rem;
+      }
+      .toc ol {
+        padding-left: 1.5rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 0.25rem 1.5rem;
+      }
+      /* Nested TOC sub-lists — no grid, simple indent */
+      .toc li > ol {
+        display: block;
+        padding-left: 1rem;
+        margin-top: 0.15rem;
+        grid-template-columns: none;
+      }
+      .toc li > ol li { font-size: 0.8rem; color: var(--color-muted); }
+      .toc li > ol a { font-size: 0.8rem; opacity: 0.8; }
+      .toc li { font-size: 0.9rem; }
+      .toc a { color: var(--color-muted); text-decoration: none; transition: color 0.15s; }
+      .toc a:hover, .toc a:focus { color: var(--color-primary-light); text-decoration: underline; }
+
+      /* ─── Sections ─────────────────────────────────────────────── */
+      section {
+        margin-bottom: 4rem;
+        scroll-margin-top: 1.5rem;
+      }
+      .section-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--color-border);
+      }
+      .section-number {
+        flex-shrink: 0;
+        width: 2rem;
+        height: 2rem;
+        background: linear-gradient(135deg, var(--color-primary), #6366f1);
+        color: #fff;
+        font-size: 0.8rem;
+        font-weight: 800;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #fff;
+      }
+      h3 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--color-primary-light);
+        margin: 2rem 0 0.75rem;
+      }
+      h4 {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--color-accent);
+        margin: 1.25rem 0 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      p { margin-bottom: 1rem; color: var(--color-text); }
+      p:last-child { margin-bottom: 0; }
+
+      /* ─── Callout Cards ────────────────────────────────────────── */
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 1rem;
+        margin: 1.5rem 0;
+      }
+      .card {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        padding: 1.25rem 1.5rem;
+        transition: border-color 0.15s;
+      }
+      .card:hover { border-color: var(--color-primary); }
+      .card-icon { font-size: 1.75rem; margin-bottom: 0.5rem; }
+      .card h3 { margin: 0 0 0.4rem; font-size: 1rem; }
+      .card p { font-size: 0.875rem; color: var(--color-muted); margin: 0; }
+
+      /* ─── Principle Table ──────────────────────────────────────── */
+      .principle-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin: 1.5rem 0;
+      }
+      @media (max-width: 640px) { .principle-grid { grid-template-columns: 1fr; } }
+      .principle-card {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        padding: 1.25rem 1.5rem;
+        border-top: 3px solid var(--color-primary);
+      }
+      .principle-card.p2 { border-top-color: var(--color-accent); }
+      .principle-card.p3 { border-top-color: var(--color-warn); }
+      .principle-card.p4 { border-top-color: var(--color-danger); }
+      .principle-card .tag {
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        margin-bottom: 0.5rem;
+        display: inline-block;
+        background: rgba(129,140,248,0.15);
+        color: var(--color-primary-light);
+      }
+      .p2 .tag { background: rgba(52,211,153,0.15); color: var(--color-accent); }
+      .p3 .tag { background: rgba(251,191,36,0.15); color: var(--color-warn); }
+      .p4 .tag { background: rgba(248,113,113,0.15); color: var(--color-danger); }
+      .principle-card h3 { margin: 0.25rem 0 0.5rem; font-size: 1.05rem; color: #fff; }
+      .principle-card p { font-size: 0.85rem; color: var(--color-muted); margin: 0; }
+      .principle-card ul { margin: 0.5rem 0 0 1rem; }
+      .principle-card li { font-size: 0.85rem; color: var(--color-muted); margin-bottom: 0.25rem; }
+
+      /* ─── Code Blocks ──────────────────────────────────────────── */
+      .code-block {
+        background: var(--color-code-bg);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        padding: 1.25rem 1.5rem;
+        overflow-x: auto;
+        margin: 1.25rem 0;
+        position: relative;
+      }
+      .code-block .lang-tag {
+        position: absolute;
+        top: 0.6rem;
+        right: 0.75rem;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--color-muted);
+        background: var(--color-surface);
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        border: 1px solid var(--color-border);
+      }
+      pre {
+        font-family: var(--font-mono);
+        font-size: 0.82rem;
+        line-height: 1.7;
+        color: #e2e8f0;
+        white-space: pre;
+      }
+      .kw  { color: #c792ea; }   /* keyword */
+      .fn  { color: #82aaff; }   /* function/decorator */
+      .str { color: #c3e88d; }   /* string */
+      .cmt { color: #546e7a; font-style: italic; } /* comment */
+      .typ { color: #ffcb6b; }   /* type */
+      .num { color: #f78c6c; }   /* number / attr value */
+      .tag { color: #f07178; }   /* html tag */
+      .atr { color: #ffcb6b; }   /* html attribute */
+      .val { color: #c3e88d; }   /* attribute value */
+      .op  { color: #89ddff; }   /* operator / punctuation */
+
+      code {
+        font-family: var(--font-mono);
+        font-size: 0.82em;
+        background: var(--color-surface-2);
+        border: 1px solid var(--color-border);
+        padding: 0.15em 0.4em;
+        border-radius: 4px;
+        color: var(--color-primary-light);
+      }
+
+      /* ─── Info / Warning / Tip Boxes ───────────────────────────── */
+      .callout {
+        display: flex;
+        gap: 0.75rem;
+        padding: 1rem 1.25rem;
+        border-radius: var(--radius);
+        margin: 1.25rem 0;
+        border: 1px solid;
+        font-size: 0.9rem;
+      }
+      .callout-icon { font-size: 1.2rem; flex-shrink: 0; line-height: 1.5; }
+      .callout.info    { background: rgba(129,140,248,0.08); border-color: rgba(129,140,248,0.3); color: var(--color-primary-light); }
+      .callout.warn    { background: rgba(251,191,36,0.08);  border-color: rgba(251,191,36,0.3);  color: var(--color-warn); }
+      .callout.success { background: rgba(52,211,153,0.08);  border-color: rgba(52,211,153,0.3);  color: var(--color-accent); }
+      .callout.danger  { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.3); color: var(--color-danger); }
+      .callout p { margin: 0; color: inherit; }
+
+      /* ─── Checklists ───────────────────────────────────────────── */
+      .checklist {
+        list-style: none;
+        padding: 0;
+        margin: 1rem 0;
+      }
+      .checklist li {
+        padding: 0.45rem 0 0.45rem 2rem;
+        position: relative;
+        font-size: 0.9rem;
+        border-bottom: 1px solid var(--color-border);
+        color: var(--color-text);
+      }
+      .checklist li:last-child { border-bottom: none; }
+      .checklist li::before {
+        content: '✓';
+        position: absolute;
+        left: 0.4rem;
+        color: var(--color-accent);
+        font-weight: 700;
+      }
+
+      /* ─── Comparison Table ─────────────────────────────────────── */
+      .table-wrapper { overflow-x: auto; margin: 1.25rem 0; }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+      }
+      thead th {
+        background: var(--color-surface);
+        color: var(--color-primary-light);
+        font-weight: 700;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 0.75rem 1rem;
+        text-align: left;
+        border-bottom: 2px solid var(--color-border);
+      }
+      tbody td {
+        padding: 0.7rem 1rem;
+        border-bottom: 1px solid var(--color-border);
+        color: var(--color-text);
+        vertical-align: top;
+      }
+      tbody tr:hover td { background: var(--color-surface); }
+      .badge {
+        display: inline-block;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+      }
+      .badge-a   { background: rgba(52,211,153,0.2);  color: var(--color-accent); }
+      .badge-aa  { background: rgba(129,140,248,0.2); color: var(--color-primary-light); }
+      .badge-aaa { background: rgba(251,191,36,0.2);  color: var(--color-warn); }
+
+      /* ─── Tool Pills ───────────────────────────────────────────── */
+      .tool-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 1rem 0;
+      }
+      .tool-pill {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        color: var(--color-text);
+        font-size: 0.8rem;
+        padding: 0.3rem 0.8rem;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .tool-pill .dot {
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: var(--color-accent);
+        flex-shrink: 0;
+      }
+
+      /* ─── Step list ────────────────────────────────────────────── */
+      .step-list { list-style: none; padding: 0; margin: 1rem 0; counter-reset: steps; }
+      .step-list li {
+        counter-increment: steps;
+        padding: 0.9rem 1rem 0.9rem 3.5rem;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        margin-bottom: 0.75rem;
+        position: relative;
+        font-size: 0.9rem;
+      }
+      .step-list li::before {
+        content: counter(steps);
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 1.5rem; height: 1.5rem;
+        background: linear-gradient(135deg, var(--color-primary), #6366f1);
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 800;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        text-align: center;
+        padding: 0;
+      }
+
+      /* ─── Instruction file preview ─────────────────────────────── */
+      .file-block {
+        background: var(--color-code-bg);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        margin: 1.25rem 0;
+      }
+      .file-block-header {
+        background: var(--color-surface);
+        border-bottom: 1px solid var(--color-border);
+        padding: 0.6rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--color-muted);
+        font-family: var(--font-mono);
+      }
+      .file-block-header span.file-dot { color: var(--color-accent); }
+      .file-block pre { padding: 1.25rem 1.5rem; }
+
+      /* ─── Footer ───────────────────────────────────────────────── */
+      footer {
+        border-top: 1px solid var(--color-border);
+        padding: 2rem 0 0;
+        text-align: center;
+        font-size: 0.8rem;
+        color: var(--color-muted);
+      }
+    </style>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <div class="page-wrapper">
+
+      <!-- ── Hero ─────────────────────────────────────────────── -->
+      <header role="banner">
+        <div class="hero">
+          <div class="hero-badge">Angular 21 · WCAG 2.1 · A11y</div>
+          <h1>Web Accessibility <span>(A11y)</span> &amp;<br>WCAG 2.1 Compliance</h1>
+          <p>
+            A comprehensive expert guide — from first principles to Angular 21 implementation
+            patterns, automated testing pipelines, and Copilot instruction files.
+          </p>
+        </div>
+      </header>
+
+      <!-- ── Table of Contents ─────────────────────────────────── -->
+      <nav aria-label="Table of contents">
+        <div class="toc">
+          <h2>Contents</h2>
+          <ol>
+            <li><a href="#what-is-a11y">What is Web Accessibility?</a></li>
+            <li><a href="#wcag-principles">WCAG 2.1 — The Four Principles</a></li>
+            <li><a href="#conformance-levels">Conformance Levels (A / AA / AAA)</a></li>
+            <li><a href="#why-important">Why It Matters</a></li>
+            <li>
+              <a href="#angular-implementation">Implementing A11y in Angular 21</a>
+              <ol>
+                <li><a href="#angular-implementation">5.1 Semantic HTML First</a></li>
+                <li><a href="#angular-implementation">5.1b Semantic Elements Reference (When/How/Why)</a></li>
+                <li><a href="#angular-implementation">5.2 Angular CDK Accessibility Module</a></li>
+                <li><a href="#angular-implementation">5.3 Accessible Forms</a></li>
+                <li><a href="#angular-implementation">5.4 Page Title &amp; Router Announcements</a></li>
+                <li><a href="#angular-implementation">5.5 Images &amp; Icons</a></li>
+              </ol>
+            </li>
+            <li>
+              <a href="#aria-patterns">ARIA Patterns &amp; Live Regions</a>
+              <ol>
+                <li><a href="#aria-patterns">6.1 ARIA Attributes Reference (When/How/Why)</a></li>
+                <li><a href="#aria-patterns">6.2 Live Regions — Announcing Dynamic Changes</a></li>
+                <li><a href="#aria-patterns">6.3 Modal / Dialog — Focus Trap</a></li>
+              </ol>
+            </li>
+            <li>
+              <a href="#keyboard-focus">Keyboard &amp; Focus Management</a>
+              <ol>
+                <li><a href="#keyboard-focus">7.1 Keyboard Accessibility Reference (When/How/Why)</a></li>
+                <li><a href="#keyboard-focus">7.2 Focus Visible — Never Remove Outlines</a></li>
+                <li><a href="#keyboard-focus">7.3 Tab Order &amp; Skip Link</a></li>
+                <li><a href="#keyboard-focus">7.4 Custom Keyboard Interaction — CDK KeyManager</a></li>
+              </ol>
+            </li>
+            <li><a href="#colour-contrast">Colour Contrast &amp; Visual Design</a></li>
+            <li><a href="#testing">Testing for Accessibility</a></li>
+            <li><a href="#mcp-servers">MCP Servers for A11y</a></li>
+            <li><a href="#instructions">SKILL.md &amp; Instructions.md Suggestions</a></li>
+          </ol>
+        </div>
+      </nav>
+
+      <!-- ── Main ──────────────────────────────────────────────── -->
+      <main id="main-content">
+
+        <!-- ─── 1. What is A11y ─────────────────────────────────── -->
+        <section id="what-is-a11y" aria-labelledby="h-a11y">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">1</div>
+            <h2 id="h-a11y">What is Web Accessibility (A11y)?</h2>
+          </div>
+
+          <p>
+            <strong>Web Accessibility</strong> — abbreviated <em>A11y</em> (11 letters between "A" and "y") —
+            is the practice of designing and building digital products so that people with disabilities
+            can perceive, understand, navigate, and interact with them equally.
+          </p>
+          <p>
+            It covers a broad spectrum of human ability:
+          </p>
+
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">👁️</div>
+              <h3>Visual</h3>
+              <p>Blindness, low vision, colour blindness — relying on screen readers, Braille displays, high-contrast modes.</p>
+            </div>
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">👂</div>
+              <h3>Auditory</h3>
+              <p>Deafness and hard-of-hearing users needing captions, transcripts, and visual alerts.</p>
+            </div>
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">🖐️</div>
+              <h3>Motor</h3>
+              <p>Users who rely on keyboards, switch access, voice control, or eye-tracking instead of a mouse.</p>
+            </div>
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">🧠</div>
+              <h3>Cognitive</h3>
+              <p>Dyslexia, ADHD, autism — needing clear language, predictable layout, and reduced distraction.</p>
+            </div>
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">🗣️</div>
+              <h3>Speech</h3>
+              <p>Non-verbal or speech-impaired users needing AAC device support and alternatives to voice input.</p>
+            </div>
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">⚡</div>
+              <h3>Situational</h3>
+              <p>Temporary impairments — broken arm, bright sunlight, loud environment — benefiting everyone.</p>
+            </div>
+          </div>
+
+          <div class="callout info">
+            <span class="callout-icon" aria-hidden="true">💡</span>
+            <p>
+              <strong>Universal Design principle:</strong> Accessibility improvements almost always
+              benefit <em>all</em> users — faster keyboard navigation, clearer copy, better colour contrast
+              for bright-light conditions, and improved SEO are side-effects of building accessibly.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 2. WCAG Principles ──────────────────────────────── -->
+        <section id="wcag-principles" aria-labelledby="h-wcag">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">2</div>
+            <h2 id="h-wcag">WCAG 2.1 — The Four Principles (POUR)</h2>
+          </div>
+
+          <p>
+            The <strong>Web Content Accessibility Guidelines (WCAG) 2.1</strong>, published by the W3C
+            in June 2018, define 78 success criteria organised under four foundational principles —
+            remembered as <strong>POUR</strong>.
+          </p>
+
+          <div class="principle-grid">
+            <div class="principle-card p1">
+              <span class="tag">P1</span>
+              <h3>Perceivable</h3>
+              <p>All information and UI components must be presentable in ways users can perceive.</p>
+              <ul>
+                <li>Text alternatives for non-text content</li>
+                <li>Captions and audio descriptions</li>
+                <li>Content adaptable to different presentations</li>
+                <li>Distinguishable — colour, contrast, audio control</li>
+              </ul>
+            </div>
+            <div class="principle-card p2">
+              <span class="tag">P2</span>
+              <h3>Operable</h3>
+              <p>UI components and navigation must be operable by every user.</p>
+              <ul>
+                <li>Keyboard accessible — no keyboard traps</li>
+                <li>Enough time to read and use content</li>
+                <li>No content that causes seizures or reactions</li>
+                <li>Navigable with focus order and headings</li>
+              </ul>
+            </div>
+            <div class="principle-card p3">
+              <span class="tag">P3</span>
+              <h3>Understandable</h3>
+              <p>Information and operation of the UI must be understandable.</p>
+              <ul>
+                <li>Readable — language identified</li>
+                <li>Predictable — consistent navigation</li>
+                <li>Input assistance — error prevention and correction</li>
+              </ul>
+            </div>
+            <div class="principle-card p4">
+              <span class="tag">P4</span>
+              <h3>Robust</h3>
+              <p>Content must be robust enough for current and future assistive technologies.</p>
+              <ul>
+                <li>Valid, well-formed HTML</li>
+                <li>Name, Role, Value for all UI components</li>
+                <li>Status messages programmatically determined</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 3. Conformance Levels ───────────────────────────── -->
+        <section id="conformance-levels" aria-labelledby="h-levels">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">3</div>
+            <h2 id="h-levels">Conformance Levels</h2>
+          </div>
+
+          <div class="table-wrapper">
+            <table aria-label="WCAG 2.1 conformance level descriptions">
+              <thead>
+                <tr>
+                  <th scope="col">Level</th>
+                  <th scope="col">Description</th>
+                  <th scope="col">Legal / Industry Status</th>
+                  <th scope="col">Example Criteria</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="badge badge-a">A</span></td>
+                  <td>Minimum baseline. Failing these makes content inaccessible for some users.</td>
+                  <td>Required by most laws (ADA, EN 301 549)</td>
+                  <td>Non-text content has alt text; no keyboard traps</td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge-aa">AA</span></td>
+                  <td>Standard target for public-facing products. Addresses major barriers.</td>
+                  <td><strong>Industry standard; legally required in many jurisdictions</strong></td>
+                  <td>4.5:1 contrast ratio; live captions; error suggestions</td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge-aaa">AAA</span></td>
+                  <td>Enhanced support, not achievable for all content types.</td>
+                  <td>Recommended for specialist services (govt, health)</td>
+                  <td>7:1 contrast; sign language; no timing at all</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout success">
+            <span class="callout-icon" aria-hidden="true">🎯</span>
+            <p>
+              <strong>Target AA conformance</strong> as your baseline for every Angular application.
+              It is the legal threshold in the EU (EN 301 549), UK (PSBAR 2018), US (Section 508),
+              Australia (DDA), and Canada (AODA).
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 4. Why It Matters ───────────────────────────────── -->
+        <section id="why-important" aria-labelledby="h-why">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">4</div>
+            <h2 id="h-why">Why It Matters</h2>
+          </div>
+
+          <h3>The Numbers</h3>
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">🌍</div>
+              <h3>1.3 Billion People</h3>
+              <p>Live with some form of disability globally — 16% of the world's population (WHO, 2023).</p>
+            </div>
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">💰</div>
+              <h3>$13 Trillion Market</h3>
+              <p>The annual disposable income of people with disabilities and their families globally.</p>
+            </div>
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">⚖️</div>
+              <h3>Legal Risk</h3>
+              <p>Web accessibility lawsuits exceeded 4,600 in the US alone in 2023, up 300% since 2018.</p>
+            </div>
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">🔍</div>
+              <h3>SEO Boost</h3>
+              <p>Semantic HTML, alt text, and heading structures directly improve search engine ranking.</p>
+            </div>
+          </div>
+
+          <h3>Business &amp; Engineering Benefits</h3>
+          <ul class="checklist">
+            <li>Reduces legal exposure under ADA, AODA, EN 301 549, Section 508 and equivalent laws</li>
+            <li>Improves Core Web Vitals and Lighthouse scores — indirectly boosting SEO</li>
+            <li>Semantic HTML is easier to unit test and maintain</li>
+            <li>Keyboard-accessible components work better with test automation (Cypress, Playwright)</li>
+            <li>High-contrast and resizable UI gracefully handles mobile / unusual viewports</li>
+            <li>Reduces support costs — clear error messages and labels reduce user confusion</li>
+            <li>Demonstrates corporate social responsibility, improving brand reputation</li>
+          </ul>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong>Retrofitting is expensive.</strong> The cost of fixing accessibility issues
+              post-release is estimated at 30–100× the cost of building accessibly from the start.
+              Treat A11y as a first-class requirement, not an audit afterthought.
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── 5. Angular 21 Implementation ───────────────────── -->
+        <section id="angular-implementation" aria-labelledby="h-ng">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">5</div>
+            <h2 id="h-ng">Implementing A11y in Angular 21</h2>
+          </div>
+
+          <!-- 5.1 Semantic HTML -->
+          <h3>5.1 — Semantic HTML First</h3>
+          <p>
+            Angular renders to the DOM — so semantic HTML is the foundation. Never replace native
+            elements with divs when a semantic alternative exists.
+          </p>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — Good vs Bad</span>
+            <pre>
+<span class="cmt">&lt;!-- ✗ WRONG — div soup, no semantics --&gt;</span>
+<span class="tag">&lt;div</span> <span class="atr">class</span>=<span class="val">"header"</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;div</span> <span class="atr">class</span>=<span class="val">"nav"</span><span class="tag">&gt;</span>
+    <span class="tag">&lt;div</span> <span class="atr">(click)</span>=<span class="val">"navigate()"</span><span class="tag">&gt;</span>Home<span class="tag">&lt;/div&gt;</span>
+  <span class="tag">&lt;/div&gt;</span>
+<span class="tag">&lt;/div&gt;</span>
+
+<span class="cmt">&lt;!-- ✓ CORRECT — semantic landmarks --&gt;</span>
+<span class="tag">&lt;header</span> <span class="atr">role</span>=<span class="val">"banner"</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;nav</span> <span class="atr">aria-label</span>=<span class="val">"Primary navigation"</span><span class="tag">&gt;</span>
+    <span class="tag">&lt;ul</span> <span class="atr">role</span>=<span class="val">"list"</span><span class="tag">&gt;</span>
+      <span class="tag">&lt;li&gt;&lt;a</span> <span class="atr">routerLink</span>=<span class="val">"/"</span> <span class="atr">routerLinkActive</span>=<span class="val">"active"</span>
+          <span class="atr">[attr.aria-current]</span>=<span class="val">"isActive ? 'page' : null"</span><span class="tag">&gt;</span>Home<span class="tag">&lt;/a&gt;&lt;/li&gt;</span>
+    <span class="tag">&lt;/ul&gt;</span>
+  <span class="tag">&lt;/nav&gt;</span>
+<span class="tag">&lt;/header&gt;</span>
+<span class="tag">&lt;main</span> <span class="atr">id</span>=<span class="val">"main-content"</span><span class="tag">&gt;</span>...<span class="tag">&lt;/main&gt;</span>
+<span class="tag">&lt;footer</span> <span class="atr">role</span>=<span class="val">"contentinfo"</span><span class="tag">&gt;</span>...<span class="tag">&lt;/footer&gt;</span>
+</pre>
+          </div>
+
+          <!-- 5.1b Semantic Elements Reference -->
+          <h3>5.1b — Semantic HTML Elements: When, How &amp; Why</h3>
+          <p>
+            Every HTML element carries an implicit ARIA role. Choosing the right element gives
+            you accessible semantics <em>for free</em> — without a single line of ARIA.
+            Below is a complete reference for every element that matters for accessibility.
+          </p>
+
+          <!-- ── Landmark Elements ── -->
+          <h4>Landmark Elements — Page Structure</h4>
+          <p>
+            Landmarks let screen reader users jump directly between major page regions using a
+            shortcut key (NVDA: <kbd>R</kbd>, JAWS: <kbd>R</kbd>, VoiceOver: <kbd>W</kbd>).
+            A well-landmarked page is like a table of contents for AT users.
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="Landmark HTML elements — when, how, and why to use">
+              <thead>
+                <tr>
+                  <th scope="col">Element</th>
+                  <th scope="col">Implicit Role</th>
+                  <th scope="col">When to Use</th>
+                  <th scope="col">How to Use</th>
+                  <th scope="col">Why It Matters</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>&lt;header&gt;</code></td>
+                  <td><code>banner</code> (when top-level)</td>
+                  <td>Site-wide header: logo, primary nav, site name. <strong>Once per page at top level.</strong></td>
+                  <td><code>&lt;header role="banner"&gt;</code> at the top of <code>&lt;body&gt;</code>. When inside <code>&lt;article&gt;</code> or <code>&lt;section&gt;</code>, it is generic — add <code>role="banner"</code> explicitly if needed.</td>
+                  <td>AT announces "banner landmark" so users can skip to or past the header quickly. Without it, keyboard users must Tab through every navigation link on every page load.</td>
+                </tr>
+                <tr>
+                  <td><code>&lt;nav&gt;</code></td>
+                  <td><code>navigation</code></td>
+                  <td>Groups of navigation links — primary nav, breadcrumb, pagination, sidebar nav. Use multiple <code>&lt;nav&gt;</code>s per page when distinct navigation sets exist.</td>
+                  <td>Always add <code>aria-label</code> to distinguish multiple navs: <code>&lt;nav aria-label="Primary navigation"&gt;</code>, <code>&lt;nav aria-label="Breadcrumb"&gt;</code>. Use <code>&lt;ul&gt;</code> inside for a list of links.</td>
+                  <td>Screen readers list all navigation landmarks so users can jump directly to the one they need. Without labels, two <code>&lt;nav&gt;</code> landmarks are indistinguishable and announced as "navigation, navigation".</td>
+                </tr>
+                <tr>
+                  <td><code>&lt;main&gt;</code></td>
+                  <td><code>main</code></td>
+                  <td>The primary content of the page — everything that is unique to this page (not shared chrome). <strong>Exactly one per page.</strong></td>
+                  <td><code>&lt;main id="main-content"&gt;</code>. The <code>id</code> is the skip-link target. Add <code>tabindex="-1"</code> to make it programmatically focusable for focus management after route change.</td>
+                  <td>The skip-link target. Without <code>&lt;main&gt;</code>, keyboard users must Tab through the entire header and navigation every time they arrive on a page. Violates WCAG 2.4.1 (Bypass Blocks, Level A).</td>
+                </tr>
+                <tr>
+                  <td><code>&lt;section&gt;</code></td>
+                  <td><code>region</code> (only when labeled)</td>
+                  <td>A distinct thematic grouping of content that would appear in a document outline — e.g., "Features", "Testimonials", "Filter panel". Do <strong>not</strong> use it as a generic <code>&lt;div&gt;</code> replacement.</td>
+                  <td>Always provide a label: <code>&lt;section aria-labelledby="section-heading-id"&gt;</code>. If you cannot provide a label, use <code>&lt;div&gt;</code> instead. Without a label, <code>&lt;section&gt;</code> has no ARIA role.</td>
+                  <td>Labeled sections become "region" landmarks that AT users can navigate to by name. Unlabeled sections are treated as generic divs by AT — the element adds nothing without a label.</td>
+                </tr>
+                <tr>
+                  <td><code>&lt;article&gt;</code></td>
+                  <td><code>article</code></td>
+                  <td>Self-contained, independently distributable content: blog post, news article, product card, forum post, comment, widget. The content must make sense on its own if extracted from the page.</td>
+                  <td>Each article should have a heading that names it. Nest articles inside each other for comment threads (reply articles inside post article). No <code>aria-label</code> needed — the heading names it.</td>
+                  <td>AT announces "article" and users can navigate between articles on the page. Tells search engines and AT that the content is self-contained and shareable.</td>
+                </tr>
+                <tr>
+                  <td><code>&lt;aside&gt;</code></td>
+                  <td><code>complementary</code></td>
+                  <td>Content tangentially related to the surrounding content: sidebars, pull quotes, advertising, related links, glossary panels. The content is supplementary — the main content still makes sense without it.</td>
+                  <td><code>&lt;aside aria-label="Related articles"&gt;</code>. If multiple asides exist on one page, label each one to distinguish them.</td>
+                  <td>AT users can choose to skip complementary content entirely using landmark navigation. Without it, sidebar content is indistinguishable from main content in the AT's linear reading order.</td>
+                </tr>
+                <tr>
+                  <td><code>&lt;footer&gt;</code></td>
+                  <td><code>contentinfo</code> (when top-level)</td>
+                  <td>Site-wide footer: copyright, links to legal pages, contact info, social media. Also used inside <code>&lt;article&gt;</code> for article metadata (author, date) — in that context it is generic, not <code>contentinfo</code>.</td>
+                  <td><code>&lt;footer role="contentinfo"&gt;</code> at bottom of <code>&lt;body&gt;</code>. Add <code>role="contentinfo"</code> explicitly for clarity, though modern browsers infer it automatically for top-level <code>&lt;footer&gt;</code>.</td>
+                  <td>AT announces "contentinfo landmark" — users who want the copyright or privacy policy can jump directly to it. Without it, the footer is anonymous content that users must scroll all the way to.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- ── Heading Hierarchy ── -->
+          <h4>Heading Elements — Document Outline</h4>
+
+          <div class="table-wrapper">
+            <table aria-label="HTML heading elements — when, how, and why">
+              <thead>
+                <tr>
+                  <th scope="col">Element</th>
+                  <th scope="col">When to Use</th>
+                  <th scope="col">How to Use</th>
+                  <th scope="col">Why It Matters</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>&lt;h1&gt;</code></td>
+                  <td>The primary title of the page — <strong>one per page</strong>. In a SPA, update it on every route change.</td>
+                  <td>Matches or closely mirrors the <code>&lt;title&gt;</code> element content. In Angular: set via the route <code>title</code> property and reflect it as <code>&lt;h1&gt;</code> in the component template.</td>
+                  <td>Screen reader users often navigate by headings (NVDA: <kbd>H</kbd>, VoiceOver: <kbd>Ctrl+Opt+Cmd+H</kbd>). <code>&lt;h1&gt;</code> tells them "you are on the page about X." Without it, the page has no clear identity for AT.</td>
+                </tr>
+                <tr>
+                  <td><code>&lt;h2&gt;–&lt;h6&gt;</code></td>
+                  <td>Sub-sections of the page in strict descending order: <code>&lt;h2&gt;</code> are top-level sub-sections, <code>&lt;h3&gt;</code> are sub-sub-sections, etc. <strong>Never skip levels</strong> (e.g., jumping from <code>&lt;h2&gt;</code> to <code>&lt;h4&gt;</code>).</td>
+                  <td>Choose level by <em>document hierarchy</em>, not by visual size. If you need a visually larger heading at a lower level, use CSS. In Angular: every <code>&lt;section aria-labelledby="id"&gt;</code> should have a corresponding <code>&lt;h2&gt;</code> or <code>&lt;h3&gt;</code> with that id.</td>
+                  <td>AT users build a mental map of the page from the heading structure. Skipped levels break the outline — "why is there an <code>&lt;h4&gt;</code> with no parent <code>&lt;h3&gt;</code>?" — and confuse navigation. HeadingsMap browser extension shows the outline.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong>Never use headings for visual styling.</strong> Do not use <code>&lt;h3&gt;</code>
+              because it looks the right size — use it because the content is a sub-section of an
+              <code>&lt;h2&gt;</code>. Equally, do not skip a level because you want a smaller visual
+              heading. Style with CSS; structure with the correct level.
+            </p>
+          </div>
+
+          <!-- ── Interactive Elements ── -->
+          <h4>Interactive Elements — Buttons, Links &amp; Forms</h4>
+
+          <div class="table-wrapper">
+            <table aria-label="Interactive HTML elements — when, how, and why">
+              <thead>
+                <tr>
+                  <th scope="col">Element</th>
+                  <th scope="col">When to Use</th>
+                  <th scope="col">How to Use</th>
+                  <th scope="col">Why It Matters / Common Mistake</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>&lt;button&gt;</code></td>
+                  <td>Any <strong>action</strong> that does not navigate to a new URL: submit form, delete item, toggle menu, open modal, increment counter. If clicking it changes something on-page — use a button.</td>
+                  <td>Always set <code>type="button"</code> (prevents accidental form submission). Add <code>aria-label</code> when the visible text alone is insufficient: <code>aria-label="Delete todo: Buy groceries"</code>. For icon-only buttons, <code>aria-label</code> is mandatory.</td>
+                  <td>Native <code>&lt;button&gt;</code> is keyboard focusable, activatable with <kbd>Enter</kbd> and <kbd>Space</kbd>, announces "button" role to AT, and supports <code>disabled</code> natively. A <code>&lt;div (click)="..."&gt;</code> has none of these — it is inaccessible by default and requires manual ARIA, tabindex, and keyboard handlers to approximate the same behaviour.</td>
+                </tr>
+                <tr>
+                  <td><code>&lt;a href&gt;</code></td>
+                  <td>Any <strong>navigation</strong>: links to another page, another URL, an anchor on the same page, a file download. If clicking it changes the URL or location — use a link.</td>
+                  <td>Always provide meaningful link text — never "click here" or "read more". For ambiguous links in repeated contexts, add <code>aria-label</code>: <code>aria-label="Read more about Angular accessibility"</code>. Use <code>rel="noopener noreferrer"</code> for external links. In Angular, use <code>routerLink</code> for internal navigation.</td>
+                  <td>Links are announced as "link" by AT (not "button"). Keyboard: <kbd>Enter</kbd> activates a link; <kbd>Space</kbd> does not. Screen reader users can list all links on a page using a shortcut — vague link text like "click here" makes this list useless. WCAG 2.4.6 requires descriptive labels.</td>
+                </tr>
+                <tr>
+                  <td><code>&lt;label&gt;</code></td>
+                  <td>Every <code>&lt;input&gt;</code>, <code>&lt;select&gt;</code>, and <code>&lt;textarea&gt;</code> on every form — no exceptions. The label describes what the field expects.</td>
+                  <td>Use explicit association via <code>for</code>/<code>id</code>: <code>&lt;label for="email"&gt;Email address&lt;/label&gt; &lt;input id="email" ...&gt;</code>. Never use <code>placeholder</code> as the only label — placeholder disappears when the user types and has insufficient contrast. Do not use <code>aria-label</code> on the input as a substitute for a visible label.</td>
+                  <td>Without a <code>&lt;label&gt;</code>, screen readers announce the input as just "edit text" — users do not know what to type. Clicking the label focuses the associated input (larger click target for motor-impaired users). WCAG 1.3.1 (Info and Relationships, Level A) requires this association.</td>
+                </tr>
+                <tr>
+                  <td><code>&lt;input type="..."&gt;</code></td>
+                  <td>Any user-entered data. Choose the most specific <code>type</code> for the data: <code>email</code>, <code>tel</code>, <code>number</code>, <code>date</code>, <code>url</code>, <code>search</code>, <code>password</code>. Never use <code>type="text"</code> for data that has a semantic type.</td>
+                  <td>Always pair with <code>&lt;label&gt;</code>. Set <code>autocomplete</code> for user personal data (WCAG 1.3.5). Set <code>inputmode</code> for mobile keyboard type. For validation: add <code>aria-required="true"</code> and <code>[attr.aria-invalid]="control.invalid &amp;&amp; control.touched"</code>.</td>
+                  <td>Specific input types trigger the correct mobile keyboard (numeric keypad for <code>tel</code>), activate browser autofill, and help AT contextualise the field. <code>type="email"</code> tells AT "this field expects an email address" even before the user reads the label.</td>
+                </tr>
+                <tr>
+                  <td><code>&lt;select&gt;</code></td>
+                  <td>Choosing one option from a list of 5–15 options where all options can be shown. Below 5 options: consider radio buttons. Above 15: consider a searchable combobox (ARIA pattern).</td>
+                  <td>Always associate with <code>&lt;label&gt;</code>. Use <code>&lt;optgroup label="..."&gt;</code> to group related options. Add a non-selectable first option as a placeholder: <code>&lt;option value="" disabled selected&gt;Choose a status&lt;/option&gt;</code>.</td>
+                  <td>Native <code>&lt;select&gt;</code> has full keyboard support (<kbd>↑</kbd>/<kbd>↓</kbd> to navigate options), AT announces the selected value, and it works across all platforms without ARIA. Custom dropdowns built from <code>&lt;div&gt;</code>s require the entire ARIA combobox or listbox pattern to reach the same baseline.</td>
+                </tr>
+                <tr>
+                  <td><code>&lt;fieldset&gt; + &lt;legend&gt;</code></td>
+                  <td>Grouping related form controls that share a common purpose: a set of radio buttons, a group of checkboxes, billing address vs shipping address fields. The legend titles the group.</td>
+                  <td><code>&lt;fieldset&gt;&lt;legend&gt;Filter todos by status&lt;/legend&gt; ... &lt;/fieldset&gt;</code>. Angular alternative: <code>&lt;div role="group" aria-labelledby="group-label-id"&gt;</code> when you cannot use <code>&lt;fieldset&gt;</code> for styling reasons.</td>
+                  <td>Without grouping, radio buttons are announced individually: "All, radio button"; "Active, radio button" — with no context about what they represent. With <code>&lt;fieldset&gt;&lt;legend&gt;</code>, AT announces: "Filter todos by status group: All, radio button" — the group name is always in context. WCAG 1.3.1 requires this for related controls.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- ── Content Elements ── -->
+          <h4>Content &amp; Media Elements</h4>
+
+          <div class="table-wrapper">
+            <table aria-label="Content and media HTML elements — when, how, and why">
+              <thead>
+                <tr>
+                  <th scope="col">Element</th>
+                  <th scope="col">When to Use</th>
+                  <th scope="col">How to Use</th>
+                  <th scope="col">Why It Matters</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>&lt;img&gt;</code></td>
+                  <td>All images. The <code>alt</code> attribute is mandatory in HTML5 — its value depends on whether the image is <strong>informative</strong>, <strong>functional</strong>, <strong>decorative</strong>, or <strong>text</strong>.</td>
+                  <td>
+                    Informative: <code>alt="Graph showing todo completion rising 40%"</code><br>
+                    Decorative: <code>alt="" aria-hidden="true"</code><br>
+                    Functional (button icon): <code>alt="Delete"</code> (button has no other label)<br>
+                    Text image: <code>alt="exact text shown in image"</code>
+                  </td>
+                  <td>Screen readers read <code>alt</code> text in place of the image. Missing <code>alt</code> causes AT to announce the full file path ("img/logo-v3-final2.png") — meaningless and noisy. Empty <code>alt=""</code> causes AT to skip the image entirely — correct for decorative images. WCAG 1.1.1 (Level A) mandates alt text.</td>
+                </tr>
+                <tr>
+                  <td><code>&lt;figure&gt; + &lt;figcaption&gt;</code></td>
+                  <td>Self-contained content referenced from the main text: images with captions, diagrams, code listings, charts, quoted blocks with attribution.</td>
+                  <td><code>&lt;figure&gt;&lt;img src="chart.png" alt="Bar chart of completion rates"&gt;&lt;figcaption&gt;Figure 1: Completion rates by week&lt;/figcaption&gt;&lt;/figure&gt;</code>. The <code>&lt;figcaption&gt;</code> can serve as the accessible name: use <code>aria-labelledby</code> pointing to it if the image <code>alt</code> would be redundant.</td>
+                  <td>Associates a caption with its image in the accessibility tree. AT users hear both the image description and the caption in context, rather than encountering an orphaned caption that has no obvious connection to its image in the linear reading order.</td>
+                </tr>
+                <tr>
+                  <td><code>&lt;ul&gt; / &lt;ol&gt; / &lt;li&gt;</code></td>
+                  <td>
+                    <code>&lt;ul&gt;</code> for unordered sets (navigation links, features, bullet points).<br>
+                    <code>&lt;ol&gt;</code> for ordered/sequential content (steps, rankings, numbered instructions).
+                  </td>
+                  <td>Use <code>role="list"</code> on <code>&lt;ul&gt;</code>/<code>&lt;ol&gt;</code> if you apply <code>list-style: none</code> in CSS — Safari VoiceOver removes list semantics when visual bullets are removed. In Tailwind: <code>&lt;ul role="list"&gt;</code>.</td>
+                  <td>AT announces "list, N items" so users know the total count before navigating items. Without list markup, items are read as a stream of text with no structure. WCAG 1.3.1 (Info and Relationships) requires programmatic structure to match visual structure.</td>
+                </tr>
+                <tr>
+                  <td><code>&lt;table&gt;</code></td>
+                  <td>Tabular data — rows and columns with a meaningful relationship between cells. Never for layout.</td>
+                  <td>Always include <code>&lt;caption&gt;</code> or <code>aria-label</code> to name the table. Use <code>&lt;th scope="col"&gt;</code> for column headers, <code>&lt;th scope="row"&gt;</code> for row headers. Group rows with <code>&lt;thead&gt;</code>, <code>&lt;tbody&gt;</code>, <code>&lt;tfoot&gt;</code>.</td>
+                  <td>AT reads the column and row headers before each data cell: "Status, column 2; Active, row 3; Active". Without <code>&lt;th&gt;</code> and <code>scope</code>, every cell is anonymous data. Complex tables become completely unusable for screen reader users.</td>
+                </tr>
+                <tr>
+                  <td><code>&lt;time datetime&gt;</code></td>
+                  <td>Any date, time, or duration that is displayed on the page: "Posted 2 days ago", "Deadline: May 16", "Duration: 1h 30m".</td>
+                  <td><code>&lt;time datetime="2026-05-16"&gt;May 16, 2026&lt;/time&gt;</code>. The <code>datetime</code> attribute uses machine-readable ISO 8601 format; the element content is human-readable. For durations: <code>datetime="PT1H30M"</code>.</td>
+                  <td>Search engines, browser extensions, and AT can parse the machine-readable date. "2 days ago" loses meaning when page is cached — the <code>datetime</code> attribute preserves the absolute value. Enables date parsing by calendar apps and voice assistants.</td>
+                </tr>
+                <tr>
+                  <td><code>&lt;details&gt; + &lt;summary&gt;</code></td>
+                  <td>Disclosure widgets — expandable FAQ items, "read more" toggles, filter panels, spoiler content. Native alternative to a custom accordion that uses ARIA <code>aria-expanded</code>.</td>
+                  <td><code>&lt;details&gt;&lt;summary&gt;What is A11y?&lt;/summary&gt; &lt;p&gt;Explanation...&lt;/p&gt;&lt;/details&gt;</code>. The <code>&lt;summary&gt;</code> is the clickable trigger; everything else in <code>&lt;details&gt;</code> is the collapsible panel. No JavaScript required.</td>
+                  <td>Full keyboard support built in (<kbd>Enter</kbd> or <kbd>Space</kbd> to toggle). AT announces "disclosure triangle, collapsed/expanded". Zero ARIA required. The only reason to build a custom accordion is when you need to control animation or coordinate multiple open panels — in that case, add <code>aria-expanded</code> as shown in the ARIA guide.</td>
+                </tr>
+                <tr>
+                  <td><code>&lt;abbr title&gt;</code></td>
+                  <td>First use of abbreviations or acronyms on a page: "WAI-ARIA", "WCAG", "A11y", company-specific acronyms.</td>
+                  <td><code>&lt;abbr title="Web Accessibility Initiative – Accessible Rich Internet Applications"&gt;WAI-ARIA&lt;/abbr&gt;</code>. Only needed on the first use per page. Browser renders as underlined dotted text by default.</td>
+                  <td>AT can read out the full expansion to users who do not know the abbreviation. Search engines understand the full term. WCAG 3.1.4 (Abbreviations, Level AAA) recommends this — at AA, use it for any abbreviation that could confuse a new user.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- ── Complete Example ── -->
+          <h4>Complete Semantic Page Structure — Angular Component</h4>
+          <div class="code-block">
+            <span class="lang-tag">HTML — Fully semantic Angular 21 page</span>
+            <pre>
+<span class="cmt">&lt;!-- app.html — full semantic skeleton --&gt;</span>
+
+<span class="cmt">&lt;!-- 1. Skip link — FIRST focusable element --&gt;</span>
+<span class="tag">&lt;a</span> <span class="atr">class</span>=<span class="val">"skip-link"</span> <span class="atr">href</span>=<span class="val">"#main-content"</span><span class="tag">&gt;</span>Skip to main content<span class="tag">&lt;/a&gt;</span>
+
+<span class="cmt">&lt;!-- 2. Banner landmark — site-wide header --&gt;</span>
+<span class="tag">&lt;header</span> <span class="atr">role</span>=<span class="val">"banner"</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;a</span> <span class="atr">routerLink</span>=<span class="val">"/"</span> <span class="atr">aria-label</span>=<span class="val">"Angular Todo App — go to home"</span><span class="tag">&gt;</span>
+    <span class="tag">&lt;img</span> <span class="atr">src</span>=<span class="val">"logo.svg"</span> <span class="atr">alt</span>=<span class="val">"Angular Todo App"</span> <span class="atr">width</span>=<span class="val">"120"</span> <span class="atr">height</span>=<span class="val">"40"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;/a&gt;</span>
+
+  <span class="cmt">&lt;!-- 3. Primary navigation landmark --&gt;</span>
+  <span class="tag">&lt;nav</span> <span class="atr">aria-label</span>=<span class="val">"Primary navigation"</span><span class="tag">&gt;</span>
+    <span class="tag">&lt;ul</span> <span class="atr">role</span>=<span class="val">"list"</span><span class="tag">&gt;</span>
+      <span class="tag">@for</span> (link of navLinks(); track link.path) {
+        <span class="tag">&lt;li&gt;&lt;a</span>
+          <span class="atr">[routerLink]</span>=<span class="val">"link.path"</span>
+          <span class="atr">routerLinkActive</span>=<span class="val">"active"</span>
+          <span class="atr">#rla</span>=<span class="val">"routerLinkActive"</span>
+          <span class="atr">[attr.aria-current]</span>=<span class="val">"rla.isActive ? 'page' : null"</span>
+        <span class="tag">&gt;</span>{{ link.label }}<span class="tag">&lt;/a&gt;&lt;/li&gt;</span>
+      }
+    <span class="tag">&lt;/ul&gt;</span>
+  <span class="tag">&lt;/nav&gt;</span>
+<span class="tag">&lt;/header&gt;</span>
+
+<span class="cmt">&lt;!-- 4. Main landmark — unique page content --&gt;</span>
+<span class="tag">&lt;main</span> <span class="atr">id</span>=<span class="val">"main-content"</span> <span class="atr">tabindex</span>=<span class="val">"-1"</span><span class="tag">&gt;</span>
+
+  <span class="cmt">&lt;!-- 5. h1 — one per page, matches route title --&gt;</span>
+  <span class="tag">&lt;h1&gt;</span>My Todos<span class="tag">&lt;/h1&gt;</span>
+
+  <span class="cmt">&lt;!-- 6. Named section becomes a "region" landmark --&gt;</span>
+  <span class="tag">&lt;section</span> <span class="atr">aria-labelledby</span>=<span class="val">"filters-heading"</span><span class="tag">&gt;</span>
+    <span class="tag">&lt;h2</span> <span class="atr">id</span>=<span class="val">"filters-heading"</span><span class="tag">&gt;</span>Filter Todos<span class="tag">&lt;/h2&gt;</span>
+
+    <span class="cmt">&lt;!-- 7. fieldset groups related radio buttons --&gt;</span>
+    <span class="tag">&lt;fieldset&gt;</span>
+      <span class="tag">&lt;legend&gt;</span>Show<span class="tag">&lt;/legend&gt;</span>
+      <span class="tag">&lt;label&gt;&lt;input</span> <span class="atr">type</span>=<span class="val">"radio"</span> <span class="atr">name</span>=<span class="val">"filter"</span> <span class="atr">value</span>=<span class="val">"all"</span> <span class="atr">checked</span><span class="tag">/&gt;</span> All<span class="tag">&lt;/label&gt;</span>
+      <span class="tag">&lt;label&gt;&lt;input</span> <span class="atr">type</span>=<span class="val">"radio"</span> <span class="atr">name</span>=<span class="val">"filter"</span> <span class="atr">value</span>=<span class="val">"active"</span>   <span class="tag">/&gt;</span> Active<span class="tag">&lt;/label&gt;</span>
+      <span class="tag">&lt;label&gt;&lt;input</span> <span class="atr">type</span>=<span class="val">"radio"</span> <span class="atr">name</span>=<span class="val">"filter"</span> <span class="atr">value</span>=<span class="val">"done"</span>     <span class="tag">/&gt;</span> Done<span class="tag">&lt;/label&gt;</span>
+    <span class="tag">&lt;/fieldset&gt;</span>
+  <span class="tag">&lt;/section&gt;</span>
+
+  <span class="cmt">&lt;!-- 8. Article: self-contained todo item --&gt;</span>
+  <span class="tag">@for</span> (todo of todos(); track todo.id) {
+    <span class="tag">&lt;article</span> <span class="atr">[attr.aria-label]</span>=<span class="val">"'Todo: ' + todo.title"</span><span class="tag">&gt;</span>
+      <span class="tag">&lt;h3&gt;</span>{{ todo.title }}<span class="tag">&lt;/h3&gt;</span>
+      <span class="cmt">&lt;!-- time element with machine-readable datetime --&gt;</span>
+      <span class="tag">&lt;p&gt;</span>Added <span class="tag">&lt;time</span> <span class="atr">[attr.datetime]</span>=<span class="val">"todo.createdAt"</span><span class="tag">&gt;</span>{{ todo.createdAt | date }}<span class="tag">&lt;/time&gt;&lt;/p&gt;</span>
+      <span class="tag">&lt;button</span> <span class="atr">type</span>=<span class="val">"button"</span> <span class="atr">[attr.aria-label]</span>=<span class="val">"'Delete todo: ' + todo.title"</span><span class="tag">&gt;</span>
+        <span class="tag">&lt;svg</span> <span class="atr">aria-hidden</span>=<span class="val">"true"</span> <span class="atr">focusable</span>=<span class="val">"false"</span><span class="tag">&gt;</span>...<span class="tag">&lt;/svg&gt;</span>
+      <span class="tag">&lt;/button&gt;</span>
+    <span class="tag">&lt;/article&gt;</span>
+  }
+<span class="tag">&lt;/main&gt;</span>
+
+<span class="cmt">&lt;!-- 9. Complementary — sidebar or related content --&gt;</span>
+<span class="tag">&lt;aside</span> <span class="atr">aria-label</span>=<span class="val">"Todo statistics"</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;h2&gt;</span>Statistics<span class="tag">&lt;/h2&gt;</span>
+  <span class="tag">&lt;p&gt;</span>{{ completedCount() }} of {{ todos().length }} completed<span class="tag">&lt;/p&gt;</span>
+<span class="tag">&lt;/aside&gt;</span>
+
+<span class="cmt">&lt;!-- 10. Contentinfo landmark — site-wide footer --&gt;</span>
+<span class="tag">&lt;footer</span> <span class="atr">role</span>=<span class="val">"contentinfo"</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;p&gt;</span>&copy; 2026 Angular Todo App<span class="tag">&lt;/p&gt;</span>
+  <span class="tag">&lt;nav</span> <span class="atr">aria-label</span>=<span class="val">"Footer links"</span><span class="tag">&gt;</span>
+    <span class="tag">&lt;a</span> <span class="atr">href</span>=<span class="val">"/privacy"</span><span class="tag">&gt;</span>Privacy Policy<span class="tag">&lt;/a&gt;</span> ·
+    <span class="tag">&lt;a</span> <span class="atr">href</span>=<span class="val">"/terms"</span><span class="tag">&gt;</span>Terms of Service<span class="tag">&lt;/a&gt;</span>
+  <span class="tag">&lt;/nav&gt;</span>
+<span class="tag">&lt;/footer&gt;</span>
+</pre>
+          </div>
+
+          <!-- 5.2 Angular CDK A11y -->
+          <h3>5.2 — Angular CDK Accessibility Module</h3>
+          <p>
+            The Angular CDK <code>@angular/cdk/a11y</code> package provides production-ready
+            accessibility primitives that should be the first stop before any custom ARIA solution.
+          </p>
+
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre>
+<span class="cmt">// app.config.ts — import CDK A11y providers</span>
+<span class="kw">import</span> { <span class="typ">ApplicationConfig</span> } <span class="kw">from</span> <span class="str">'@angular/core'</span><span class="op">;</span>
+<span class="kw">import</span> { <span class="typ">A11yModule</span> } <span class="kw">from</span> <span class="str">'@angular/cdk/a11y'</span><span class="op">;</span>
+
+<span class="cmt">// In standalone component imports:</span>
+<span class="kw">import</span> { <span class="typ">FocusTrapFactory</span><span class="op">,</span> <span class="typ">LiveAnnouncer</span><span class="op">,</span> <span class="typ">AriaDescriber</span> }
+  <span class="kw">from</span> <span class="str">'@angular/cdk/a11y'</span><span class="op">;</span>
+</pre>
+          </div>
+
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — Component</span>
+            <pre>
+<span class="fn">@Component</span>(<span class="op">{</span>
+  selector<span class="op">:</span> <span class="str">'app-todo-item'</span><span class="op">,</span>
+  standalone<span class="op">:</span> <span class="kw">true</span><span class="op">,</span>
+  changeDetection<span class="op">:</span> <span class="typ">ChangeDetectionStrategy</span><span class="op">.</span>OnPush<span class="op">,</span>
+  imports<span class="op">:</span> [<span class="typ">A11yModule</span>]<span class="op">,</span>
+  template<span class="op">:</span> <span class="str">`
+    &lt;li role="listitem"
+        [attr.aria-label]="'Todo: ' + todo().title + (todo().completed ? ', completed' : '')"&gt;
+
+      &lt;!-- Checkbox with explicit label association --&gt;
+      &lt;input
+        type="checkbox"
+        [id]="'todo-' + todo().id"
+        [checked]="todo().completed"
+        (change)="toggle()"
+        [attr.aria-describedby]="'todo-desc-' + todo().id" /&gt;
+      &lt;label [for]="'todo-' + todo().id"&gt;{{ todo().title }}&lt;/label&gt;
+
+      &lt;!-- Visually hidden description for screen readers --&gt;
+      &lt;span [id]="'todo-desc-' + todo().id" class="sr-only"&gt;
+        {{ todo().completed ? 'Mark as incomplete' : 'Mark as complete' }}
+      &lt;/span&gt;
+
+      &lt;button
+        type="button"
+        [attr.aria-label]="'Delete todo: ' + todo().title"
+        (click)="delete()"&gt;
+        &lt;span aria-hidden="true"&gt;×&lt;/span&gt;
+      &lt;/button&gt;
+    &lt;/li&gt;
+  `</span>
+<span class="op">})</span>
+<span class="kw">export class</span> <span class="typ">TodoItemComponent</span> <span class="op">{</span>
+  <span class="kw">readonly</span> todo <span class="op">=</span> <span class="fn">input</span><span class="op">.required&lt;</span><span class="typ">Todo</span><span class="op">&gt;();</span>
+  <span class="kw">readonly</span> toggled <span class="op">=</span> <span class="fn">output</span><span class="op">&lt;</span><span class="typ">number</span><span class="op">&gt;();</span>
+  <span class="kw">readonly</span> deleted  <span class="op">=</span> <span class="fn">output</span><span class="op">&lt;</span><span class="typ">number</span><span class="op">&gt;();</span>
+
+  <span class="kw">private readonly</span> announcer <span class="op">=</span> <span class="fn">inject</span>(<span class="typ">LiveAnnouncer</span>)<span class="op">;</span>
+
+  toggle()<span class="op">:</span> <span class="kw">void</span> <span class="op">{</span>
+    <span class="kw">this</span><span class="op">.</span><span class="fn">toggled</span><span class="op">.</span><span class="fn">emit</span>(<span class="kw">this</span><span class="op">.</span><span class="fn">todo</span>()<span class="op">.</span>id)<span class="op">;</span>
+    <span class="cmt">// Announce state change to screen readers</span>
+    <span class="kw">this</span><span class="op">.</span>announcer<span class="op">.</span><span class="fn">announce</span>(
+      <span class="str">`Todo "${</span><span class="kw">this</span><span class="op">.</span><span class="fn">todo</span>()<span class="op">.</span>title<span class="str">}" marked as ${</span><span class="kw">this</span><span class="op">.</span><span class="fn">todo</span>()<span class="op">.</span>completed <span class="op">?</span> <span class="str">'incomplete'</span> <span class="op">:</span> <span class="str">'complete'</span><span class="str">}`</span>
+    )<span class="op">;</span>
+  <span class="op">}</span>
+
+  delete()<span class="op">:</span> <span class="kw">void</span> <span class="op">{</span>
+    <span class="kw">this</span><span class="op">.</span>announcer<span class="op">.</span><span class="fn">announce</span>(<span class="str">`Todo "${</span><span class="kw">this</span><span class="op">.</span><span class="fn">todo</span>()<span class="op">.</span>title<span class="str">}" deleted`</span>)<span class="op">;</span>
+    <span class="kw">this</span><span class="op">.</span><span class="fn">deleted</span><span class="op">.</span><span class="fn">emit</span>(<span class="kw">this</span><span class="op">.</span><span class="fn">todo</span>()<span class="op">.</span>id)<span class="op">;</span>
+  <span class="op">}</span>
+<span class="op">}</span>
+</pre>
+          </div>
+
+          <!-- 5.3 Forms -->
+          <h3>5.3 — Accessible Forms</h3>
+
+          <div class="code-block">
+            <span class="lang-tag">HTML — Angular Reactive Form</span>
+            <pre>
+<span class="tag">&lt;form</span> <span class="atr">[formGroup]</span>=<span class="val">"todoForm"</span>
+      <span class="atr">(ngSubmit)</span>=<span class="val">"addTodo()"</span>
+      <span class="atr">aria-label</span>=<span class="val">"Add new todo"</span>
+      <span class="atr">novalidate</span><span class="tag">&gt;</span>
+
+  <span class="tag">&lt;div</span> <span class="atr">role</span>=<span class="val">"group"</span> <span class="atr">aria-labelledby</span>=<span class="val">"todo-group-label"</span><span class="tag">&gt;</span>
+    <span class="tag">&lt;span</span> <span class="atr">id</span>=<span class="val">"todo-group-label"</span> <span class="atr">class</span>=<span class="val">"sr-only"</span><span class="tag">&gt;</span>New todo details<span class="tag">&lt;/span&gt;</span>
+
+    <span class="cmt">&lt;!-- Always use &lt;label&gt; — never aria-placeholder alone --&gt;</span>
+    <span class="tag">&lt;label</span> <span class="atr">for</span>=<span class="val">"todo-title"</span><span class="tag">&gt;</span>
+      Todo title <span class="tag">&lt;span</span> <span class="atr">aria-label</span>=<span class="val">"required"</span><span class="tag">&gt;</span>*<span class="tag">&lt;/span&gt;</span>
+    <span class="tag">&lt;/label&gt;</span>
+    <span class="tag">&lt;input</span>
+      <span class="atr">id</span>=<span class="val">"todo-title"</span>
+      <span class="atr">type</span>=<span class="val">"text"</span>
+      <span class="atr">formControlName</span>=<span class="val">"title"</span>
+      <span class="atr">autocomplete</span>=<span class="val">"off"</span>
+      <span class="atr">aria-required</span>=<span class="val">"true"</span>
+      <span class="atr">[attr.aria-invalid]</span>=<span class="val">"titleControl.invalid &amp;&amp; titleControl.touched"</span>
+      <span class="atr">aria-describedby</span>=<span class="val">"todo-title-error"</span> <span class="tag">/&gt;</span>
+
+    <span class="cmt">&lt;!-- Error must be announced via aria-live or role="alert" --&gt;</span>
+    <span class="tag">&lt;span</span>
+      <span class="atr">id</span>=<span class="val">"todo-title-error"</span>
+      <span class="atr">role</span>=<span class="val">"alert"</span>
+      <span class="atr">aria-live</span>=<span class="val">"polite"</span>
+      <span class="atr">class</span>=<span class="val">"error-text"</span>
+      <span class="atr">*ngIf</span>=<span class="val">"false"</span>
+      <span class="atr">[@if]</span>=<span class="val">"titleControl.invalid &amp;&amp; titleControl.touched"</span><span class="tag">&gt;</span>
+      <span class="tag">&lt;span</span> <span class="atr">@if</span>=<span class="val">"titleControl.errors?.['required']"</span><span class="tag">&gt;</span>Title is required.<span class="tag">&lt;/span&gt;</span>
+    <span class="tag">&lt;/span&gt;</span>
+  <span class="tag">&lt;/div&gt;</span>
+
+  <span class="tag">&lt;button</span> <span class="atr">type</span>=<span class="val">"submit"</span> <span class="atr">[disabled]</span>=<span class="val">"todoForm.invalid"</span>
+           <span class="atr">[attr.aria-disabled]</span>=<span class="val">"todoForm.invalid"</span><span class="tag">&gt;</span>
+    Add Todo
+  <span class="tag">&lt;/button&gt;</span>
+<span class="tag">&lt;/form&gt;</span>
+</pre>
+          </div>
+
+          <!-- 5.4 Router Title -->
+          <h3>5.4 — Page Title &amp; Router Announcements</h3>
+          <p>
+            Screen readers announce the page <code>&lt;title&gt;</code> on navigation. Without it,
+            users have no indication the route changed in an SPA.
+          </p>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — app.routes.ts</span>
+            <pre>
+<span class="kw">export const</span> routes<span class="op">:</span> <span class="typ">Routes</span> <span class="op">= [</span>
+  <span class="op">{</span>
+    path<span class="op">:</span> <span class="str">''</span><span class="op">,</span>
+    <span class="cmt">// Angular 14+ built-in title strategy</span>
+    title<span class="op">:</span> <span class="str">'Home — Angular Todo App'</span><span class="op">,</span>
+    component<span class="op">:</span> <span class="typ">TodoListComponent</span><span class="op">,</span>
+  <span class="op">},</span>
+  <span class="op">{</span>
+    path<span class="op">:</span> <span class="str">'about'</span><span class="op">,</span>
+    title<span class="op">:</span> <span class="str">'About — Angular Todo App'</span><span class="op">,</span>
+    component<span class="op">:</span> <span class="typ">AboutComponent</span><span class="op">,</span>
+  <span class="op">},</span>
+<span class="op">];</span>
+
+<span class="cmt">// For dynamic titles, extend TitleStrategy:</span>
+<span class="fn">@Injectable</span>(<span class="op">{</span> providedIn<span class="op">:</span> <span class="str">'root'</span> <span class="op">})</span>
+<span class="kw">export class</span> <span class="typ">A11yTitleStrategy</span> <span class="kw">extends</span> <span class="typ">TitleStrategy</span> <span class="op">{</span>
+  <span class="kw">override</span> updateTitle(snapshot<span class="op">:</span> <span class="typ">RouterStateSnapshot</span>)<span class="op">:</span> <span class="kw">void</span> <span class="op">{</span>
+    <span class="kw">const</span> title <span class="op">=</span> <span class="kw">this</span><span class="op">.</span><span class="fn">buildTitle</span>(snapshot)<span class="op">;</span>
+    <span class="kw">if</span> (title) <span class="kw">this</span><span class="op">.</span>title<span class="op">.</span><span class="fn">setTitle</span>(<span class="str">`${title} — My App`</span>)<span class="op">;</span>
+  <span class="op">}</span>
+<span class="op">}</span>
+</pre>
+          </div>
+
+          <!-- 5.5 Images -->
+          <h3>5.5 — Images &amp; Icons</h3>
+          <div class="code-block">
+            <span class="lang-tag">HTML</span>
+            <pre>
+<span class="cmt">&lt;!-- Informative image — descriptive alt text --&gt;</span>
+<span class="tag">&lt;img</span> <span class="atr">src</span>=<span class="val">"avatar.jpg"</span> <span class="atr">alt</span>=<span class="val">"Profile photo of Jane Smith"</span> <span class="tag">/&gt;</span>
+
+<span class="cmt">&lt;!-- Decorative image — empty alt, hide from AT --&gt;</span>
+<span class="tag">&lt;img</span> <span class="atr">src</span>=<span class="val">"divider.svg"</span> <span class="atr">alt</span>=<span class="val">""</span> <span class="atr">aria-hidden</span>=<span class="val">"true"</span> <span class="tag">/&gt;</span>
+
+<span class="cmt">&lt;!-- Icon button — label on the button, hide icon --&gt;</span>
+<span class="tag">&lt;button</span> <span class="atr">type</span>=<span class="val">"button"</span> <span class="atr">aria-label</span>=<span class="val">"Delete todo: Buy groceries"</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;svg</span> <span class="atr">aria-hidden</span>=<span class="val">"true"</span> <span class="atr">focusable</span>=<span class="val">"false"</span><span class="tag">&gt;</span>...<span class="tag">&lt;/svg&gt;</span>
+<span class="tag">&lt;/button&gt;</span>
+
+<span class="cmt">&lt;!-- Angular NgOptimizedImage — always provide alt --&gt;</span>
+<span class="tag">&lt;img</span> <span class="atr">ngSrc</span>=<span class="val">"/hero.jpg"</span> <span class="atr">width</span>=<span class="val">"800"</span> <span class="atr">height</span>=<span class="val">"400"</span> <span class="atr">alt</span>=<span class="val">"Hero image showing the app dashboard"</span> <span class="tag">/&gt;</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 6. ARIA Patterns ─────────────────────────────────── -->
+        <section id="aria-patterns" aria-labelledby="h-aria">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">6</div>
+            <h2 id="h-aria">ARIA Patterns &amp; Live Regions</h2>
+          </div>
+
+          <div class="callout warn">
+            <span class="callout-icon" aria-hidden="true">⚠️</span>
+            <p>
+              <strong>Rule 1 of ARIA:</strong> Don't use ARIA if you can use native HTML semantics.
+              ARIA only adds <em>meaning</em> — it never changes visual appearance or behaviour.
+              Misused ARIA is worse than no ARIA.
+            </p>
+          </div>
+
+          <!-- 6.1 ARIA Attributes Reference -->
+          <h3>6.1 — ARIA Attributes: When, How &amp; Why</h3>
+          <p>
+            ARIA attributes fall into three categories: <strong>roles</strong> (what the element is),
+            <strong>properties</strong> (stable characteristics), and <strong>states</strong> (dynamic
+            conditions). Use them only when native HTML cannot express the semantics.
+          </p>
+
+          <!-- Naming Attributes -->
+          <h4>Naming &amp; Description Attributes</h4>
+
+          <div class="table-wrapper">
+            <table aria-label="ARIA naming attributes — when, how, and why to use">
+              <thead>
+                <tr>
+                  <th scope="col">Attribute</th>
+                  <th scope="col">When to Use</th>
+                  <th scope="col">How to Use (Angular 21)</th>
+                  <th scope="col">Why It Matters / Hierarchy</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>aria-label</code></td>
+                  <td>
+                    The element has <strong>no visible text</strong> or the visible text is ambiguous.
+                    Use on: icon-only buttons, input fields without adjacent labels, landmark regions.
+                    <strong>Do not use</strong> if the element has visible text already — use
+                    <code>aria-labelledby</code> instead to avoid the label being out of sync.
+                  </td>
+                  <td>
+                    Static: <code>aria-label="Close dialog"</code><br>
+                    Dynamic: <code>[attr.aria-label]="'Delete todo: ' + todo().title"</code><br>
+                    <strong>Important</strong>: include both the action and the target — "Delete" alone
+                    is useless when there are 20 delete buttons on the page.
+                  </td>
+                  <td>
+                    AT overrides the element's visible text with the <code>aria-label</code> value.
+                    The visible text and <code>aria-label</code> should convey the same intent —
+                    discrepancies confuse users who both see and hear the page (speech control users
+                    say the visible text to click; if it differs from <code>aria-label</code>, voice
+                    activation fails). WCAG 4.1.2 (Name, Role, Value).
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>aria-labelledby</code></td>
+                  <td>
+                    The element's label is <strong>already visible on the page</strong> as another element.
+                    Use on: dialogs (labeled by their heading), sections (labeled by their <code>&lt;h2&gt;</code>),
+                    form groups, complex widgets. <strong>Preferred over <code>aria-label</code></strong>
+                    when visible text exists because it reuses the actual visible text — no duplication.
+                  </td>
+                  <td>
+                    <code>&lt;h2 id="dialog-title"&gt;Confirm Delete&lt;/h2&gt;</code><br>
+                    <code>&lt;div role="dialog" aria-labelledby="dialog-title"&gt;</code><br>
+                    Multiple IDs: <code>aria-labelledby="first-name-label last-name-label"</code>
+                    (concatenates text of both elements in order).
+                  </td>
+                  <td>
+                    <code>aria-labelledby</code> wins over <code>aria-label</code> in the accessible
+                    name calculation. Points to another element's <code>id</code> — if the visible
+                    heading changes, the accessible name changes automatically. If you use
+                    <code>aria-label</code> instead, you must keep both in sync manually.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>aria-describedby</code></td>
+                  <td>
+                    Supplementary information beyond the accessible name — error messages, hints,
+                    help text, character count, format instructions. Not a replacement for
+                    <code>aria-labelledby</code>; supplements it.
+                    Use on: form inputs (hint / error), dialogs (description paragraph), tooltips.
+                  </td>
+                  <td>
+                    <code>&lt;input id="email" aria-describedby="email-hint email-error"&gt;</code><br>
+                    <code>&lt;p id="email-hint"&gt;We'll send confirmation here.&lt;/p&gt;</code><br>
+                    <code>&lt;p id="email-error" role="alert"&gt;{{ error() }}&lt;/p&gt;</code><br>
+                    Angular: <code>[attr.aria-describedby]="hasError() ? 'email-error' : 'email-hint'"</code>
+                  </td>
+                  <td>
+                    AT reads the name first, then the role, then the description. Screen reader users
+                    hear: <em>"Email address, edit text, We'll send confirmation here."</em>
+                    The description is read on focus — it is not repeated on every keystroke.
+                    Without it, users discover error messages only by tabbing away and back.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- State Attributes -->
+          <h4>State Attributes — Dynamic Conditions</h4>
+
+          <div class="table-wrapper">
+            <table aria-label="ARIA state attributes — when, how, and why to use">
+              <thead>
+                <tr>
+                  <th scope="col">Attribute</th>
+                  <th scope="col">Values</th>
+                  <th scope="col">When to Use</th>
+                  <th scope="col">How to Use (Angular 21)</th>
+                  <th scope="col">Why</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>aria-expanded</code></td>
+                  <td><code>true</code> / <code>false</code></td>
+                  <td>Any custom toggle/disclosure widget: accordion, menu, dropdown, tree node, filter panel. <strong>Not needed on <code>&lt;details&gt;</code></strong> — that is native.</td>
+                  <td>On the <strong>trigger button</strong>, not the panel: <code>[attr.aria-expanded]="isOpen()"</code>. The button must also have <code>aria-controls="panel-id"</code> to reference the panel. Keep the panel in the DOM with <code>[hidden]="!isOpen()"</code> — <code>@if</code> removes it, breaking the <code>aria-controls</code> reference.</td>
+                  <td>AT announces "collapsed" or "expanded" — users know whether activating the button will open or close the panel without guessing from context. Without it, screen reader users must navigate into the panel area to discover whether content is present.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-hidden</code></td>
+                  <td><code>true</code> / remove attribute</td>
+                  <td>Decorative content that must be invisible to AT: icon SVGs inside labeled buttons, purely visual spacers, duplicate text. <strong>Never</strong> on focusable elements. <strong>Never</strong> on an ancestor of the active focus.</td>
+                  <td><code>&lt;svg aria-hidden="true" focusable="false"&gt;</code> on icons. To remove: <code>[attr.aria-hidden]="shouldHide() ? true : null"</code> — binding to <code>null</code> removes the attribute entirely. Never bind <code>"false"</code> — just omit the attribute.</td>
+                  <td>Prevents AT from announcing redundant or confusing content. If a button has <code>aria-label="Delete todo: Buy milk"</code> and an icon with a trash bin inside, the icon must be <code>aria-hidden="true"</code> or AT will read "delete todo buy milk trash graphic" — the icon adds noise, not meaning.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-invalid</code></td>
+                  <td><code>true</code> / <code>false</code> / <code>grammar</code> / <code>spelling</code></td>
+                  <td>After a form control has been touched and fails validation. <strong>Do not set on pristine (untouched) fields</strong> — pre-marking everything as invalid before the user attempts input is hostile UX. Pair with <code>aria-describedby</code> pointing to the error message.</td>
+                  <td><code>[attr.aria-invalid]="control.invalid &amp;&amp; control.touched ? 'true' : null"</code>. Combined with error message: <code>[attr.aria-describedby]="control.invalid &amp;&amp; control.touched ? 'field-error' : null"</code>. Show the error message element only when invalid &amp; touched.</td>
+                  <td>AT announces "invalid entry" when the field receives focus, alerting users to the problem before they Tab away. Without it, users submit the form, it fails, and they must hunt for which field is wrong. WCAG 3.3.1 (Error Identification, Level A).</td>
+                </tr>
+                <tr>
+                  <td><code>aria-required</code></td>
+                  <td><code>true</code></td>
+                  <td>Any form field that must be filled in before submission. Use alongside the native <code>required</code> attribute and a visible indicator (asterisk with a legend explaining it). <code>aria-required</code> communicates to AT; native <code>required</code> enables browser validation.</td>
+                  <td><code>&lt;input required aria-required="true" ...&gt;</code>. For the visual indicator: <code>&lt;label&gt;Email &lt;span aria-hidden="true"&gt;*&lt;/span&gt;&lt;/label&gt;</code> — hide the asterisk from AT (it will hear "required" from the attribute) and provide a legend: "Fields marked * are required".</td>
+                  <td>AT announces "required" when the field is focused — users know before typing, not after the form rejects their submission. The visible asterisk alone is invisible to AT. WCAG 3.3.2 (Labels or Instructions, Level A) requires communicating which fields are required.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-disabled</code></td>
+                  <td><code>true</code></td>
+                  <td>Elements that are visually disabled but should remain <strong>focusable and discoverable</strong> by keyboard users — e.g., a disabled "Save" button that has a tooltip explaining why it is disabled. Use native <code>disabled</code> for elements that should be completely unreachable.</td>
+                  <td><code>[attr.aria-disabled]="isSaving()"</code>. Must also prevent the action in the click handler: <code>(click)="isSaving() ? null : save()"</code>. Style with <code>opacity-50 cursor-not-allowed</code>. Do not add native <code>disabled</code> — that removes it from the Tab order.</td>
+                  <td>Native <code>disabled</code> removes the element from the Tab order entirely — keyboard users cannot discover it or read its tooltip. <code>aria-disabled="true"</code> keeps focus reachable while announcing "dimmed" (JAWS) or "greyed out" (NVDA), signalling unavailability without hiding the element.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-busy</code></td>
+                  <td><code>true</code> / <code>false</code></td>
+                  <td>A region is loading asynchronously and its content is not yet complete: loading a list, pagination in progress, real-time data refresh. Set to <code>true</code> while loading, remove (or set to <code>false</code>) when done.</td>
+                  <td><code>[attr.aria-busy]="isLoading() ? 'true' : null"</code> on the container element (e.g., the <code>&lt;ul&gt;</code>). Pair with <code>role="status"</code> or a <code>LiveAnnouncer</code> call to announce when loading completes.</td>
+                  <td>Tells AT "content in this region is incomplete — do not read it yet." Without it, AT may read partial content and then re-read it after the real data loads, confusing users. With it, AT waits for the region to settle before reading its full content.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-current</code></td>
+                  <td><code>page</code> / <code>step</code> / <code>location</code> / <code>date</code> / <code>time</code> / <code>true</code></td>
+                  <td>The currently active item within a set: current page in nav (<code>page</code>), current step in a wizard (<code>step</code>), current date in a date picker (<code>date</code>). <strong>Not a substitute for <code>aria-selected</code></strong> in tabs or listboxes.</td>
+                  <td>Angular RouterLinkActive: <code>[attr.aria-current]="rla.isActive ? 'page' : null"</code>. Never set both <code>aria-current</code> and <code>class="active"</code> as the only indicator — colour alone violates WCAG 1.4.1.</td>
+                  <td>AT announces "current page" next to the active nav link. Without it, keyboard users navigating a long menu list have no way to know which link corresponds to the page they are on. Required for WCAG 2.4.8 (Location, Level AAA) and strongly recommended at AA.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Live Region Attributes -->
+          <h4>Live Region Attributes</h4>
+
+          <div class="table-wrapper">
+            <table aria-label="ARIA live region attributes — when, how, and why to use">
+              <thead>
+                <tr>
+                  <th scope="col">Attribute</th>
+                  <th scope="col">Values</th>
+                  <th scope="col">When to Use</th>
+                  <th scope="col">How to Use</th>
+                  <th scope="col">Why / Gotchas</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>aria-live</code></td>
+                  <td><code>polite</code> / <code>assertive</code> / <code>off</code></td>
+                  <td>
+                    <code>polite</code>: non-urgent updates — loading completion, item added/deleted, filter results updated, page number changes.<br>
+                    <code>assertive</code>: urgent, time-sensitive updates — critical errors, session timeout warnings, security alerts.<br>
+                    <code>off</code> (default): suppress announcements for a region that updates frequently as the user types.
+                  </td>
+                  <td>
+                    Create the region in the DOM <strong>before</strong> inserting dynamic content — AT registers regions on page load.
+                    <code>&lt;div aria-live="polite" aria-atomic="true" class="sr-only"&gt;{{ message() }}&lt;/div&gt;</code>.
+                    <strong>Never use <code>assertive</code></strong> for routine updates — it interrupts whatever AT is currently reading.
+                  </td>
+                  <td>
+                    <code>assertive</code> is like shouting — it cuts off what AT is currently reading. Most updates should be <code>polite</code>.
+                    Gotcha: inserting content into a <strong>new</strong> element (e.g., using <code>@if</code> to add the region dynamically)
+                    may not fire the announcement — the region must pre-exist in the DOM.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>aria-atomic</code></td>
+                  <td><code>true</code> / <code>false</code></td>
+                  <td>Use <code>true</code> when the entire region content should be read as one unit after any change, not just the changed node. Use for status messages, counters, compound labels. Use <code>false</code> (default) for live logs where individual new entries should be announced.</td>
+                  <td><code>&lt;div aria-live="polite" aria-atomic="true"&gt;{{ count() }} items remaining&lt;/div&gt;</code>. With <code>atomic="true"</code>, if <code>count()</code> changes, AT reads the whole string "5 items remaining", not just "5".</td>
+                  <td>Without <code>aria-atomic="true"</code>, AT may only announce the part of the region that changed — so a counter that goes from "4 items remaining" to "5 items remaining" might only announce "5", which is meaningless without context.</td>
+                </tr>
+                <tr>
+                  <td><code>aria-relevant</code></td>
+                  <td><code>additions</code> / <code>removals</code> / <code>text</code> / <code>all</code></td>
+                  <td>Fine-tune what types of DOM changes in the region trigger announcements. Default is <code>additions text</code>. Use <code>removals</code> only for scenarios where removing content is meaningful (e.g., "Error cleared"). <strong>Rarely needed</strong> — the default works in nearly all cases.</td>
+                  <td><code>aria-relevant="additions removals"</code> — announce both item additions and removals (e.g., for a live log where entries expire and are removed). Avoid <code>aria-relevant="all"</code> — it is noisy and announces attribute changes too.</td>
+                  <td>Allows AT to filter noise. Without it, every DOM change in a live region triggers an announcement. For a fast-updating region (live ticker), <code>aria-relevant="additions"</code> prevents AT from repeatedly announcing old items being removed.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Structural / Role Attributes -->
+          <h4>Structural ARIA Attributes</h4>
+
+          <div class="table-wrapper">
+            <table aria-label="Structural ARIA attributes — when, how, and why to use">
+              <thead>
+                <tr>
+                  <th scope="col">Attribute</th>
+                  <th scope="col">When to Use</th>
+                  <th scope="col">How to Use</th>
+                  <th scope="col">Why</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>role="dialog"</code></td>
+                  <td>A custom modal overlay that is not using the native <code>&lt;dialog&gt;</code> element. Use <code>&lt;dialog&gt;</code> natively whenever possible — it handles focus management and <kbd>Escape</kbd> natively.</td>
+                  <td><code>&lt;div role="dialog" aria-modal="true" aria-labelledby="dialog-h" aria-describedby="dialog-desc"&gt;</code>. Must use <code>cdkTrapFocus cdkTrapFocusAutoCapture</code> in Angular. Return focus to the trigger element on close.</td>
+                  <td>AT announces "dialog" and suppresses the main page content from AT navigation while the dialog is open (with <code>aria-modal="true"</code>). Without <code>aria-modal="true"</code>, JAWS and NVDA users can Tab out of the dialog into the main page behind it — a keyboard trap in reverse.</td>
+                </tr>
+                <tr>
+                  <td><code>role="alert"</code></td>
+                  <td>Single-use error messages, critical warnings, or important notifications that appear dynamically and require immediate attention. Equivalent to <code>aria-live="assertive" aria-atomic="true"</code> but simpler.</td>
+                  <td><code>&lt;p role="alert"&gt;{{ error() }}&lt;/p&gt;</code> with <code>@if</code> to show only when an error exists. Angular reactive forms: use inside the form group error display, shown on <code>control.touched &amp;&amp; control.invalid</code>.</td>
+                  <td>As soon as the element appears in the DOM (or its text changes), AT announces it immediately, interrupting current speech. Use sparingly — like <code>assertive</code>, it interrupts. For non-critical status messages, use <code>role="status"</code> (polite equivalent).</td>
+                </tr>
+                <tr>
+                  <td><code>role="status"</code></td>
+                  <td>Non-critical status updates that should be announced politely after AT finishes current speech: "Todo saved", "Filter applied: 3 items", "Your session will expire in 5 minutes" (if non-critical).</td>
+                  <td><code>&lt;div role="status" aria-live="polite" aria-atomic="true" class="sr-only"&gt;{{ status() }}&lt;/div&gt;</code>. Update the text content — AT announces the full string next time it is idle.</td>
+                  <td>Equivalent to <code>aria-live="polite"</code>. Choose between <code>role="alert"</code> (urgent, assertive) and <code>role="status"</code> (non-urgent, polite) based on whether the message should interrupt the user. Most app notifications should be <code>role="status"</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>role="presentation"</code> / <code>role="none"</code></td>
+                  <td>Removing the native semantics of a structural element that is used purely for layout: a <code>&lt;table&gt;</code> used for layout (do not use tables for layout), a <code>&lt;ul&gt;</code> used purely visually with CSS <code>list-style: none</code> in older AT contexts.</td>
+                  <td><code>&lt;ul role="list"&gt;</code> is preferred in modern browsers (Tailwind patterns). <code>&lt;div role="none"&gt;</code> when an intermediate wrapper element would otherwise get an unintended role from its context in a composite widget.</td>
+                  <td>Prevents AT from announcing the element's structural semantics. Useful when the HTML structure has to follow a certain nesting pattern for CSS grid/flex but the structure adds confusing AT semantics (e.g., "list 1 item" for a single-item wrapper).</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Quick Decision Guide -->
+          <h4>Quick Decision Guide — ARIA vs Native HTML</h4>
+          <div class="callout info">
+            <span class="callout-icon" aria-hidden="true">💡</span>
+            <p>
+              Ask these questions in order before reaching for an ARIA attribute:
+            </p>
+          </div>
+          <ol class="step-list">
+            <li><strong>Is there a native HTML element that does this?</strong> → Use it. (<code>&lt;button&gt;</code>, <code>&lt;details&gt;</code>, <code>&lt;dialog&gt;</code>, <code>&lt;select&gt;</code>, <code>&lt;label&gt;</code>)</li>
+            <li><strong>Can I use a native attribute?</strong> → Use it. (<code>required</code>, <code>disabled</code>, <code>type</code>, <code>for</code>/<code>id</code>)</li>
+            <li><strong>Does the element have visible text?</strong> → Reference it with <code>aria-labelledby</code> rather than duplicating with <code>aria-label</code>.</li>
+            <li><strong>Is this a dynamic state change?</strong> → Use <code>aria-expanded</code>, <code>aria-invalid</code>, <code>aria-busy</code>, or <code>aria-current</code> as appropriate.</li>
+            <li><strong>Is this purely decorative?</strong> → Use <code>aria-hidden="true"</code> on the element.</li>
+            <li><strong>Is dynamic content appearing/changing off-screen?</strong> → Use <code>aria-live="polite"</code> or Angular CDK <code>LiveAnnouncer</code>.</li>
+          </ol>
+
+          <h3>6.2 — Live Regions — Announcing Dynamic Changes</h3>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — Using LiveAnnouncer (CDK)</span>
+            <pre>
+<span class="fn">@Component</span>(<span class="op">{</span>
+  standalone<span class="op">:</span> <span class="kw">true</span><span class="op">,</span>
+  template<span class="op">:</span> <span class="str">`
+    &lt;!-- Declarative polite live region --&gt;
+    &lt;div aria-live="polite" aria-atomic="true" class="sr-only"&gt;
+      {{ statusMessage() }}
+    &lt;/div&gt;
+
+    &lt;!-- assertive for urgent errors only --&gt;
+    &lt;div aria-live="assertive" aria-atomic="true" class="sr-only"&gt;
+      {{ errorMessage() }}
+    &lt;/div&gt;
+  `</span><span class="op">,</span>
+<span class="op">})</span>
+<span class="kw">export class</span> <span class="typ">TodoListComponent</span> <span class="op">{</span>
+  <span class="kw">private readonly</span> announcer <span class="op">=</span> <span class="fn">inject</span>(<span class="typ">LiveAnnouncer</span>)<span class="op">;</span>
+
+  <span class="kw">readonly</span> statusMessage <span class="op">=</span> <span class="fn">signal</span>(<span class="str">''</span>)<span class="op">;</span>
+  <span class="kw">readonly</span> errorMessage  <span class="op">=</span> <span class="fn">signal</span>(<span class="str">''</span>)<span class="op">;</span>
+
+  <span class="kw">async</span> loadTodos()<span class="op">:</span> <span class="typ">Promise</span><span class="op">&lt;</span><span class="kw">void</span><span class="op">&gt;</span> <span class="op">{</span>
+    <span class="kw">this</span><span class="op">.</span><span class="fn">statusMessage</span><span class="op">.</span><span class="fn">set</span>(<span class="str">'Loading todos…'</span>)<span class="op">;</span>
+    <span class="kw">try</span> <span class="op">{</span>
+      <span class="kw">const</span> todos <span class="op">=</span> <span class="kw">await</span> <span class="fn">firstValueFrom</span>(<span class="kw">this</span><span class="op">.</span>todoService<span class="op">.</span><span class="fn">getAll</span>())<span class="op">;</span>
+      <span class="cmt">// Imperative announcement via CDK</span>
+      <span class="kw">await</span> <span class="kw">this</span><span class="op">.</span>announcer<span class="op">.</span><span class="fn">announce</span>(<span class="str">`${todos.length} todos loaded`</span><span class="op">,</span> <span class="str">'polite'</span>)<span class="op">;</span>
+    <span class="op">}</span> <span class="kw">catch</span> <span class="op">{</span>
+      <span class="kw">this</span><span class="op">.</span><span class="fn">errorMessage</span><span class="op">.</span><span class="fn">set</span>(<span class="str">'Failed to load todos. Please try again.'</span>)<span class="op">;</span>
+    <span class="op">}</span>
+  <span class="op">}</span>
+<span class="op">}</span>
+</pre>
+          </div>
+
+          <h3>6.3 — Modal / Dialog — Focus Trap</h3>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — FocusTrap</span>
+            <pre>
+<span class="fn">@Component</span>(<span class="op">{</span>
+  standalone<span class="op">:</span> <span class="kw">true</span><span class="op">,</span>
+  imports<span class="op">:</span> [<span class="typ">A11yModule</span>]<span class="op">,</span>
+  template<span class="op">:</span> <span class="str">`
+    @if (isOpen()) {
+      &lt;div cdkTrapFocus cdkTrapFocusAutoCapture
+           role="dialog"
+           aria-modal="true"
+           [attr.aria-labelledby]="'dialog-title-' + id"
+           [attr.aria-describedby]="'dialog-desc-' + id"&gt;
+
+        &lt;h2 [id]="'dialog-title-' + id"&gt;Confirm Delete&lt;/h2&gt;
+        &lt;p [id]="'dialog-desc-' + id"&gt;
+          Are you sure you want to delete "{{ todo().title }}"?
+        &lt;/p&gt;
+
+        &lt;button type="button" (click)="confirm()"&gt;Delete&lt;/button&gt;
+        &lt;button type="button" (click)="cancel()"&gt;Cancel&lt;/button&gt;
+      &lt;/div&gt;
+    }
+  `</span><span class="op">,</span>
+<span class="op">})</span>
+<span class="kw">export class</span> <span class="typ">ConfirmDialogComponent</span> <span class="op">{</span>
+  <span class="kw">readonly</span> isOpen <span class="op">=</span> <span class="fn">signal</span>(<span class="kw">false</span>)<span class="op">;</span>
+  <span class="kw">private</span> triggerEl<span class="op">:</span> <span class="typ">HTMLElement</span> <span class="op">|</span> <span class="kw">null</span> <span class="op">=</span> <span class="kw">null</span><span class="op">;</span>
+
+  open(trigger<span class="op">:</span> <span class="typ">HTMLElement</span>)<span class="op">:</span> <span class="kw">void</span> <span class="op">{</span>
+    <span class="kw">this</span><span class="op">.</span>triggerEl <span class="op">=</span> trigger<span class="op">;</span>
+    <span class="kw">this</span><span class="op">.</span><span class="fn">isOpen</span><span class="op">.</span><span class="fn">set</span>(<span class="kw">true</span>)<span class="op">;</span>
+  <span class="op">}</span>
+
+  cancel()<span class="op">:</span> <span class="kw">void</span> <span class="op">{</span>
+    <span class="kw">this</span><span class="op">.</span><span class="fn">isOpen</span><span class="op">.</span><span class="fn">set</span>(<span class="kw">false</span>)<span class="op">;</span>
+    <span class="cmt">// Return focus to the element that opened the dialog</span>
+    <span class="kw">this</span><span class="op">.</span>triggerEl<span class="op">?.</span><span class="fn">focus</span>()<span class="op">;</span>
+  <span class="op">}</span>
+<span class="op">}</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 7. Keyboard & Focus ──────────────────────────────── -->
+        <section id="keyboard-focus" aria-labelledby="h-kbd">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">7</div>
+            <h2 id="h-kbd">Keyboard &amp; Focus Management</h2>
+          </div>
+
+          <h3>7.1 — Keyboard Accessibility Reference: When, How &amp; Why</h3>
+          <p>
+            Approximately 7% of people with disabilities navigate exclusively by keyboard.
+            Many more use keyboard shortcuts for efficiency. Every interactive element must be
+            reachable and operable with a keyboard alone — this is a <strong>WCAG 2.1 AA requirement</strong>
+            (SC 2.1.1 Keyboard, SC 2.4.3 Focus Order, SC 2.4.7 Focus Visible).
+          </p>
+
+          <div class="table-wrapper">
+            <table aria-label="Keyboard and focus management patterns — when, how, and why">
+              <thead>
+                <tr>
+                  <th scope="col">Pattern</th>
+                  <th scope="col">When to Use</th>
+                  <th scope="col">How to Implement</th>
+                  <th scope="col">Why It Matters</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Skip Navigation Link</strong></td>
+                  <td>Every page that has a header or navigation before the main content — which is effectively every page. It must be the <strong>first focusable element</strong> in the page.</td>
+                  <td>
+                    Visible only on focus using <code>sr-only focus:not-sr-only</code> Tailwind pattern.
+                    Points to <code>#main-content</code> (the <code>&lt;main&gt;</code> element's <code>id</code>).
+                    The <code>&lt;main&gt;</code> must have <code>tabindex="-1"</code> to be programmatically focusable.
+                  </td>
+                  <td>Without a skip link, keyboard users must Tab through every header link and nav item on every single page load. A 20-link nav means 20 Tab presses before reaching content — a significant barrier. WCAG 2.4.1 (Bypass Blocks, Level A).</td>
+                </tr>
+                <tr>
+                  <td><strong>Focus Visible Indicator</strong></td>
+                  <td>Every interactive element — buttons, links, inputs, checkboxes, custom widgets. Focus must be visible to keyboard users at all times during keyboard navigation.</td>
+                  <td>
+                    Use <code>:focus-visible</code> (not <code>:focus</code>) to show the ring only for keyboard
+                    users, not mouse clicks. Tailwind: <code>focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2</code>.
+                    <strong>Never use <code>outline: none</code> on interactive elements</strong> — if you
+                    must, add an equivalent custom focus style.
+                  </td>
+                  <td>WCAG 2.4.7 (Focus Visible, Level AA) requires a visible focus indicator. WCAG 2.2 SC 2.4.11 (Focus Appearance) further requires the indicator to have ≥3:1 contrast against its adjacent background. Without it, keyboard users are "navigating blind" — they cannot tell where they are.</td>
+                </tr>
+                <tr>
+                  <td><strong>Logical Tab Order</strong></td>
+                  <td>The reading order of the DOM should match the visual order. If CSS grid or flexbox visually reorders elements, the DOM order must still be logical. Never use positive <code>tabindex</code> values.</td>
+                  <td>
+                    Keep DOM order = visual order. Use <code>tabindex="0"</code> only for custom interactive
+                    elements that need to enter the Tab order. Use <code>tabindex="-1"</code> for elements
+                    that need to be programmatically focusable but not in the natural Tab sequence (e.g., modal title).
+                    <strong>Never use <code>tabindex="1"</code> or higher</strong> — it creates a separate
+                    Tab sequence that overrides natural flow, causing confusing jumps.
+                  </td>
+                  <td>WCAG 2.4.3 (Focus Order, Level AA). Illogical Tab order is one of the most common accessibility failures. Screen reader users trust the Tab order to give them a logical flow through interactive elements — surprises and jumps break their mental model of the page.</td>
+                </tr>
+                <tr>
+                  <td><strong>No Keyboard Traps</strong></td>
+                  <td>Every interactive region, widget, and overlay. A keyboard trap occurs when focus enters a region and the user cannot exit using standard keyboard keys.</td>
+                  <td>
+                    Modals/dialogs: trap intentionally while open (use <code>cdkTrapFocus</code>), but always allow
+                    <kbd>Escape</kbd> to close and release focus. Custom widgets: ensure the user can always Tab
+                    or <kbd>Escape</kbd> out. Test by opening every interactive region and pressing <kbd>Escape</kbd>
+                    and <kbd>Tab</kbd> — you must be able to leave.
+                  </td>
+                  <td>WCAG 2.1.2 (No Keyboard Trap, Level A — the minimum baseline). A keyboard trap renders the entire page unusable for keyboard-only users, who cannot switch to a mouse to escape. This is the most severe keyboard accessibility failure.</td>
+                </tr>
+                <tr>
+                  <td><strong>Focus Return After Dialog Close</strong></td>
+                  <td>Any time an overlay, modal, popover, or dynamic panel is closed. Focus must return to the element that triggered the overlay opening.</td>
+                  <td>
+                    Store reference before opening: <code>private triggerEl: HTMLElement | null = null;</code>
+                    In the <code>open()</code> method: <code>this.triggerEl = document.activeElement as HTMLElement;</code>
+                    In the <code>close()</code> method: <code>this.triggerEl?.focus();</code>
+                  </td>
+                  <td>When focus is lost (the dialog element is removed from the DOM or hidden), focus typically jumps to the <code>&lt;body&gt;</code> or the top of the page — the keyboard user has completely lost their place. Returning focus to the trigger restores the user's context so they can continue from where they were.</td>
+                </tr>
+                <tr>
+                  <td><strong>Arrow Key Navigation in Widgets</strong></td>
+                  <td>Complex composite widgets where Tab should move between widgets and arrow keys should move within a widget: tabs, radio groups, menubars, listboxes, sliders, date pickers, tree views.</td>
+                  <td>
+                    Use <strong>roving tabindex</strong>: only the active item has <code>tabindex="0"</code>;
+                    all others have <code>tabindex="-1"</code>. Arrow keys update which item has <code>tabindex="0"</code>
+                    and call <code>.focus()</code>. Angular CDK: use <code>ActiveDescendantKeyManager</code> or
+                    <code>ListKeyManager</code> to manage this automatically. <code>withWrap()</code> enables wrap-around.
+                  </td>
+                  <td>If every item in a 100-item list has <code>tabindex="0"</code>, keyboard users must press Tab 100 times to move past the list. The roving tabindex pattern treats the widget as a single Tab stop and uses arrow keys for internal navigation — matching the keyboard pattern of native OS controls.</td>
+                </tr>
+                <tr>
+                  <td><strong>Focus Management on Route Change (SPA)</strong></td>
+                  <td>Angular SPA — every time <code>RouterLink</code> or <code>router.navigate()</code> loads a new view. Without explicit focus management, focus stays on the link that was clicked — the user is still "on" the old page.</td>
+                  <td>
+                    On route change, move focus to <code>&lt;main tabindex="-1"&gt;</code> or the page's <code>&lt;h1&gt;</code>.
+                    Implement a custom <code>TitleStrategy</code> that updates the page title and announces the new
+                    route via <code>LiveAnnouncer</code>: <code>announcer.announce('Navigated to ' + title, 'polite')</code>.
+                    See Section 5.4 for the full implementation.
+                  </td>
+                  <td>In multi-page websites, the browser announces the new page title on navigation. SPAs do not — without explicit management, screen reader users have no indication that a new page loaded. Focus also stays on the old link, so tabbing continues from an unexpected position in the new view.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>7.2 — Focus Visible — Never Remove Outlines</h3>
+          <div class="code-block">
+            <span class="lang-tag">CSS / Tailwind</span>
+            <pre>
+<span class="cmt">/* WCAG 2.1 SC 2.4.7 — Focus visible is Level AA */</span>
+<span class="cmt">/* WCAG 2.2 SC 2.4.11 — Focus Appearance is Level AA (new in 2.2) */</span>
+
+<span class="cmt">/* In global styles.css — enhanced focus for keyboard users */</span>
+:focus-visible <span class="op">{</span>
+  outline<span class="op">:</span> <span class="num">2px</span> solid <span class="str">#818cf8</span><span class="op">;</span>  <span class="cmt">/* primary colour */</span>
+  outline-offset<span class="op">:</span> <span class="num">2px</span><span class="op">;</span>
+  border-radius<span class="op">:</span> <span class="num">4px</span><span class="op">;</span>
+<span class="op">}</span>
+
+<span class="cmt">/* Tailwind utilities for focus */</span>
+<span class="cmt">&lt;button class="focus-visible:ring-2 focus-visible:ring-indigo-400
+               focus-visible:ring-offset-2 focus-visible:outline-none"&gt;</span>
+</pre>
+          </div>
+
+          <h3>7.3 — Tab Order &amp; Skip Link</h3>
+          <div class="code-block">
+            <span class="lang-tag">HTML — Skip Navigation Link</span>
+            <pre>
+<span class="cmt">&lt;!-- Must be the FIRST focusable element in &lt;body&gt; --&gt;</span>
+<span class="tag">&lt;a</span> <span class="atr">class</span>=<span class="val">"sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0
+           focus:z-50 focus:bg-indigo-600 focus:text-white focus:p-3"</span>
+   <span class="atr">href</span>=<span class="val">"#main-content"</span><span class="tag">&gt;</span>
+  Skip to main content
+<span class="tag">&lt;/a&gt;</span>
+
+<span class="tag">&lt;main</span> <span class="atr">id</span>=<span class="val">"main-content"</span> <span class="atr">tabindex</span>=<span class="val">"-1"</span><span class="tag">&gt;</span>
+  <span class="cmt">&lt;!-- tabindex="-1" makes the main landmark programmatically focusable --&gt;</span>
+<span class="tag">&lt;/main&gt;</span>
+</pre>
+          </div>
+
+          <h3>7.4 — Custom Keyboard Interaction with CDK KeyManager</h3>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript</span>
+            <pre>
+<span class="kw">import</span> { <span class="typ">ActiveDescendantKeyManager</span> } <span class="kw">from</span> <span class="str">'@angular/cdk/a11y'</span><span class="op">;</span>
+
+<span class="fn">@Component</span>(<span class="op">{</span> <span class="op">...</span> <span class="op">})</span>
+<span class="kw">export class</span> <span class="typ">TodoFilterComponent</span> <span class="op">{</span>
+  <span class="kw">private</span> keyManager<span class="op">!:</span> <span class="typ">ActiveDescendantKeyManager</span><span class="op">&lt;</span><span class="typ">FilterOptionComponent</span><span class="op">&gt;;</span>
+
+  ngAfterViewInit()<span class="op">:</span> <span class="kw">void</span> <span class="op">{</span>
+    <span class="kw">this</span><span class="op">.</span>keyManager <span class="op">=</span> <span class="kw">new</span> <span class="typ">ActiveDescendantKeyManager</span>(<span class="kw">this</span><span class="op">.</span>filterOptions)
+      <span class="op">.</span><span class="fn">withWrap</span>()       <span class="cmt">// wrap from last → first</span>
+      <span class="op">.</span><span class="fn">withTypeAhead</span>()<span class="op">;</span>  <span class="cmt">// type first letter to jump</span>
+  <span class="op">}</span>
+
+  <span class="fn">onKeydown</span>(event<span class="op">:</span> <span class="typ">KeyboardEvent</span>)<span class="op">:</span> <span class="kw">void</span> <span class="op">{</span>
+    <span class="kw">this</span><span class="op">.</span>keyManager<span class="op">.</span><span class="fn">onKeydown</span>(event)<span class="op">;</span>
+  <span class="op">}</span>
+<span class="op">}</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 8. Colour Contrast ───────────────────────────────── -->
+        <section id="colour-contrast" aria-labelledby="h-colour">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">8</div>
+            <h2 id="h-colour">Colour Contrast &amp; Visual Design</h2>
+          </div>
+
+          <div class="table-wrapper">
+            <table aria-label="WCAG 2.1 colour contrast requirements">
+              <thead>
+                <tr>
+                  <th scope="col">Context</th>
+                  <th scope="col">Level AA Minimum</th>
+                  <th scope="col">Level AAA Enhanced</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Normal text (&lt;18pt / &lt;14pt bold)</td>
+                  <td>4.5:1</td>
+                  <td>7:1</td>
+                </tr>
+                <tr>
+                  <td>Large text (≥18pt / ≥14pt bold)</td>
+                  <td>3:1</td>
+                  <td>4.5:1</td>
+                </tr>
+                <tr>
+                  <td>UI components &amp; graphical objects</td>
+                  <td>3:1</td>
+                  <td>Not specified</td>
+                </tr>
+                <tr>
+                  <td>Focus indicator (WCAG 2.2 SC 2.4.11)</td>
+                  <td>3:1 against adjacent colours</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>Disabled components</td>
+                  <td><em>Exempt</em></td>
+                  <td><em>Exempt</em></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Tailwind Design Tokens — Accessible Palette</h3>
+          <div class="code-block">
+            <span class="lang-tag">JavaScript — tailwind.config.js</span>
+            <pre>
+<span class="cmt">// Pre-verified contrast ratios against white (#fff) and dark (#0f172a)</span>
+<span class="kw">module</span><span class="op">.</span>exports <span class="op">= {</span>
+  theme<span class="op">:</span> <span class="op">{</span>
+    extend<span class="op">:</span> <span class="op">{</span>
+      colors<span class="op">:</span> <span class="op">{</span>
+        <span class="cmt">// On dark bg (#0f172a): 5.2:1 ✓ AA</span>
+        primary<span class="op">:</span> <span class="op">{</span> DEFAULT<span class="op">:</span> <span class="str">'#818cf8'</span><span class="op">,</span> dark<span class="op">:</span> <span class="str">'#6366f1'</span> <span class="op">},</span>
+        <span class="cmt">// On dark bg: 7.1:1 ✓ AAA</span>
+        success<span class="op">:</span> <span class="str">'#34d399'</span><span class="op">,</span>
+        <span class="cmt">// On dark bg: 6.5:1 ✓ AAA</span>
+        warning<span class="op">:</span> <span class="str">'#fbbf24'</span><span class="op">,</span>
+        <span class="cmt">// On dark bg: 5.5:1 ✓ AA</span>
+        error<span class="op">:</span>   <span class="str">'#f87171'</span><span class="op">,</span>
+      <span class="op">},</span>
+    <span class="op">},</span>
+  <span class="op">},</span>
+<span class="op">};</span>
+</pre>
+          </div>
+
+          <h3>Never Rely on Colour Alone</h3>
+          <div class="code-block">
+            <span class="lang-tag">HTML</span>
+            <pre>
+<span class="cmt">&lt;!-- ✗ WRONG: colour is the only distinguisher --&gt;</span>
+<span class="tag">&lt;span</span> <span class="atr">class</span>=<span class="val">"text-red-500"</span><span class="tag">&gt;</span>Error<span class="tag">&lt;/span&gt;</span>
+
+<span class="cmt">&lt;!-- ✓ CORRECT: icon + text + colour --&gt;</span>
+<span class="tag">&lt;span</span> <span class="atr">class</span>=<span class="val">"text-red-400 flex items-center gap-1"</span> <span class="atr">role</span>=<span class="val">"alert"</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;svg</span> <span class="atr">aria-hidden</span>=<span class="val">"true"</span><span class="tag">&gt;</span>...<span class="tag">&lt;/svg&gt;</span>  <span class="cmt">&lt;!-- ⚠ icon --&gt;</span>
+  <span class="tag">&lt;strong&gt;</span>Error:<span class="tag">&lt;/strong&gt;</span> Title is required.
+<span class="tag">&lt;/span&gt;</span>
+</pre>
+          </div>
+        </section>
+
+        <!-- ─── 9. Testing ──────────────────────────────────────── -->
+        <section id="testing" aria-labelledby="h-test">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">9</div>
+            <h2 id="h-test">Testing for Accessibility</h2>
+          </div>
+
+          <p>
+            Automated tools catch ~30–40% of WCAG issues. The remaining 60–70% require
+            manual and assistive-technology testing. A robust strategy combines all three layers.
+          </p>
+
+          <!-- Testing Pyramid -->
+          <h3>The A11y Testing Pyramid</h3>
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">🤖</div>
+              <h3>1. Automated (Static)</h3>
+              <p>Lint rules, build-time checks. Catches missing alt text, invalid roles, wrong heading order.</p>
+            </div>
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">⚙️</div>
+              <h3>2. Automated (Runtime)</h3>
+              <p>axe-core in Vitest / Cypress. Catches contrast failures, live region issues, ARIA misuse.</p>
+            </div>
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">⌨️</div>
+              <h3>3. Manual Keyboard</h3>
+              <p>Tab through every interactive element. Verify focus order, focus visible, no traps.</p>
+            </div>
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">📢</div>
+              <h3>4. Screen Reader</h3>
+              <p>NVDA+Firefox, VoiceOver+Safari, JAWS+Chrome. Real-world AT testing is irreplaceable.</p>
+            </div>
+          </div>
+
+          <!-- 9.1 ESLint -->
+          <h3>9.1 — ESLint + angular-eslint-a11y</h3>
+          <div class="code-block">
+            <span class="lang-tag">Bash</span>
+            <pre>
+npm install --save-dev eslint-plugin-jsx-a11y
+<span class="cmt"># For Angular templates, use the angular-eslint template rules</span>
+npm install --save-dev @angular-eslint/template-parser
+npm install --save-dev eslint-plugin-angular-template-accessibility
+</pre>
+          </div>
+          <div class="code-block">
+            <span class="lang-tag">JSON — .eslintrc</span>
+            <pre>
+<span class="op">{</span>
+  <span class="str">"overrides"</span><span class="op">:</span> [<span class="op">{</span>
+    <span class="str">"files"</span><span class="op">:</span> [<span class="str">"*.html"</span>]<span class="op">,</span>
+    <span class="str">"parser"</span><span class="op">:</span> <span class="str">"@angular-eslint/template-parser"</span><span class="op">,</span>
+    <span class="str">"plugins"</span><span class="op">:</span> [<span class="str">"@angular-eslint/template"</span>]<span class="op">,</span>
+    <span class="str">"rules"</span><span class="op">:</span> <span class="op">{</span>
+      <span class="str">"@angular-eslint/template/alt-text"</span><span class="op">:</span> <span class="str">"error"</span><span class="op">,</span>
+      <span class="str">"@angular-eslint/template/elements-content"</span><span class="op">:</span> <span class="str">"error"</span><span class="op">,</span>
+      <span class="str">"@angular-eslint/template/label-has-associated-control"</span><span class="op">:</span> <span class="str">"error"</span><span class="op">,</span>
+      <span class="str">"@angular-eslint/template/interactive-supports-focus"</span><span class="op">:</span> <span class="str">"error"</span><span class="op">,</span>
+      <span class="str">"@angular-eslint/template/no-positive-tabindex"</span><span class="op">:</span> <span class="str">"error"</span><span class="op">,</span>
+      <span class="str">"@angular-eslint/template/role-has-required-aria"</span><span class="op">:</span> <span class="str">"error"</span><span class="op">,</span>
+      <span class="str">"@angular-eslint/template/valid-aria"</span><span class="op">:</span> <span class="str">"error"</span>
+    <span class="op">}</span>
+  <span class="op">}]</span>
+<span class="op">}</span>
+</pre>
+          </div>
+
+          <!-- 9.2 Vitest + axe-core -->
+          <h3>9.2 — Vitest + axe-core (Unit Tests)</h3>
+          <div class="code-block">
+            <span class="lang-tag">Bash</span>
+            <pre>
+npm install --save-dev axe-core @axe-core/angular jest-axe vitest-axe
+</pre>
+          </div>
+
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — todo-item.component.spec.ts</span>
+            <pre>
+<span class="kw">import</span> { <span class="typ">ComponentFixture</span><span class="op">,</span> <span class="typ">TestBed</span> } <span class="kw">from</span> <span class="str">'@angular/core/testing'</span><span class="op">;</span>
+<span class="kw">import</span> { axe<span class="op">,</span> toHaveNoViolations } <span class="kw">from</span> <span class="str">'vitest-axe'</span><span class="op">;</span>
+<span class="kw">import</span> { expect<span class="op">,</span> describe<span class="op">,</span> it<span class="op">,</span> beforeEach } <span class="kw">from</span> <span class="str">'vitest'</span><span class="op">;</span>
+<span class="kw">import</span> { <span class="typ">TodoItemComponent</span> } <span class="kw">from</span> <span class="str">'./todo-item.component'</span><span class="op">;</span>
+
+<span class="cmt">// Extend Vitest's expect with axe matchers</span>
+expect<span class="op">.</span><span class="fn">extend</span>(toHaveNoViolations)<span class="op">;</span>
+
+<span class="fn">describe</span>(<span class="str">'TodoItemComponent — Accessibility'</span><span class="op">,</span> () <span class="op">=&gt;</span> <span class="op">{</span>
+  <span class="kw">let</span> fixture<span class="op">:</span> <span class="typ">ComponentFixture</span><span class="op">&lt;</span><span class="typ">TodoItemComponent</span><span class="op">&gt;;</span>
+
+  <span class="fn">beforeEach</span>(<span class="kw">async</span> () <span class="op">=&gt;</span> <span class="op">{</span>
+    <span class="kw">await</span> <span class="typ">TestBed</span><span class="op">.</span><span class="fn">configureTestingModule</span>(<span class="op">{</span>
+      imports<span class="op">:</span> [<span class="typ">TodoItemComponent</span>]<span class="op">,</span>
+    <span class="op">}).</span><span class="fn">compileComponents</span>()<span class="op">;</span>
+
+    fixture <span class="op">=</span> <span class="typ">TestBed</span><span class="op">.</span><span class="fn">createComponent</span>(<span class="typ">TodoItemComponent</span>)<span class="op">;</span>
+    fixture<span class="op">.</span>componentRef<span class="op">.</span><span class="fn">setInput</span>(<span class="str">'todo'</span><span class="op">,</span> <span class="op">{</span> id<span class="op">:</span> <span class="num">1</span><span class="op">,</span> title<span class="op">:</span> <span class="str">'Buy milk'</span><span class="op">,</span> completed<span class="op">:</span> <span class="kw">false</span> <span class="op">});</span>
+    fixture<span class="op">.</span><span class="fn">detectChanges</span>()<span class="op">;</span>
+  <span class="op">});</span>
+
+  <span class="fn">it</span>(<span class="str">'should have no axe violations'</span><span class="op">,</span> <span class="kw">async</span> () <span class="op">=&gt;</span> <span class="op">{</span>
+    <span class="kw">const</span> results <span class="op">=</span> <span class="kw">await</span> <span class="fn">axe</span>(fixture<span class="op">.</span>nativeElement)<span class="op">;</span>
+    <span class="fn">expect</span>(results)<span class="op">.</span><span class="fn">toHaveNoViolations</span>()<span class="op">;</span>
+  <span class="op">});</span>
+
+  <span class="fn">it</span>(<span class="str">'should have an accessible label on the delete button'</span><span class="op">,</span> () <span class="op">=&gt;</span> <span class="op">{</span>
+    <span class="kw">const</span> btn <span class="op">=</span> fixture<span class="op">.</span>nativeElement<span class="op">.</span><span class="fn">querySelector</span>(<span class="str">'button[aria-label]'</span>)<span class="op">;</span>
+    <span class="fn">expect</span>(btn<span class="op">.</span><span class="fn">getAttribute</span>(<span class="str">'aria-label'</span>))<span class="op">.</span><span class="fn">toContain</span>(<span class="str">'Buy milk'</span>)<span class="op">;</span>
+  <span class="op">});</span>
+
+  <span class="fn">it</span>(<span class="str">'checkbox label must be associated with input'</span><span class="op">,</span> () <span class="op">=&gt;</span> <span class="op">{</span>
+    <span class="kw">const</span> input <span class="op">=</span> fixture<span class="op">.</span>nativeElement<span class="op">.</span><span class="fn">querySelector</span>(<span class="str">'input[type="checkbox"]'</span>)<span class="op">;</span>
+    <span class="kw">const</span> label <span class="op">=</span> fixture<span class="op">.</span>nativeElement<span class="op">.</span><span class="fn">querySelector</span>(<span class="str">`label[for="${input.id}"]`</span>)<span class="op">;</span>
+    <span class="fn">expect</span>(label)<span class="op">.</span><span class="fn">toBeTruthy</span>()<span class="op">;</span>
+  <span class="op">});</span>
+<span class="op">});</span>
+</pre>
+          </div>
+
+          <!-- 9.3 Cypress -->
+          <h3>9.3 — Cypress + axe (E2E Tests)</h3>
+          <div class="code-block">
+            <span class="lang-tag">Bash</span>
+            <pre>
+npm install --save-dev cypress-axe axe-core
+</pre>
+          </div>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — cypress/support/e2e.ts</span>
+            <pre>
+<span class="kw">import</span> <span class="str">'cypress-axe'</span><span class="op">;</span>
+
+<span class="cmt">// Custom command to scan and fail on violations</span>
+<span class="typ">Cypress</span><span class="op">.</span>Commands<span class="op">.</span><span class="fn">add</span>(<span class="str">'checkA11y'</span><span class="op">,</span> (context<span class="op">,</span> options) <span class="op">=&gt;</span> <span class="op">{</span>
+  cy<span class="op">.</span><span class="fn">checkA11y</span>(context<span class="op">,</span> <span class="op">{</span>
+    <span class="op">...</span>options<span class="op">,</span>
+    runOnly<span class="op">:</span> <span class="op">{</span>
+      type<span class="op">:</span> <span class="str">'tag'</span><span class="op">,</span>
+      values<span class="op">:</span> [<span class="str">'wcag2a'</span><span class="op">,</span> <span class="str">'wcag2aa'</span><span class="op">,</span> <span class="str">'wcag21a'</span><span class="op">,</span> <span class="str">'wcag21aa'</span>]<span class="op">,</span>
+    <span class="op">},</span>
+  <span class="op">});</span>
+<span class="op">});</span>
+</pre>
+          </div>
+          <div class="code-block">
+            <span class="lang-tag">TypeScript — cypress/e2e/todo-a11y.cy.ts</span>
+            <pre>
+<span class="fn">describe</span>(<span class="str">'Todo List — Accessibility'</span><span class="op">,</span> () <span class="op">=&gt;</span> <span class="op">{</span>
+  <span class="fn">beforeEach</span>(() <span class="op">=&gt;</span> <span class="op">{</span>
+    cy<span class="op">.</span><span class="fn">visit</span>(<span class="str">'/'</span>)<span class="op">;</span>
+    cy<span class="op">.</span><span class="fn">injectAxe</span>()<span class="op">;</span>  <span class="cmt">// inject axe-core into the page</span>
+  <span class="op">});</span>
+
+  <span class="fn">it</span>(<span class="str">'home page has no WCAG 2.1 AA violations'</span><span class="op">,</span> () <span class="op">=&gt;</span> <span class="op">{</span>
+    cy<span class="op">.</span><span class="fn">checkA11y</span>()<span class="op">;</span>
+  <span class="op">});</span>
+
+  <span class="fn">it</span>(<span class="str">'keyboard: can add a todo using only Tab + Enter'</span><span class="op">,</span> () <span class="op">=&gt;</span> <span class="op">{</span>
+    cy<span class="op">.</span><span class="fn">get</span>(<span class="str">'input[aria-label*="title"]'</span>)<span class="op">.</span><span class="fn">focus</span>()<span class="op">.</span><span class="fn">type</span>(<span class="str">'Keyboard only todo'</span>)<span class="op">;</span>
+    cy<span class="op">.</span><span class="fn">focused</span>()<span class="op">.</span><span class="fn">type</span>(<span class="str">'{enter}'</span>)<span class="op">;</span>
+    cy<span class="op">.</span><span class="fn">contains</span>(<span class="str">'Keyboard only todo'</span>)<span class="op">.</span><span class="fn">should</span>(<span class="str">'be.visible'</span>)<span class="op">;</span>
+    cy<span class="op">.</span><span class="fn">checkA11y</span>()<span class="op">;</span>  <span class="cmt">// re-run after DOM mutation</span>
+  <span class="op">});</span>
+
+  <span class="fn">it</span>(<span class="str">'focus returns to trigger after closing dialog'</span><span class="op">,</span> () <span class="op">=&gt;</span> <span class="op">{</span>
+    cy<span class="op">.</span><span class="fn">get</span>(<span class="str">'button[aria-label*="Delete"]'</span>)<span class="op">.</span><span class="fn">first</span>()<span class="op">.</span><span class="fn">as</span>(<span class="str">'deleteBtn'</span>)<span class="op">;</span>
+    cy<span class="op">.</span><span class="fn">get</span>(<span class="str">'@deleteBtn'</span>)<span class="op">.</span><span class="fn">click</span>()<span class="op">;</span>
+    cy<span class="op">.</span><span class="fn">get</span>(<span class="str">'[role="dialog"]'</span>)<span class="op">.</span><span class="fn">should</span>(<span class="str">'be.visible'</span>)<span class="op">;</span>
+    cy<span class="op">.</span><span class="fn">get</span>(<span class="str">'button'</span>)<span class="op">.</span><span class="fn">contains</span>(<span class="str">'Cancel'</span>)<span class="op">.</span><span class="fn">click</span>()<span class="op">;</span>
+    cy<span class="op">.</span><span class="fn">focused</span>()<span class="op">.</span><span class="fn">should</span>(<span class="str">'have.attr'</span><span class="op">,</span> <span class="str">'aria-label'</span>)<span class="op">;</span>
+  <span class="op">});</span>
+<span class="op">});</span>
+</pre>
+          </div>
+
+          <!-- 9.4 Tools -->
+          <h3>9.4 — Recommended Toolchain</h3>
+
+          <h4>Browser DevTools &amp; Extensions</h4>
+          <div class="tool-grid">
+            <div class="tool-pill"><span class="dot"></span>axe DevTools (Chrome/Firefox)</div>
+            <div class="tool-pill"><span class="dot"></span>Lighthouse Accessibility Audit</div>
+            <div class="tool-pill"><span class="dot"></span>WAVE Evaluation Tool</div>
+            <div class="tool-pill"><span class="dot"></span>Colour Contrast Analyser (TPGi)</div>
+            <div class="tool-pill"><span class="dot"></span>HeadingsMap</div>
+            <div class="tool-pill"><span class="dot"></span>Accessibility Insights for Web</div>
+          </div>
+
+          <h4>Screen Readers for Manual Testing</h4>
+          <div class="tool-grid">
+            <div class="tool-pill"><span class="dot"></span>NVDA + Firefox (Windows — free)</div>
+            <div class="tool-pill"><span class="dot"></span>JAWS + Chrome (Windows — industry standard)</div>
+            <div class="tool-pill"><span class="dot"></span>VoiceOver + Safari (macOS/iOS — built-in)</div>
+            <div class="tool-pill"><span class="dot"></span>TalkBack (Android — built-in)</div>
+            <div class="tool-pill"><span class="dot"></span>Narrator + Edge (Windows — built-in)</div>
+          </div>
+
+          <h4>CI / Pipeline</h4>
+          <div class="tool-grid">
+            <div class="tool-pill"><span class="dot"></span>vitest-axe (unit tests)</div>
+            <div class="tool-pill"><span class="dot"></span>cypress-axe (e2e tests)</div>
+            <div class="tool-pill"><span class="dot"></span>@axe-core/playwright</div>
+            <div class="tool-pill"><span class="dot"></span>pa11y-ci (CLI scanner)</div>
+            <div class="tool-pill"><span class="dot"></span>Deque axe-core GitHub Action</div>
+          </div>
+
+          <!-- 9.5 Manual checklist -->
+          <h3>9.5 — Manual Testing Checklist</h3>
+          <ul class="checklist">
+            <li>Tab through every interactive element — confirm logical order and no traps</li>
+            <li>All interactive elements have a visible focus indicator (≥3:1 contrast)</li>
+            <li>All forms can be completed using keyboard alone</li>
+            <li>Modals trap focus and return focus on close</li>
+            <li>Skip link appears on first Tab and navigates correctly</li>
+            <li>Page title updates on every route change</li>
+            <li>Dynamic content changes (loading, errors, notifications) are announced</li>
+            <li>Zoom to 200% — no content is hidden or broken</li>
+            <li>High Contrast Mode (Windows) — no information is lost</li>
+            <li>Reduced Motion media query — animations stop or reduce</li>
+            <li>Screen reader announces all interactive state changes</li>
+            <li>Images without meaningful content have <code>alt=""</code> and <code>aria-hidden="true"</code></li>
+          </ul>
+        </section>
+
+        <!-- ─── 10. MCP Servers ─────────────────────────────────── -->
+        <section id="mcp-servers" aria-labelledby="h-mcp">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">10</div>
+            <h2 id="h-mcp">MCP Servers for Accessibility</h2>
+          </div>
+
+          <p>
+            Model Context Protocol (MCP) servers extend GitHub Copilot with live tool access.
+            The project's current <code>.vscode/mcp.json</code> covers Angular, Tailwind, Cypress, and the
+            component library — but has <strong>no accessibility-specific server</strong>.
+            Below is the gap analysis and the recommended addition.
+          </p>
+
+          <!-- Current MCP audit -->
+          <h3>Current MCP Configuration — A11y Gap Analysis</h3>
+
+          <div class="table-wrapper">
+            <table aria-label="Current MCP servers and their accessibility coverage">
+              <thead>
+                <tr>
+                  <th scope="col">Server</th>
+                  <th scope="col">Purpose</th>
+                  <th scope="col">A11y Relevance</th>
+                  <th scope="col">Gap</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>angular-cli</code></td>
+                  <td>Angular scaffolding, best practices</td>
+                  <td>Provides Angular A11y patterns on request</td>
+                  <td>No live DOM / AT tree scanning</td>
+                </tr>
+                <tr>
+                  <td><code>tailwindcss-server</code></td>
+                  <td>Tailwind utilities &amp; token lookup</td>
+                  <td>Can verify colour token values</td>
+                  <td>No contrast ratio calculation</td>
+                </tr>
+                <tr>
+                  <td><code>cypress</code></td>
+                  <td>E2E test generation &amp; last-run results</td>
+                  <td>Cypress specs can include cypress-axe calls</td>
+                  <td>Cannot inject axe or read violations autonomously</td>
+                </tr>
+                <tr>
+                  <td><code>cl-components</code></td>
+                  <td>Component library snippets</td>
+                  <td>Can surface accessible component variants</td>
+                  <td>No built-in A11y metadata per component</td>
+                </tr>
+                <tr>
+                  <td><strong style="color:var(--color-danger)">— missing —</strong></td>
+                  <td>Live browser A11y inspection</td>
+                  <td colspan="2" style="color:var(--color-danger)">
+                    <strong>No server can read the live accessibility tree, run axe autonomously,
+                    or take A11y snapshots of the running app</strong>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Playwright MCP -->
+          <h3>Recommended Addition — <code>@playwright/mcp</code></h3>
+
+          <div class="callout success">
+            <span class="callout-icon" aria-hidden="true">✅</span>
+            <p>
+              <strong>@playwright/mcp</strong> is Microsoft's official Playwright MCP server.
+              It gives Copilot a live browser it can drive — navigate to your running Angular app,
+              snapshot the full accessibility tree, evaluate axe-core, and report violations —
+              all without leaving the chat.
+            </p>
+          </div>
+
+          <h4>What Playwright MCP Adds for A11y</h4>
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">🌳</div>
+              <h3>Accessibility Tree Snapshot</h3>
+              <p>Reads the full AT tree of the live Angular app — roles, names, states — exactly what a screen reader sees.</p>
+            </div>
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">⚡</div>
+              <h3>Live axe-core Evaluation</h3>
+              <p>Injects and runs axe-core on the running page at <code>localhost:4200</code> and returns structured violations.</p>
+            </div>
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">⌨️</div>
+              <h3>Keyboard Navigation Simulation</h3>
+              <p>Simulates Tab / Shift+Tab / Enter / Space / Arrow keys to verify focus order and keyboard operability.</p>
+            </div>
+            <div class="card">
+              <div class="card-icon" aria-hidden="true">📸</div>
+              <h3>Screenshot &amp; Visual Diff</h3>
+              <p>Captures screenshots to verify focus indicators, colour contrast, and high-contrast mode rendering.</p>
+            </div>
+          </div>
+
+          <!-- Install -->
+          <h3>Installation</h3>
+          <div class="code-block">
+            <span class="lang-tag">Bash</span>
+            <pre>
+<span class="cmt"># Playwright MCP is consumed on-demand via npx — no local install needed</span>
+<span class="cmt"># Optionally install browsers once:</span>
+npx playwright install chromium
+</pre>
+          </div>
+
+          <!-- Updated mcp.json -->
+          <h3>Updated <code>.vscode/mcp.json</code></h3>
+          <div class="code-block">
+            <span class="lang-tag">JSON — .vscode/mcp.json</span>
+            <pre>
+<span class="op">{</span>
+  <span class="str">"servers"</span><span class="op">:</span> <span class="op">{</span>
+
+    <span class="cmt">// ── Existing servers (unchanged) ──────────────────────</span>
+    <span class="str">"angular-cli"</span><span class="op">:</span> <span class="op">{</span>
+      <span class="str">"command"</span><span class="op">:</span> <span class="str">"npx"</span><span class="op">,</span>
+      <span class="str">"args"</span><span class="op">:</span> [<span class="str">"-y"</span><span class="op">,</span> <span class="str">"@angular/cli"</span><span class="op">,</span> <span class="str">"mcp"</span>]
+    <span class="op">},</span>
+    <span class="str">"tailwindcss-server"</span><span class="op">:</span> <span class="op">{</span>
+      <span class="str">"command"</span><span class="op">:</span> <span class="str">"npx"</span><span class="op">,</span>
+      <span class="str">"args"</span><span class="op">:</span> [<span class="str">"-y"</span><span class="op">,</span> <span class="str">"tailwindcss-mcp-server"</span>]
+    <span class="op">},</span>
+    <span class="str">"cypress"</span><span class="op">:</span> <span class="op">{</span>
+      <span class="str">"command"</span><span class="op">:</span> <span class="str">"npx"</span><span class="op">,</span>
+      <span class="str">"args"</span><span class="op">:</span> [<span class="str">"cypress-mcp"</span><span class="op">,</span> <span class="str">"--project"</span><span class="op">,</span> <span class="str">"./"</span>]
+    <span class="op">},</span>
+    <span class="str">"cl-components"</span><span class="op">:</span> <span class="op">{</span>
+      <span class="str">"type"</span><span class="op">:</span> <span class="str">"stdio"</span><span class="op">,</span>
+      <span class="str">"command"</span><span class="op">:</span> <span class="str">"C:\\ComponentLiabery\\mcp-server\\.venv\\Scripts\\python"</span><span class="op">,</span>
+      <span class="str">"args"</span><span class="op">:</span> [<span class="str">"C:\\ComponentLiabery\\mcp-server\\main.py"</span>]<span class="op">,</span>
+      <span class="str">"cwd"</span><span class="op">:</span> <span class="str">"C:\\ComponentLiabery"</span>
+    <span class="op">},</span>
+
+    <span class="cmt">// ── NEW — Playwright MCP for live A11y auditing ────────</span>
+    <span class="str">"playwright"</span><span class="op">:</span> <span class="op">{</span>
+      <span class="str">"command"</span><span class="op">:</span> <span class="str">"npx"</span><span class="op">,</span>
+      <span class="str">"args"</span><span class="op">:</span> [<span class="str">"@playwright/mcp@latest"</span>]
+    <span class="op">}</span>
+
+  <span class="op">}</span>
+<span class="op">}</span>
+</pre>
+          </div>
+
+          <!-- How to use -->
+          <h3>How to Use Playwright MCP for A11y Audits in Copilot Chat</h3>
+          <p>Once added, ask Copilot in agent mode while the dev server (<code>npm start</code>) is running:</p>
+
+          <div class="code-block">
+            <span class="lang-tag">Copilot Chat Prompts</span>
+            <pre>
+<span class="cmt">// Snapshot the accessibility tree of the todo list page</span>
+<span class="str">"Navigate to localhost:4200, take an accessibility tree snapshot
+ and report any missing labels, role issues, or heading order problems."</span>
+
+<span class="cmt">// Run axe-core live</span>
+<span class="str">"Open localhost:4200, inject axe-core, run a WCAG 2.1 AA scan,
+ and list all violations with their WCAG criterion reference."</span>
+
+<span class="cmt">// Keyboard navigation audit</span>
+<span class="str">"Navigate to localhost:4200, simulate Tab key presses through all
+ interactive elements, and report the focus order."</span>
+
+<span class="cmt">// Focus indicator check</span>
+<span class="str">"Focus the Add Todo button and take a screenshot — verify the
+ focus ring is visible and meets 3:1 contrast against its background."</span>
+</pre>
+          </div>
+
+          <div class="callout info">
+            <span class="callout-icon" aria-hidden="true">💡</span>
+            <p>
+              <strong>Workflow tip:</strong> Run <code>npm start</code> in one terminal, then use
+              Playwright MCP in Copilot agent mode to audit each new component or feature
+              immediately after implementation — before writing the Cypress spec.
+              This gives you real AT-tree feedback in under 10 seconds.
+            </p>
+          </div>
+
+          <!-- MCP + SKILL.md -->
+          <h3>Add Playwright MCP Awareness to the A11y SKILL.md</h3>
+          <p>Add the following block to the <code>## Angular 21 Accessibility Primitives</code> table in <code>.github/skills/a11y-expert/SKILL.md</code>:</p>
+
+          <div class="file-block">
+            <div class="file-block-header">
+              <span class="file-dot">●</span>
+              .github/skills/a11y-expert/SKILL.md  —  add to MCP tools table
+            </div>
+            <pre>
+## MCP Tools Available for A11y (use when dev server is running)
+| Tool via MCP          | When to use                                                      |
+|-----------------------|------------------------------------------------------------------|
+| playwright navigate   | Open the running app at localhost:4200                           |
+| playwright snapshot   | Dump full accessibility tree — roles, names, states, hierarchy   |
+| playwright evaluate   | Inject axe-core and run WCAG 2.1 AA scan, return violations JSON |
+| playwright click      | Simulate user interactions for focus-flow verification           |
+| playwright press      | Send Tab / Arrow / Enter / Escape for keyboard audit             |
+| playwright screenshot | Capture focus indicators and high-contrast rendering             |
+
+Always run `playwright snapshot` before suggesting any ARIA fix —
+the live tree is the ground truth, not static source analysis.
+</pre>
+          </div>
+
+        </section>
+
+        <!-- ─── 11. Instructions & Skills ───────────────────────── -->
+        <section id="instructions" aria-labelledby="h-instr">
+          <div class="section-header">
+            <div class="section-number" aria-hidden="true">11</div>
+            <h2 id="h-instr">SKILL.md &amp; Instructions.md Suggestions</h2>
+          </div>
+
+          <p>
+            The following file suggestions enforce WCAG 2.1 AA as an automated, ambient coding
+            standard across every AI-assisted edit in the Angular Todo project — no manual auditing
+            required for routine changes.
+          </p>
+
+          <!-- angular.instructions.md additions -->
+          <h3>Additions to <code>.github/instructions/angular.instructions.md</code></h3>
+          <p>Add an <strong>Accessibility (A11y) Rules</strong> section to the existing Angular instructions file:</p>
+
+          <div class="file-block">
+            <div class="file-block-header">
+              <span class="file-dot">●</span>
+              .github/instructions/angular.instructions.md  —  add section
+            </div>
+            <pre>
+## Accessibility (A11y) Rules — WCAG 2.1 AA Mandatory
+
+### HTML Semantics
+- Use semantic HTML landmarks: &lt;header&gt;, &lt;nav&gt;, &lt;main&gt;, &lt;section&gt;, &lt;aside&gt;, &lt;footer&gt;
+- Every &lt;section&gt; and &lt;nav&gt; MUST have an aria-label or aria-labelledby
+- Never use &lt;div&gt; or &lt;span&gt; as interactive elements — use &lt;button&gt; or &lt;a&gt;
+- Every page MUST include a skip-to-content link as the first focusable element
+
+### Forms
+- Every &lt;input&gt;, &lt;select&gt;, and &lt;textarea&gt; MUST have an associated &lt;label for="..."&gt;
+- Required fields MUST use aria-required="true" AND a visible indicator
+- Validation errors MUST use role="alert" or aria-live="polite"
+- Use [attr.aria-invalid]="control.invalid &amp;&amp; control.touched" on inputs
+
+### Buttons &amp; Links
+- Icon-only buttons MUST have aria-label describing the action AND the target
+  - Pattern: aria-label="Delete todo: {{ todo().title }}"
+- Decorative SVGs/icons inside buttons MUST use aria-hidden="true" focusable="false"
+- &lt;a&gt; elements MUST have descriptive text — never "click here" or "read more"
+
+### Images
+- Informative images: alt="[meaningful description]"
+- Decorative images: alt="" aria-hidden="true"
+- Angular NgOptimizedImage (ngSrc): always supply width, height, and alt
+
+### ARIA
+- Never use ARIA if native HTML semantics already provide the semantics
+- aria-label on interactive elements must be unique and descriptive
+- Dynamic content changes MUST be announced via LiveAnnouncer or aria-live regions
+- Modals MUST use role="dialog" aria-modal="true" aria-labelledby and cdkTrapFocus
+
+### Focus Management
+- Never suppress focus outlines — use :focus-visible CSS, not outline: none
+- After dialog close, return focus to the triggering element
+- Use CDK FocusTrap for all overlays, modals, and drawers
+- Positive tabindex values are FORBIDDEN — never use tabindex="1" or higher
+
+### Router
+- Every route MUST have a descriptive, unique title property
+- On route change, focus MUST be managed — move to main or h1 after navigation
+
+### Signals &amp; Change Detection
+- OnPush + signals: ensure aria-live regions update by setting signal values, not
+  manipulating the DOM directly — Angular change detection handles the rest
+
+### Colour &amp; Contrast (inform template author)
+- Text on coloured backgrounds MUST meet 4.5:1 (normal text) or 3:1 (large text)
+- Never communicate state using colour alone — always pair with icon or text
+- Focus indicators MUST have 3:1 contrast against their adjacent background
+
+### Testing
+- Every component spec MUST include an axe scan: await axe(fixture.nativeElement)
+- Cypress E2E specs MUST call cy.injectAxe() + cy.checkA11y() after page load
+- Run axe after every user interaction that mutates the DOM significantly
+</pre>
+          </div>
+
+          <!-- tailwind.instructions.md additions -->
+          <h3>Additions to <code>.github/instructions/tailwind.instructions.md</code></h3>
+
+          <div class="file-block">
+            <div class="file-block-header">
+              <span class="file-dot">●</span>
+              .github/instructions/tailwind.instructions.md  —  add section
+            </div>
+            <pre>
+## Accessibility-Driven Tailwind Patterns
+
+### Focus Styles (Mandatory on all interactive elements)
+- Use: focus-visible:ring-2 focus-visible:ring-indigo-400
+       focus-visible:ring-offset-2 focus-visible:outline-none
+- Never use: focus:outline-none alone (removes focus visibility for keyboard users)
+
+### Screen-Reader-Only Utility (must exist in styles.css)
+- Class .sr-only hides content visually but keeps it in the AT tree
+- Use for: skip links (visible on focus), icon button labels, live region containers
+- Never use: hidden or invisible for content that assistive tech must read
+
+### Colour Contrast Guardrails
+- Background slate-900 (#0f172a): use text-slate-200 or lighter (≥4.5:1)
+- Background slate-800 (#1e293b): use text-slate-100 or lighter
+- Avoid text-slate-400 on dark backgrounds for body text — use text-slate-300 minimum
+- Status colours: use indigo-400 (not 500) on dark bg, green-400 (not 500), etc.
+
+### Disabled State
+- Disabled buttons: add aria-disabled="true" + disabled attribute
+- Use: opacity-50 cursor-not-allowed — do NOT rely only on colour change
+
+### Motion
+- Respect prefers-reduced-motion:
+  motion-safe:transition-all   ← plays on non-reduced-motion
+  motion-reduce:transition-none ← disables on reduced-motion
+
+### Icon Buttons — Required Pattern
+&lt;button type="button"
+        aria-label="[Action]: [Target]"
+        class="focus-visible:ring-2 focus-visible:ring-indigo-400 ..."&gt;
+  &lt;svg aria-hidden="true" focusable="false"&gt;...&lt;/svg&gt;
+&lt;/button&gt;
+</pre>
+          </div>
+
+          <!-- testing.instructions.md additions -->
+          <h3>Additions to <code>.github/instructions/testing.instructions.md</code></h3>
+
+          <div class="file-block">
+            <div class="file-block-header">
+              <span class="file-dot">●</span>
+              .github/instructions/testing.instructions.md  —  add section
+            </div>
+            <pre>
+## Accessibility Testing (Mandatory)
+
+### Vitest — axe-core Integration
+- Install: npm install --save-dev vitest-axe
+- Every component spec file MUST include:
+
+  import { axe, toHaveNoViolations } from 'vitest-axe';
+  expect.extend(toHaveNoViolations);
+
+  it('should have no axe violations', async () => {
+    fixture.detectChanges();
+    const results = await axe(fixture.nativeElement);
+    expect(results).toHaveNoViolations();
+  });
+
+- Run axe after every significant fixture change (input update, form submit, etc.)
+- Do NOT skip axe tests for "simple" components — even &lt;button&gt; can fail
+
+### Cypress — cypress-axe Integration
+- Install: npm install --save-dev cypress-axe
+- Import in cypress/support/e2e.ts: import 'cypress-axe';
+- EVERY e2e feature spec MUST:
+  1. Call cy.injectAxe() in beforeEach after cy.visit()
+  2. Call cy.checkA11y() with wcag2a + wcag2aa + wcag21aa tags
+  3. Re-call cy.checkA11y() after any significant DOM mutation
+
+- Scope scans to components under test:
+  cy.checkA11y('[data-cy="todo-list"]')
+
+### Assertions to Always Include
+- Checkbox has an associated label via for/id pairing
+- Delete/action buttons have aria-label containing the item name
+- Error messages appear in role="alert" or aria-live="polite" region
+- Focus returns to trigger element after modal/dialog dismissal
+- Page title changes on route navigation
+</pre>
+          </div>
+
+          <!-- New SKILL.md -->
+          <h3>New File: <code>.github/skills/a11y-expert/SKILL.md</code></h3>
+          <p>
+            Create a dedicated accessibility skill that Copilot activates when asked about
+            accessibility, WCAG compliance, screen readers, or ARIA patterns:
+          </p>
+
+          <div class="file-block">
+            <div class="file-block-header">
+              <span class="file-dot">●</span>
+              .github/skills/a11y-expert/SKILL.md  —  new file
+            </div>
+            <pre>
+---
+name: a11y-expert
+description: >
+  Web Accessibility (A11y) and WCAG 2.1 AA expert. Use for accessibility audits,
+  ARIA pattern implementation, keyboard navigation, screen reader testing,
+  colour contrast verification, and axe-core test generation in Angular 21 apps.
+---
+
+# A11y Expert Skill
+
+## Scope
+Activate this skill when the user asks about:
+- WCAG 2.1 / 2.2 compliance or specific success criteria
+- ARIA roles, properties, and states
+- Keyboard navigation or focus management
+- Screen reader behaviour (NVDA, JAWS, VoiceOver)
+- Colour contrast or visual accessibility
+- axe-core, cypress-axe, vitest-axe test setup
+- Accessibility audits or remediating violations
+- Angular CDK A11y module (FocusTrap, LiveAnnouncer, KeyManager)
+
+## Non-Negotiable Rules (always apply)
+1. **WCAG 2.1 AA is the minimum bar** — never implement below AA
+2. **Semantic HTML first** — ARIA only when native semantics are insufficient
+3. **Every interactive element** must be keyboard operable and have a visible focus indicator
+4. **Every form control** must have an associated label (for/id or aria-labelledby)
+5. **Every icon button** must have aria-label="[Action]: [Target item name]"
+6. **Every dynamic update** must be announced to AT (aria-live or LiveAnnouncer)
+7. **Every modal** must trap focus and return focus to the trigger on close
+8. **axe-core tests are mandatory** — never generate a component without an axe spec
+
+## Angular 21 Accessibility Primitives (prefer these)
+| Need                        | Use                                               |
+|-----------------------------|---------------------------------------------------|
+| Focus trap in modal         | cdkTrapFocus + cdkTrapFocusAutoCapture            |
+| Announce dynamic changes    | inject(LiveAnnouncer).announce(msg, 'polite')     |
+| Custom keyboard navigation  | ActiveDescendantKeyManager / ListKeyManager       |
+| Describe element to AT      | inject(AriaDescriber).describe(el, description)   |
+| High-contrast media query   | BreakpointObserver with 'forced-colors: active'   |
+
+## Key WCAG 2.1 AA Success Criteria (quick reference)
+- 1.1.1 Non-text Content — alt text on images
+- 1.3.1 Info &amp; Relationships — semantic markup
+- 1.3.2 Meaningful Sequence — logical DOM order
+- 1.4.1 Use of Colour — never colour alone
+- 1.4.3 Contrast (Minimum) — 4.5:1 normal text, 3:1 large
+- 1.4.4 Resize Text — 200% zoom, no loss of content
+- 1.4.10 Reflow — single column at 320px viewport
+- 1.4.11 Non-text Contrast — 3:1 for UI components
+- 2.1.1 Keyboard — all functions keyboard accessible
+- 2.1.2 No Keyboard Trap — always escapable
+- 2.4.3 Focus Order — logical, meaningful sequence
+- 2.4.6 Headings and Labels — descriptive
+- 2.4.7 Focus Visible — visible keyboard focus
+- 3.1.1 Language of Page — &lt;html lang="en"&gt;
+- 3.3.1 Error Identification — described in text
+- 3.3.2 Labels or Instructions — instructions before input
+- 4.1.2 Name, Role, Value — all UI components
+- 4.1.3 Status Messages — programmatically determined
+
+## Testing Mandate
+When generating or reviewing any Angular component:
+1. Add axe unit test (vitest-axe) to the spec file
+2. Verify keyboard operability in manual checklist
+3. Suggest cypress-axe scan if no e2e spec exists
+4. Call out any colour-only state indicators
+5. Verify all dynamic content has a live region or announcer call
+</pre>
+          </div>
+
+          <div class="callout success">
+            <span class="callout-icon" aria-hidden="true">✅</span>
+            <p>
+              With these instruction files in place, GitHub Copilot will automatically apply
+              WCAG 2.1 AA rules on every file it touches — semantic HTML, ARIA correctness,
+              focus management, axe test generation, and Tailwind contrast guardrails —
+              without any manual prompting.
+            </p>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- ── Footer ─────────────────────────────────────────────── -->
+      <footer role="contentinfo">
+        <p>
+          Web Accessibility (A11y) &amp; WCAG 2.1 Guide · Angular 21 Todo App ·
+          <a href="https://www.w3.org/TR/WCAG21/" rel="noopener noreferrer">W3C WCAG 2.1 Specification</a> ·
+          <a href="https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA" rel="noopener noreferrer">MDN ARIA Reference</a>
+        </p>
+        <p style="margin-top:0.5rem;">
+          All code examples use Angular 21 standalone components, signals, <code>input()</code> /
+          <code>output()</code> functions, <code>inject()</code>, and <code>ChangeDetectionStrategy.OnPush</code>.
+        </p>
+      </footer>
+
+    </div><!-- /page-wrapper -->
+  </body>
+</html>
