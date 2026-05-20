@@ -1,0 +1,22 @@
+{
+  "servers": {
+    "angular-cli": {
+      "command": "npx",
+      "args": ["-y", "@angular/cli", "mcp"]
+    },
+    "tailwindcss-server": {
+      "command": "npx",
+      "args": ["-y", "tailwindcss-mcp-server"]
+    },
+    "cypress": {
+      "command": "npx",
+      "args": ["cypress-mcp", "--project", "./"]
+    },
+     "cl-components": {
+      "type": "stdio",
+      "command": "C:\\ComponentLiabery\\mcp-server\\.venv\\Scripts\\python",
+      "args": ["C:\\ComponentLiabery\\mcp-server\\main.py"],
+      "cwd": "C:\\ComponentLiabery"
+    }
+  }
+}
