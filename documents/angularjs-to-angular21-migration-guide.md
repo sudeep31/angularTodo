@@ -337,10 +337,19 @@ Rules:
 })
 export class ChartComponent {
   readonly data = input.required<ChartDataPoint[]>();
-  @ViewChild('chartContainer') containerRef!: ElementRef;
+  // ✅ Angular 21: use viewChild.required() (signal-based) instead of @ViewChild decorator
+  // See Section 3.11.2 for the full signal query migration pattern
+  protected readonly containerRef = viewChild.required<ElementRef>('chartContainer');
   private chart: Highcharts.Chart | undefined;
 
   constructor() {
+    // afterNextRender: SSR-safe; runs once after first browser render
+    afterNextRender(() => {
+      this.chart = Highcharts.chart(this.containerRef().nativeElement, {
+        series: [{ data: this.data() }],
+      } as Highcharts.Options);
+    });
+
     // effect() runs when data() signal changes — re-renders chart safely
     effect(() => {
       const series = this.data(); // read signal inside effect — tracked
@@ -350,8 +359,10 @@ export class ChartComponent {
     });
   }
 
-  ngAfterViewInit(): void {
-    this.chart = Highcharts.chart(this.containerRef.nativeElement, {
+  // ngAfterViewInit no longer needed — replaced by afterNextRender above
+  // Keeping placeholder for reference only:
+  // ngAfterViewInit(): void {
+  //   this.chart = Highcharts.chart(this.containerRef().nativeElement, {
       series: [{ data: this.data() }],
     });
   }
@@ -489,11 +500,13 @@ Output as a Markdown table sorted by effort descending.
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<div #pluginHost></div>`,
 })
-export class LegacyPluginWrapperComponent implements AfterViewInit, OnDestroy {
+export class LegacyPluginWrapperComponent implements OnDestroy {
   readonly config = input.required<PluginConfig>();
   readonly data = input<unknown[]>([]);
   private pluginInstance: unknown;
-  @ViewChild('pluginHost') hostRef!: ElementRef;
+  // ✅ Angular 21: signal-based query (see Section 3.11.2) — replaces @ViewChild decorator
+  protected readonly hostRef = viewChild.required<ElementRef>('pluginHost');
+  private readonly destroyRef = inject(DestroyRef); // ✅ Section 3.11.6 cleanup pattern
 
   constructor() {
     // React to data changes via effect — plugin is unaware of Angular
@@ -809,18 +822,18 @@ Format as a DevOps runbook with shell commands where applicable.
 
 **Top 10 migration mistakes:**
 
-| #   | Mistake                                                 | Prevention                                                             |
-| --- | ------------------------------------------------------- | ---------------------------------------------------------------------- |
-| 1   | Converting without tests                                | Enforce coverage gate before any conversion starts                     |
-| 2   | Using `@Input()` / `@Output()` decorators in Angular 21 | Copilot instruction: always use `input()` / `output()` functions       |
-| 3   | Constructor injection instead of `inject()`             | ESLint rule: `@angular-eslint/prefer-inject`                           |
-| 4   | BehaviorSubject for local state instead of `signal()`   | Code review checklist: no BehaviorSubject for component-local state    |
-| 5   | `ngModule` imports in standalone components             | ng generate always uses `--standalone`; ESLint no-module rule          |
-| 6   | Zone.js left enabled when Angular 21 supports zoneless  | Check `provideExperimentalZonelessChangeDetection()` after migration   |
-| 7   | Third-party library replacement not scoped separately   | Library ADR before sprint; treat each lib as a separate epic           |
-| 8   | Assuming ngUpgrade handles all edge cases               | Test every downgraded/upgraded component in IE11-equivalent conditions |
-| 9   | Feature flag not wired to monitoring                    | Every flag → corresponding Datadog/New Relic dashboard alert           |
-| 10  | Not removing AngularJS after migration                  | Decommission checklist agreed before migration begins (see Q10)        |
+| #   | Mistake                                                 | Prevention                                                                                                 |
+| --- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 1   | Converting without tests                                | Enforce coverage gate before any conversion starts                                                         |
+| 2   | Using `@Input()` / `@Output()` decorators in Angular 21 | Copilot instruction: always use `input()` / `output()` functions                                           |
+| 3   | Constructor injection instead of `inject()`             | ESLint rule: `@angular-eslint/prefer-inject`                                                               |
+| 4   | BehaviorSubject for local state instead of `signal()`   | Code review checklist: no BehaviorSubject for component-local state                                        |
+| 5   | `ngModule` imports in standalone components             | ng generate always uses `--standalone`; ESLint no-module rule                                              |
+| 6   | Zone.js left enabled when Angular 21 supports zoneless  | Check `provideZonelessChangeDetection()` after migration (stable in Angular 21 — no longer "Experimental") |
+| 7   | Third-party library replacement not scoped separately   | Library ADR before sprint; treat each lib as a separate epic                                               |
+| 8   | Assuming ngUpgrade handles all edge cases               | Test every downgraded/upgraded component in IE11-equivalent conditions                                     |
+| 9   | Feature flag not wired to monitoring                    | Every flag → corresponding Datadog/New Relic dashboard alert                                               |
+| 10  | Not removing AngularJS after migration                  | Decommission checklist agreed before migration begins (see Q10)                                            |
 
 ---
 
@@ -1619,6 +1632,59 @@ This view is for your engineering leads. It shows exactly what runs where during
 
 ---
 
+## 2.3.1 — Browser Support Matrix
+
+**Critical for Enterprise Migrations:** Verify browser requirements before starting.
+
+| Browser                 | AngularJS 1.8 | Angular 21             | Migration Impact                |
+| ----------------------- | ------------- | ---------------------- | ------------------------------- |
+| Chrome (latest)         | ✅ Supported  | ✅ Supported           | No impact                       |
+| Edge (Chromium)         | ✅ Supported  | ✅ Supported           | No impact                       |
+| Firefox (latest)        | ✅ Supported  | ✅ Supported           | No impact                       |
+| Safari 15+              | ✅ Supported  | ✅ Supported           | No impact                       |
+| Safari 13-14            | ✅ Supported  | ⚠️ Partial (polyfills) | Add core-js polyfills           |
+| IE11                    | ✅ Supported  | ❌ **NOT SUPPORTED**   | **BLOCKER — See decision tree** |
+| Mobile Safari (iOS 15+) | ✅ Supported  | ✅ Supported           | Test PWA install                |
+| Chrome Android          | ✅ Supported  | ✅ Supported           | No impact                       |
+
+**IE11 Decision Tree:**
+
+```
+Q: Do we still support IE11?
+├─ YES → Cannot migrate to Angular 21 (ES2015+ required)
+│         Options: (A) Drop IE11 support, (B) Separate IE11 build, (C) Stay on AngularJS
+└─ NO  → ✅ Proceed with migration
+```
+
+**Why Angular 21 doesn't support IE11:**
+
+- Angular 21 requires ES2015+ (classes, arrow functions, const/let, Promises)
+- Polyfilling IE11 to ES2015 adds 300KB+ to bundle size
+- OnPush change detection incompatible with IE11's object mutation detection
+- Signals use Proxy API (not polyfillable in IE11)
+
+**Recommendation:** If IE11 support is mandatory, negotiate with stakeholders to drop it. IE11 market share is < 0.5% globally as of 2026. Microsoft ended support in June 2022.
+
+**Polyfill Configuration (angular.json):**
+
+```json
+{
+  "projects": {
+    "banking-ng21": {
+      "architect": {
+        "build": {
+          "options": {
+            "polyfills": ["zone.js", "@angular/localize/init"]
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+---
+
 ## 2.4 — Migration Phase HLD Timeline
 
 ```
@@ -1708,9 +1774,572 @@ This view is for your engineering leads. It shows exactly what runs where during
 
 ---
 
-## 2.6 — Module Federation HLD
+## 2.6 — Module Federation vs Polyrepo Strategy
 
-Module Federation is the deployment mechanism that allows the Angular 21 shell and the Angular 21 feature remote to deploy independently. This is the core HLD for the Nx + MFE approach.
+### Option A: Module Federation (Monorepo with Independent Deployment)
+
+Module Federation is the deployment mechanism that allows the Angular 21 shell and the Angular 21 feature remote to deploy independently within an Nx monorepo.
+
+**Pros:**
+
+- Shared code (libs/) compiled once
+- Type-safe imports across apps
+- Single CI/CD pipeline with nx affected
+- No CORS issues (shared singleton libraries)
+
+**Cons:**
+
+- Complex webpack configuration
+- Learning curve for team
+- Version conflicts require careful management
+
+### Option B: Polyrepo Strategy (Separate Repositories with Direct Routing)
+
+**Architecture:** Angular 21 shell and AngularJS app are separate deployments with cross-domain routing.
+
+**How it works:**
+
+```
+Shell (shell.bank.com)              Legacy (legacy.bank.com)
+    ├── /dashboard (Angular 21)         ├── /#!/statements (AngularJS)
+    ├── /accounts (Angular 21)          ├── /#!/reports (AngularJS)
+    └── <a href="https://legacy.bank.com/#!/statements"> → Direct navigation
+
+Legacy can link back:
+    <a href="https://shell.bank.com/dashboard"> → Back to Angular 21
+```
+
+**Key Difference from iframe approach:**
+
+- ❌ **iframe problems:** Routing conflicts (parent controls URL, iframe has separate history), browser back button breaks, poor SEO, accessibility issues (nested navigation)
+- ✅ **Polyrepo solution:** Full page navigation (hard reload between apps), each app controls its own routing, no iframe nesting, works with browser back/forward naturally
+
+**Authentication Bridge:**
+Both apps must share authentication. Use **shared domain cookies** or **token in query parameter**:
+
+```typescript
+// Shell redirects to legacy with token
+navigateToLegacy(route: string) {
+  const token = this.authService.getToken();
+  window.location.href = `https://legacy.bank.com${route}?token=${token}`;
+}
+
+// Legacy reads token on bootstrap
+angular.module('app').run(['$location', '$http', function($location, $http) {
+  const token = $location.search().token;
+  if (token) {
+    $http.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    sessionStorage.setItem('auth_token', token);
+    // Remove token from URL for security
+    $location.search('token', null);
+  }
+}]);
+```
+
+**Decision Matrix:**
+
+| Criterion               | Module Federation (Monorepo)        | Polyrepo Strategy                        |
+| ----------------------- | ----------------------------------- | ---------------------------------------- |
+| Code sharing            | ✅ Excellent (typed libs)           | ❌ Must duplicate or use npm packages    |
+| Routing complexity      | ⚠️ Medium (MFE + iframe fallback)   | ✅ Simple (just links)                   |
+| Team independence       | ⚠️ Medium (shared Nx workspace)     | ✅ High (separate repos)                 |
+| CI/CD complexity        | ✅ Simple (nx affected)             | ⚠️ Medium (2 pipelines)                  |
+| Learning curve          | ❌ High (Module Federation)         | ✅ Low (standard deployment)             |
+| iframe routing problems | ⚠️ Yes (for legacy screens)         | ✅ None (full page nav)                  |
+| Recommended for         | 50-120 screens, 1 team, shared libs | 120+ screens, 2+ teams, separate domains |
+
+**When to use Polyrepo:**
+
+- Legacy app is maintained by separate team
+- No need for shared TypeScript libraries
+- Migration will take 12+ months
+- Want to avoid iframe routing issues entirely
+- Different deployment schedules (legacy rarely changes)
+
+---
+
+### Option C: Same Domain, Path-Based Routing (Recommended for Most Teams)
+
+**Architecture:** Both Angular 21 and AngularJS apps served from same domain under different paths.
+
+```
+https://bank.com/
+    ├── /new/          → Angular 21 app (new screens)
+    ├── /legacy/       → AngularJS app (not yet migrated)
+    └── /api/          → Backend API (shared by both)
+```
+
+**✅ Key Benefits:**
+
+- ✅ **No CORS issues** — same domain means cookies, localStorage, sessionStorage all work automatically
+- ✅ **No iframe complexity** — each app has its own routing, no parent/child conflicts
+- ✅ **Shared authentication** — HttpOnly cookies work seamlessly across both apps
+- ✅ **Clean URLs** — `bank.com/new/dashboard` vs `bank.com/legacy/statements`
+- ✅ **Works in Nx monorepo** — different base hrefs, single workspace
+- ✅ **Progressive migration** — can move routes from /legacy to /new incrementally
+- ✅ **SEO friendly** — both apps crawlable, no iframe content hidden
+
+---
+
+### Nx Workspace Configuration for Path-Based Deployment
+
+**Step 1: Configure base hrefs in project.json**
+
+```json
+// apps/banking-ng21/project.json
+{
+  "name": "banking-ng21",
+  "targets": {
+    "build": {
+      "executor": "@angular-devkit/build-angular:application",
+      "options": {
+        "baseHref": "/new/",  // ← Angular 21 app served at /new/
+        "outputPath": "dist/apps/banking-ng21",
+        "index": "apps/banking-ng21/src/index.html",
+        "browser": "apps/banking-ng21/src/main.ts"
+      }
+    }
+  }
+}
+
+// apps/banking-legacy/project.json
+{
+  "name": "banking-legacy",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "options": {
+        "baseHref": "/legacy/",  // ← AngularJS app served at /legacy/
+        "outputPath": "dist/apps/banking-legacy",
+        "webpackConfig": "apps/banking-legacy/webpack.config.js"
+      }
+    }
+  }
+}
+```
+
+**Step 2: Configure Angular Router with base href**
+
+```typescript
+// apps/banking-ng21/src/app/app.config.ts
+import { ApplicationConfig } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { routes } from './app.routes';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideRouter(routes),
+    // Base href is set in index.html: <base href="/new/">
+    // Router automatically respects this
+  ],
+};
+
+// apps/banking-ng21/src/app/app.routes.ts
+import { Routes } from '@angular/router';
+
+export const routes: Routes = [
+  { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+  {
+    path: 'dashboard',
+    loadComponent: () => import('./features/dashboard/dashboard.component'),
+  },
+  {
+    path: 'accounts',
+    loadComponent: () => import('./features/accounts/account-list.component'),
+  },
+  // All routes are relative to /new/ base href
+  // User sees: bank.com/new/dashboard, bank.com/new/accounts
+];
+```
+
+**Step 3: Configure AngularJS app for /legacy/ base**
+
+```javascript
+// apps/banking-legacy/src/app/app.config.js
+angular.module('bankingApp', ['ui.router']).config([
+  '$locationProvider',
+  '$stateProvider',
+  function ($locationProvider, $stateProvider) {
+    // Use HTML5 mode with base /legacy/
+    $locationProvider.html5Mode({
+      enabled: true,
+      requireBase: true,
+    });
+
+    $stateProvider
+      .state('statements', {
+        url: '/statements', // Becomes /legacy/statements
+        templateUrl: 'views/statements.html',
+        controller: 'StatementsCtrl',
+      })
+      .state('reports', {
+        url: '/reports', // Becomes /legacy/reports
+        templateUrl: 'views/reports.html',
+        controller: 'ReportsCtrl',
+      });
+  },
+]);
+```
+
+```html
+<!-- apps/banking-legacy/src/index.html -->
+<!DOCTYPE html>
+<html ng-app="bankingApp">
+  <head>
+    <base href="/legacy/" />
+    <!-- AngularJS respects this base -->
+    <title>Banking App</title>
+  </head>
+  <body>
+    <div ui-view></div>
+  </body>
+</html>
+```
+
+---
+
+### Nginx Reverse Proxy Configuration
+
+Deploy both apps behind a single nginx server that routes based on path:
+
+```nginx
+# /etc/nginx/sites-available/bank.com
+
+server {
+    listen 443 ssl http2;
+    server_name bank.com;
+
+    ssl_certificate /etc/ssl/certs/bank.com.crt;
+    ssl_certificate_key /etc/ssl/private/bank.com.key;
+
+    # Security headers
+    add_header X-Frame-Options DENY;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+
+    # Root redirects to Angular 21 app
+    location = / {
+        return 301 /new/dashboard;
+    }
+
+    # Angular 21 app at /new/*
+    location /new/ {
+        alias /var/www/banking-ng21/;
+        try_files $uri $uri/ /new/index.html =404;  # SPA fallback with 404 final
+
+        # Cache static assets
+        location ~* \.(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+
+    # HTTPS enforcement (redirect HTTP to HTTPS)
+    # ⚠️ This block should be in a separate server{} listening on port 80
+}
+
+# HTTP to HTTPS redirect
+server {
+    listen 80;
+    server_name bank.com;
+    return 301 https://$server_name$request_uri;
+}
+
+# HTTPS with HSTS (main server)
+server {
+    listen 443 ssl http2;
+    server_name bank.com;
+
+    ssl_certificate /etc/ssl/certs/bank.com.crt;
+    ssl_certificate_key /etc/ssl/private/bank.com.key;
+
+    # HSTS: Force HTTPS for 2 years (31536000 seconds = 1 year)
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+
+    # Security headers
+    add_header X-Frame-Options DENY always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # ... rest of location blocks as above
+
+    # Legacy AngularJS app at /legacy/*
+    location /legacy/ {
+        alias /var/www/banking-legacy/;
+        try_files $uri $uri/ /legacy/index.html =404;  # SPA fallback with 404 final
+
+        # Legacy app assets
+        location ~* \.(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+
+    # API proxy (shared by both apps)
+    location /api/ {
+        proxy_pass http://backend-server:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Health check endpoint
+    location /health {
+        return 200 "OK";
+        add_header Content-Type text/plain;
+    }
+}
+```
+
+---
+
+### Azure Front Door Configuration (Cloud Alternative)
+
+If deploying to Azure, use Front Door for path-based routing:
+
+```bash
+# Create Front Door profile
+az afd profile create \
+  --profile-name banking-migration \
+  --resource-group banking-rg \
+  --sku Standard_AzureFrontDoor
+
+# Create endpoint
+az afd endpoint create \
+  --profile-name banking-migration \
+  --endpoint-name bank-com \
+  --resource-group banking-rg
+
+# Add origin group for Angular 21 app
+az afd origin-group create \
+  --profile-name banking-migration \
+  --origin-group-name ng21-origin \
+  --resource-group banking-rg
+
+az afd origin create \
+  --profile-name banking-migration \
+  --origin-group-name ng21-origin \
+  --origin-name ng21-app \
+  --resource-group banking-rg \
+  --host-name banking-ng21.azurestaticapps.net \
+  --origin-host-header banking-ng21.azurestaticapps.net \
+  --priority 1 \
+  --weight 1000
+
+# Add origin group for AngularJS app
+az afd origin-group create \
+  --profile-name banking-migration \
+  --origin-group-name legacy-origin \
+  --resource-group banking-rg
+
+az afd origin create \
+  --profile-name banking-migration \
+  --origin-group-name legacy-origin \
+  --origin-name legacy-app \
+  --resource-group banking-rg \
+  --host-name banking-legacy.azurewebsites.net \
+  --origin-host-header banking-legacy.azurewebsites.net \
+  --priority 1 \
+  --weight 1000
+
+# Route /new/* to Angular 21
+az afd route create \
+  --profile-name banking-migration \
+  --endpoint-name bank-com \
+  --route-name new-route \
+  --resource-group banking-rg \
+  --origin-group ng21-origin \
+  --patterns-to-match "/new/*" \
+  --supported-protocols Https \
+  --forwarding-protocol HttpsOnly
+
+# Route /legacy/* to AngularJS
+az afd route create \
+  --profile-name banking-migration \
+  --endpoint-name bank-com \
+  --route-name legacy-route \
+  --resource-group banking-rg \
+  --origin-group legacy-origin \
+  --patterns-to-match "/legacy/*" \
+  --supported-protocols Https \
+  --forwarding-protocol HttpsOnly
+
+# Custom domain
+az afd custom-domain create \
+  --profile-name banking-migration \
+  --custom-domain-name bank-com \
+  --resource-group banking-rg \
+  --host-name bank.com \
+  --minimum-tls-version TLS12
+```
+
+---
+
+### Cross-App Navigation
+
+**From Angular 21 to AngularJS:**
+
+```typescript
+// apps/banking-ng21/src/app/components/nav.component.ts
+@Component({
+  selector: 'app-nav',
+  template: `
+    <nav>
+      <!-- Angular 21 routes (relative) -->
+      <a routerLink="/dashboard">Dashboard</a>
+      <a routerLink="/accounts">Accounts</a>
+
+      <!-- Link to AngularJS routes (absolute with /legacy prefix) -->
+      <a href="/legacy/statements">Statements (Legacy)</a>
+      <a href="/legacy/reports">Reports (Legacy)</a>
+    </nav>
+  `,
+})
+export class NavComponent {}
+```
+
+**From AngularJS to Angular 21:**
+
+```html
+<!-- apps/banking-legacy/src/views/nav.html -->
+<nav ng-controller="NavCtrl">
+  <!-- AngularJS routes (ui-router) -->
+  <a ui-sref="statements">Statements</a>
+  <a ui-sref="reports">Reports</a>
+
+  <!-- Link to Angular 21 routes (standard href with /new prefix) -->
+  <a href="/new/dashboard">Dashboard (New)</a>
+  <a href="/new/accounts">Accounts (New)</a>
+</nav>
+```
+
+---
+
+### Authentication Sharing (Automatic with Same Domain)
+
+**HttpOnly Cookie Strategy (Recommended):**
+
+```typescript
+// Backend sets cookie for entire domain
+// Set-Cookie: auth_token=xyz; Path=/; Domain=bank.com; HttpOnly; Secure; SameSite=Strict
+
+// Both /new/ and /legacy/ apps receive the cookie automatically
+// No token passing needed — cookie is sent on every request
+```
+
+**Both apps authenticate transparently:**
+
+```typescript
+// Angular 21 app — cookie sent automatically
+this.http.get('/api/accounts').subscribe(...);
+
+// AngularJS app — cookie sent automatically
+$http.get('/api/accounts').then(...);
+```
+
+---
+
+### Comparison: All 3 Options
+
+| Criterion                 | Module Federation                                  | Polyrepo (Subdomains)                 | **Path-Based (Same Domain)**                |
+| ------------------------- | -------------------------------------------------- | ------------------------------------- | ------------------------------------------- |
+| **Domain strategy**       | shell.bank.com, ng21.bank.com, legacy.bank.com     | shell.bank.com, legacy.bank.com       | **bank.com/new/, bank.com/legacy/**         |
+| **CORS issues**           | ✅ None                                            | ⚠️ Possible (cross-domain)            | ✅ None (same domain)                       |
+| **Cookie sharing**        | ⚠️ Need SameSite=None                              | ⚠️ Need Domain=.bank.com              | ✅ Automatic (same domain)                  |
+| **Authentication**        | Complex (Module Federation or postMessage)         | Medium (query param or cookie)        | ✅ Simple (HttpOnly cookie just works)      |
+| **Routing**               | ⚠️ Shell controls, iframe for legacy               | ✅ Each app independent               | ✅ Each app independent                     |
+| **iframe problems**       | ⚠️ Yes (for legacy)                                | ✅ None                               | ✅ None                                     |
+| **Nx workspace support**  | ✅ Native                                          | ❌ Separate repos                     | ✅ Native (different base hrefs)            |
+| **CI/CD**                 | ✅ Simple (nx affected)                            | ⚠️ Medium (2 pipelines)               | ✅ Simple (nx affected, deploy both)        |
+| **Learning curve**        | ❌ High (MFE)                                      | ✅ Low                                | ✅ Low                                      |
+| **Production complexity** | ⚠️ Medium (CDN + origins)                          | ⚠️ Medium (DNS + certs)               | ✅ Low (single reverse proxy)               |
+| **Recommended for**       | Micro-frontend architecture, 2+ Angular 21 remotes | Separate teams, different tech stacks | **Most migrations (1 team, shared domain)** |
+
+---
+
+### When to Use Path-Based Routing (Option C)
+
+**✅ Use this approach if:**
+
+- You have a single domain (bank.com) and want to keep it
+- You want to avoid CORS complexity entirely
+- Authentication should "just work" across both apps
+- You're using Nx monorepo (same workspace)
+- Migration is happening screen-by-screen over 6-12 months
+- Both apps share the same backend API
+- You want the simplest possible deployment
+
+**❌ Don't use if:**
+
+- You need micro-frontend architecture with 3+ independent Angular 21 apps (use Module Federation)
+- Legacy and new apps are maintained by completely separate teams in different repos (use Polyrepo)
+- You need independent deployment with zero coordination (use Module Federation)
+
+---
+
+### Nx Workspace Structure for Path-Based Deployment
+
+```
+banking-migration/
+├── apps/
+│   ├── banking-ng21/              ← Angular 21 (served at /new/)
+│   │   ├── src/
+│   │   │   ├── index.html        <base href="/new/">
+│   │   │   └── app/
+│   │   │       └── app.routes.ts  Paths: '', 'dashboard', 'accounts'
+│   │   └── project.json           baseHref: "/new/"
+│   │
+│   ├── banking-legacy/            ← AngularJS (served at /legacy/)
+│   │   ├── src/
+│   │   │   ├── index.html        <base href="/legacy/">
+│   │   │   └── app/
+│   │   │       └── app.config.js  $locationProvider.html5Mode(true)
+│   │   └── project.json           baseHref: "/legacy/"
+│   │
+├── libs/                          ← Shared (only Angular 21 apps use these)
+│   ├── shared-models/
+│   ├── shared-auth/
+│   └── shared-ui/
+│
+├── nginx.conf                     ← Nginx config for path-based routing
+├── azure-frontdoor.sh             ← Azure Front Door setup script
+└── package.json
+```
+
+**Build both apps:**
+
+```bash
+# Build Angular 21 app (output: dist/apps/banking-ng21/)
+npx nx build banking-ng21 --configuration=production --base-href=/new/
+
+# Build AngularJS app (output: dist/apps/banking-legacy/)
+npx nx build banking-legacy --configuration=production --base-href=/legacy/
+
+# Deploy both to same server under /var/www/
+```
+
+**Deployment structure:**
+
+```
+/var/www/
+├── banking-ng21/         → served at /new/
+│   ├── index.html       <base href="/new/">
+│   ├── main.js
+│   └── ...
+│
+└── banking-legacy/       → served at /legacy/
+    ├── index.html       <base href="/legacy/">
+    ├── app.js
+    └── ...
+```
+
+---
+
+### Module Federation HLD (Option A)
+
+If you choose Module Federation, this is the core HLD for the Nx + MFE approach.
 
 ```
   ┌─────────────────────────────────────────────────────────────────────────┐
@@ -1821,6 +2450,116 @@ These are all the places where the AngularJS app and the Angular 21 app must sha
   AngularJS loads compiled CSS from /legacy/styles/tokens.css
   Risk: Token drift — if shared-ui tokens change, legacy CSS must be re-exported
 ```
+
+---
+
+## 2.7.3 — Cross-App Messaging (Shell ↔ Legacy iframe)
+
+**When legacy screens are loaded in iframe, use `postMessage` API for secure communication:**
+
+### Shell → Legacy (Notify Auth Token Refresh)
+
+```typescript
+// apps/banking-shell/src/app/services/legacy-bridge.service.ts
+import { Injectable, inject } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+
+@Injectable({ providedIn: 'root' })
+export class LegacyBridgeService {
+  private readonly document = inject(DOCUMENT);
+
+  notifyTokenRefresh(newToken: string): void {
+    const legacyFrame = this.document.getElementById('legacy-iframe') as HTMLIFrameElement;
+    if (legacyFrame?.contentWindow) {
+      legacyFrame.contentWindow.postMessage(
+        { type: 'TOKEN_REFRESH', token: newToken },
+        'https://legacy.bank.com', // ← origin must match — critical for security
+      );
+    }
+  }
+
+  notifyLogout(): void {
+    const legacyFrame = this.document.getElementById('legacy-iframe') as HTMLIFrameElement;
+    legacyFrame?.contentWindow?.postMessage({ type: 'LOGOUT' }, 'https://legacy.bank.com');
+  }
+}
+```
+
+### Legacy → Shell (Notify Logout or Route Change)
+
+```javascript
+// apps/banking-legacy/src/app/services/shell-bridge.service.js
+angular.module('app').factory('ShellBridgeService', [
+  '$window',
+  function ($window) {
+    return {
+      notifyLogout: function () {
+        // Notify parent shell app
+        if ($window.parent !== $window) {
+          $window.parent.postMessage({ type: 'LOGOUT' }, 'https://shell.bank.com');
+        }
+      },
+
+      notifyRouteChange: function (newRoute) {
+        if ($window.parent !== $window) {
+          $window.parent.postMessage(
+            { type: 'ROUTE_CHANGE', route: newRoute },
+            'https://shell.bank.com',
+          );
+        }
+      },
+    };
+  },
+]);
+```
+
+### Shell Listens for Legacy Messages
+
+```typescript
+// apps/banking-shell/src/app/app.component.ts
+import { Component, inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { AuthService } from '@banking/shared-auth';
+
+@Component({
+  selector: 'app-root',
+  template: `<router-outlet />`,
+  standalone: true,
+})
+export class AppComponent {
+  private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+
+  constructor() {
+    // Listen for messages from legacy iframe
+    window.addEventListener('message', (event) => {
+      // ⚠️ CRITICAL: Always validate origin
+      if (event.origin !== 'https://legacy.bank.com') {
+        console.warn('Rejected message from untrusted origin:', event.origin);
+        return;
+      }
+
+      switch (event.data.type) {
+        case 'LOGOUT':
+          this.auth.logout();
+          this.router.navigate(['/login']);
+          break;
+        case 'ROUTE_CHANGE':
+          console.log('Legacy route changed:', event.data.route);
+          // Update analytics or breadcrumbs if needed
+          break;
+      }
+    });
+  }
+}
+```
+
+**Security Rules:**
+
+1. ✅ **Always validate `event.origin`** — reject messages from unknown domains
+2. ✅ **Use typed message contracts** — define `type` field in all messages
+3. ✅ **Never send sensitive data** — tokens should be in HttpOnly cookies, not postMessage
+4. ❌ **Never use `targetOrigin: '*'`** — always specify exact origin
 
 ---
 
@@ -2186,6 +2925,58 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 provideHttpClient(withInterceptors([authInterceptor, xsrfInterceptor]));
 ```
 
+### toSignal() Patterns for Observable → Signal Conversion
+
+```typescript
+// Component using HTTP observables
+@Component({ /* ... */ })
+export class ExampleComponent {
+  private readonly http = inject(HttpClient);
+  private readonly authService = inject(AuthService);
+
+  // Pattern A: HTTP request with initialValue (optional data)
+  protected readonly users = toSignal(
+    this.http.get<User[]>('/api/users'),
+    { initialValue: [] }  // ✅ Safe default for lists
+  );
+
+  // Pattern B: requireSync for required data (throws if not sync)
+  protected readonly currentUser = toSignal(
+    this.authService.currentUser$,  // BehaviorSubject that emits immediately
+    { requireSync: true }  // ⚠️ Throws error if observable doesn't emit synchronously
+  );
+  // ✅ Use in auth guards where user MUST be present on init
+
+  // Pattern C: Optional data (nullable)
+  protected readonly selectedAccount = toSignal(
+    this.route.paramMap.pipe(
+      switchMap(params => this.http.get<Account>(`/api/accounts/${params.get('id')}`))
+    ),
+    { initialValue: null }  // Starts as null until HTTP completes
+  );
+}
+
+// ⚠️ Common toSignal() Mistake:
+// ❌ WRONG: No initialValue and observable may not emit immediately
+protected readonly data = toSignal(this.http.get<Data>('/api/data'));
+// Template access: {{ data()?.name }}  ← Must handle undefined!
+
+// ✅ CORRECT: Always provide initialValue OR use requireSync
+protected readonly data = toSignal(
+  this.http.get<Data>('/api/data'),
+  { initialValue: null }  // Explicit null handling
+);
+```
+
+**When to use `requireSync`:**
+
+| Use Case                    | Pattern                               | Example                                                     |
+| --------------------------- | ------------------------------------- | ----------------------------------------------------------- |
+| Auth guard (must have user) | `requireSync: true`                   | `toSignal(authService.currentUser$, { requireSync: true })` |
+| Route data (always sync)    | `requireSync: true`                   | `toSignal(route.data, { requireSync: true })`               |
+| HTTP request (async)        | `initialValue`                        | `toSignal(http.get(...), { initialValue: [] })`             |
+| BehaviorSubject (sync)      | `requireSync: true` OR `initialValue` | Either works ✅                                             |
+
 ---
 
 ## 3.3 — Directive → Component / Directive / Pipe Conversion
@@ -2438,20 +3229,189 @@ Every shared concept lives in a typed Nx library. Components and services never 
 
 Every `$scope` pattern has a direct, idiomatic Angular 21 signal equivalent:
 
-| AngularJS `$scope` Pattern                    | Angular 21 Signal Pattern                                          | Notes                                      |
-| --------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------ |
-| `$scope.x = val`                              | `x = signal(val)`                                                  | Initial value in `signal()`                |
-| `$scope.x = newVal` (assignment)              | `x.set(newVal)`                                                    | Replace entire value                       |
-| `$scope.x++` (mutation)                       | `x.update(v => v + 1)`                                             | Use `update()` for derived mutations       |
-| `$scope.derived = fn($scope.a, $scope.b)`     | `derived = computed(() => fn(a(), b()))`                           | Lazy; only recomputes when deps change     |
-| `$scope.$watch('x', fn)` (side effect)        | `effect(() => fn(x()))`                                            | Tracks dependencies automatically          |
-| `$scope.$watch('x', fn, true)` (deep watch)   | `effect(() => JSON.stringify(x()))` + side effect                  | Use sparingly; prefer fine-grained signals |
-| `$scope.$on('event', handler)` (event listen) | `inject(EventBusService).on('event').subscribe(handler)`           | Signal or Subject-based event bus          |
-| `$rootScope.$broadcast('event', data)`        | `inject(EventBusService).emit('event', data)`                      | Typed events; no global scope              |
-| `$scope.form.$valid`                          | `isValid = computed(() => Object.values(errors()).every(e => !e))` | Signal form validation                     |
-| `$scope.form.$dirty`                          | `isDirty = computed(() => originalValue() !== currentValue())`     | Track dirty state explicitly               |
-| `$scope.$apply(() => ...)`                    | Not needed — signals are zone-agnostic                             | Remove all `$apply` calls                  |
-| `$scope.$digest()`                            | Not needed                                                         | Remove all `$digest` calls                 |
+| AngularJS `$scope` Pattern                    | Angular 21 Signal Pattern                                                                   | Notes                                      |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `$scope.x = val`                              | `x = signal(val)`                                                                           | Initial value in `signal()`                |
+| `$scope.x = newVal` (assignment)              | `x.set(newVal)`                                                                             | Replace entire value                       |
+| `$scope.x++` (mutation)                       | `x.update(v => v + 1)`                                                                      | Use `update()` for derived mutations       |
+| `$scope.derived = fn($scope.a, $scope.b)`     | `derived = computed(() => fn(a(), b()))`                                                    | Lazy; only recomputes when deps change     |
+| `$scope.$watch('x', fn)` (side effect)        | `effect(() => fn(x()))`                                                                     | Tracks dependencies automatically          |
+| `$scope.$watch('x', fn, true)` (deep watch)   | `effect(() => JSON.stringify(x()))` + side effect                                           | Use sparingly; prefer fine-grained signals |
+| `$scope.$on('event', handler)` (event listen) | `inject(EventBusService).on('event').subscribe(handler)`                                    | Signal or Subject-based event bus          |
+| `$rootScope.$broadcast('event', data)`        | `inject(EventBusService).emit('event', data)`                                               | Typed events; no global scope              |
+| `$scope.form.$valid`                          | `isValid = computed(() => Object.values(errors()).every(e => !e))`                          | Signal form validation                     |
+| `ng-model="user.name"`                        | `[(ngModel)]="name"` (Angular 21 two-way) OR `model = model({name: ''})` with model signals | Template-driven or model signals           |
+| `ng-model with watch`                         | `linkedSignal(() => source())` — creates signal linked to another signal source             | Reactive linked signals (Angular 21.1+)    |
+| `$scope.form.$dirty`                          | `isDirty = computed(() => originalValue() !== currentValue())`                              | Track dirty state explicitly               |
+| `$scope.$apply(() => ...)`                    | Not needed — signals are zone-agnostic                                                      | Remove all `$apply` calls                  |
+| `$scope.$digest()`                            | Not needed                                                                                  | Remove all `$digest` calls                 |
+
+**Angular 21 Signal Form Patterns:**
+
+```typescript
+// Pattern 1: Simple signal-based form (<10 fields)
+protected readonly email = signal('');
+protected readonly password = signal('');
+protected readonly emailError = computed(() =>
+  !this.email().includes('@') ? 'Invalid email' : null
+);
+
+// Pattern 2: Model signals (two-way binding, Angular 21.1+)
+export class ProfileFormComponent {
+  protected readonly userModel = model({
+    name: '',
+    email: '',
+    age: 0
+  });
+
+  // Template: <input [(ngModel)]="userModel().name" />
+  // Auto-syncs without explicit (input) handlers
+}
+
+// Pattern 3: Linked signals (dependent fields)
+export class PasswordFormComponent {
+  protected readonly password = signal('');
+  protected readonly confirmPassword = linkedSignal(() => this.password());
+
+  protected readonly passwordsMatch = computed(() =>
+    this.password() === this.confirmPassword()
+  );
+}
+```
+
+---
+
+### 3.6.1 — Advanced Signal Form Patterns (model & linkedSignal)
+
+**Model Signals for Complex Forms (Angular 21.1+)**
+
+Use `model()` for two-way binding with signal reactivity — best for forms with 10+ fields.
+
+```typescript
+@Component({
+  selector: 'app-payment-form',
+  standalone: true,
+  imports: [FormsModule],
+  template: `
+    <form (ngSubmit)="onSubmit()">
+      <input [(ngModel)]="payment().fromAccount" name="from" />
+      <input [(ngModel)]="payment().amount" type="number" />
+
+      @if (errors().amount) {
+        <span role="alert">{{ errors().amount }}</span>
+      }
+
+      <button [disabled]="!isValid()">Submit</button>
+    </form>
+  `,
+})
+export class PaymentFormComponent {
+  protected readonly payment = model({ fromAccount: '', amount: 0 });
+
+  protected readonly errors = computed(() => ({
+    fromAccount: !this.payment().fromAccount ? 'Required' : null,
+    amount: this.payment().amount <= 0 ? 'Must be positive' : null,
+  }));
+
+  protected readonly isValid = computed(() =>
+    Object.values(this.errors()).every((e) => e === null),
+  );
+}
+```
+
+**Linked Signals for Dependent Fields**
+
+Use `linkedSignal()` when one field depends on another (password confirm, cascading dropdowns).
+
+```typescript
+@Component({
+  selector: 'app-address-form',
+  template: `
+    <select [value]="country()" (change)="country.set($any($event.target).value)">
+      @for (c of countries(); track c) {
+        <option [value]="c">{{ c }}</option>
+      }
+    </select>
+
+    <select [value]="state()" (change)="state.set($any($event.target).value)">
+      @for (s of availableStates(); track s) {
+        <option [value]="s">{{ s }}</option>
+      }
+    </select>
+  `,
+})
+export class AddressFormComponent {
+  protected readonly country = signal('');
+
+  // ✅ CORRECT: linkedSignal with source + computation
+  protected readonly state = linkedSignal({
+    source: this.country,
+    computation: () => '', // Resets to empty when country changes
+  });
+
+  // Alternative syntax (function form):
+  // protected readonly state = linkedSignal(() => {
+  //   this.country(); // Track dependency
+  //   return ''; // Reset state
+  // });
+
+  protected readonly availableStates = computed(() => {
+    const c = this.country();
+    return c === 'US' ? ['CA', 'NY', 'TX'] : [];
+  });
+}
+```
+
+**⚠️ Common linkedSignal() Mistakes:**
+
+```typescript
+// ❌ WRONG — Infinite loop (reading linkedSignal inside its own computation)
+protected readonly value = linkedSignal(() => {
+  if (this.value() === 'foo') return 'bar';  // Reading value() causes infinite loop!
+  return this.value();
+});
+
+// ✅ CORRECT — linkedSignal depends on external signal
+protected readonly sourceValue = signal('initial');
+protected readonly derivedValue = linkedSignal({
+  source: this.sourceValue,
+  computation: (prev) => {
+    // prev is the previous value of derivedValue (safe to read)
+    return this.sourceValue() === 'foo' ? 'bar' : prev;
+  },
+});
+```
+
+**⚠️ OnPush + effect() Gotcha:**
+
+`effect()` side effects run correctly with OnPush, **but** if the effect mutates a non-signal property, the template won't update:
+
+```typescript
+// ❌ WRONG with OnPush
+@Component({ changeDetection: ChangeDetectionStrategy.OnPush })
+export class BadExampleComponent {
+  items: Item[] = []; // ❌ NOT a signal
+
+  constructor() {
+    effect(() => {
+      const data = this.apiData(); // Signal read
+      this.items = data; // ❌ Mutates non-signal — template won't update!
+    });
+  }
+}
+
+// ✅ CORRECT — Use signals everywhere with OnPush
+@Component({ changeDetection: ChangeDetectionStrategy.OnPush })
+export class GoodExampleComponent {
+  protected readonly items = signal<Item[]>([]);
+
+  constructor() {
+    effect(() => {
+      this.items.set(this.apiData()); // ✅ Signal mutation — template updates
+    });
+  }
+}
+```
 
 ---
 
@@ -2604,7 +3564,1764 @@ export class AccountSummaryComponent {
 
 ---
 
-_**Part 3 complete.** The LLD covers the code-level patterns for every AngularJS artefact type: controllers → components, services → injectables, directives → components/directives/pipes, filters → pipes, route guards, Nx library structure, signal pattern mapping, security implementation, and global state migration._
+## 3.9 — Internationalization (i18n) Migration
+
+**Challenge:** 100-screen banking apps often support multiple languages. AngularJS typically uses `angular-translate` or `angular-gettext`. Angular 21 uses `@angular/localize`.
+
+### AngularJS Pattern (angular-translate)
+
+```javascript
+// app.js
+angular.module('app', ['pascalprecht.translate']).config([
+  '$translateProvider',
+  function ($translateProvider) {
+    $translateProvider.translations('en', {
+      HELLO: 'Hello {{name}}!',
+      WELCOME_MESSAGE: 'Welcome to Banking App',
+    });
+    $translateProvider.translations('es', {
+      HELLO: '¡Hola {{name}}!',
+      WELCOME_MESSAGE: 'Bienvenido a la aplicación bancaria',
+    });
+    $translateProvider.preferredLanguage('en');
+  },
+]);
+
+// controller.js
+controller('GreetingCtrl', [
+  '$scope',
+  '$translate',
+  function ($scope, $translate) {
+    $scope.greeting = $translate.instant('HELLO', { name: $scope.userName });
+  },
+]);
+```
+
+```html
+<!-- template.html -->
+<h1>{{ 'HELLO' | translate:{ name: userName } }}</h1>
+<p>{{ 'WELCOME_MESSAGE' | translate }}</p>
+```
+
+---
+
+### Angular 21 Pattern (@angular/localize)
+
+**Step 1: Install @angular/localize**
+
+```bash
+ng add @angular/localize
+```
+
+**Step 2: Mark translatable strings with `i18n` or `$localize`**
+
+```typescript
+// greeting.component.ts
+import { Component, computed, signal } from '@angular/core';
+import { $localize } from '@angular/localize/init';
+
+@Component({
+  selector: 'app-greeting',
+  standalone: true,
+  template: `
+    <h1 i18n="@@hello">Hello {{ userName() }}!</h1>
+    <p i18n="@@welcomeMessage">Welcome to Banking App</p>
+
+    <!-- Dynamic content with $localize -->
+    <p>{{ greeting() }}</p>
+  `,
+})
+export class GreetingComponent {
+  protected readonly userName = signal('John');
+
+  // Use $localize for computed strings
+  protected readonly greeting = computed(
+    () => $localize`:@@hello:Hello ${this.userName()}:userName:!`,
+  );
+}
+```
+
+**Step 3: Extract translation keys**
+
+```bash
+# Extract all i18n strings to XLIFF file
+ng extract-i18n --output-path src/locale
+
+# Generates: src/locale/messages.xlf
+```
+
+**messages.xlf example:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<xliff version="2.0" xmlns="urn:oasis:names:tc:xliff:document:2.0">
+  <file source-language="en" target-language="en">
+    <unit id="hello">
+      <segment>
+        <source>Hello <ph id="0"/>!</source>
+      </segment>
+    </unit>
+    <unit id="welcomeMessage">
+      <segment>
+        <source>Welcome to Banking App</source>
+      </segment>
+    </unit>
+  </file>
+</xliff>
+```
+
+**Step 4: Translate XLIFF files**
+
+Create `messages.es.xlf`, `messages.fr.xlf`, etc. with translated `<target>` tags:
+
+```xml
+<unit id="hello">
+  <segment>
+    <source>Hello <ph id="0"/>!</source>
+    <target>¡Hola <ph id="0"/>!</target>
+  </segment>
+</unit>
+```
+
+**Step 5: Build separate bundles per locale**
+
+```json
+// angular.json
+{
+  "projects": {
+    "banking-ng21": {
+      "i18n": {
+        "sourceLocale": "en",
+        "locales": {
+          "es": "src/locale/messages.es.xlf",
+          "fr": "src/locale/messages.fr.xlf"
+        }
+      },
+      "architect": {
+        "build": {
+          "options": {
+            "localize": true
+          },
+          "configurations": {
+            "production": {
+              "localize": ["en", "es", "fr"]
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+```bash
+# Build all locales
+ng build --configuration=production
+
+# Output:
+# dist/banking-ng21/en/  ← English build
+# dist/banking-ng21/es/  ← Spanish build
+# dist/banking-ng21/fr/  ← French build
+```
+
+**Step 6: Deploy with locale-specific URLs**
+
+```
+https://bank.com/en/dashboard  ← English
+https://bank.com/es/dashboard  ← Spanish
+https://bank.com/fr/dashboard  ← French
+```
+
+**nginx configuration:**
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name bank.com;
+
+    # Locale-based routing
+    location /en/ {
+        alias /var/www/banking-ng21/en/;
+        try_files $uri $uri/ /en/index.html;
+    }
+
+    location /es/ {
+        alias /var/www/banking-ng21/es/;
+        try_files $uri $uri/ /es/index.html;
+    }
+
+    location /fr/ {
+        alias /var/www/banking-ng21/fr/;
+        try_files $uri $uri/ /fr/index.html;
+    }
+
+    # Default to English
+    location = / {
+        return 301 /en/dashboard;
+    }
+}
+```
+
+---
+
+### Migration Steps Summary
+
+| Step | Action                                                   | Tool                                    |
+| ---- | -------------------------------------------------------- | --------------------------------------- |
+| 1    | Audit all `$translate` / `gettext` keys in AngularJS     | `grep -r "'[A-Z_]+' \| translate" src/` |
+| 2    | Install @angular/localize in Angular 21                  | `ng add @angular/localize`              |
+| 3    | Mark all translatable strings with `i18n` or `$localize` | Manual + AI assistance                  |
+| 4    | Extract keys to XLIFF                                    | `ng extract-i18n`                       |
+| 5    | Translate XLIFF files                                    | Send to translation service             |
+| 6    | Build per-locale bundles                                 | `ng build --localize`                   |
+| 7    | Deploy with locale routing                               | nginx or Azure Front Door               |
+
+---
+
+### Runtime Locale Switching (Optional)
+
+Angular's default i18n requires separate builds per locale (compile-time). For **runtime locale switching**, use:
+
+- **transloco** (community library, ~10KB): https://ngneat.github.io/transloco/
+- **ngx-translate** (legacy, not recommended for Angular 21)
+
+**Transloco example:**
+
+```typescript
+import { provideTransloco } from '@ngneat/transloco';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideTransloco({
+      config: {
+        availableLangs: ['en', 'es', 'fr'],
+        defaultLang: 'en',
+        reRenderOnLangChange: true,
+      },
+      loader: TranslocoHttpLoader, // Loads JSON files on demand
+    }),
+  ],
+};
+```
+
+**When to use runtime vs compile-time:**
+
+| Use Case                                    | Compile-time (@angular/localize) | Runtime (transloco)       |
+| ------------------------------------------- | -------------------------------- | ------------------------- |
+| Banking app with fixed locale per user      | ✅ Recommended                   | ❌ Overkill               |
+| Multi-tenant SaaS with user language toggle | ⚠️ Possible (reload page)        | ✅ Recommended            |
+| Bundle size priority                        | ✅ Smaller (tree-shaken)         | ⚠️ Larger (+10KB runtime) |
+| SEO per locale                              | ✅ Separate URLs                 | ❌ Single build           |
+
+---
+
+## 3.10 — RxJS Migration Strategy: When to Use RxJS vs Signals
+
+**Critical Decision:** Angular 21 has both signals and RxJS. When should you use each?
+
+### The Mental Model
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│  USE SIGNALS FOR:                                                        │
+│  ✅ Synchronous state (component properties, form values)                │
+│  ✅ Derived state (computed values)                                      │
+│  ✅ Simple reactivity (one value changes → template updates)             │
+│  ✅ Local component state                                                │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│  USE RXJS FOR:                                                           │
+│  ✅ HTTP requests (API calls)                                            │
+│  ✅ Complex async orchestration (debounce, retry, race conditions)       │
+│  ✅ Event streams (WebSocket, SSE, DOM events)                           │
+│  ✅ Time-based operations (intervals, delays, timeouts)                  │
+│  ✅ Multi-step transformations (map → filter → switchMap → catchError)   │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│  HYBRID PATTERNS (RxJS → Signal or Signal → RxJS):                      │
+│  🔄 toSignal(): Convert Observable to Signal (for templates)             │
+│  🔄 toObservable(): Convert Signal to Observable (for RxJS operators)    │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Pattern 1: API Response Transformation with RxJS Operators
+
+**AngularJS Pattern:**
+
+```javascript
+// account.service.js
+angular.module('app').factory('AccountService', function ($http, $q) {
+  return {
+    getAccounts: function () {
+      return $http
+        .get('/api/accounts')
+        .then(function (response) {
+          // Transform response
+          return response.data.map(function (account) {
+            return {
+              id: account.accountId,
+              displayName: account.firstName + ' ' + account.lastName,
+              balance: parseFloat(account.balance),
+              isActive: account.status === 'ACTIVE',
+            };
+          });
+        })
+        .catch(function (error) {
+          console.error('Failed to load accounts', error);
+          return []; // Fallback
+        });
+    },
+  };
+});
+```
+
+**Angular 21 Pattern (RxJS Operators):**
+
+```typescript
+// account.service.ts
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, of } from 'rxjs';
+import { map, catchError, retry, shareReplay } from 'rxjs/operators';
+
+interface AccountDTO {
+  accountId: string;
+  firstName: string;
+  lastName: string;
+  balance: string;
+  status: string;
+}
+
+export interface Account {
+  id: string;
+  displayName: string;
+  balance: number;
+  isActive: boolean;
+}
+
+@Injectable({ providedIn: 'root' })
+export class AccountService {
+  private readonly http = inject(HttpClient);
+
+  getAccounts(): Observable<Account[]> {
+    return this.http.get<AccountDTO[]>('/api/accounts').pipe(
+      // 1. Retry failed requests (transient network errors)
+      retry({ count: 2, delay: 1000 }),
+
+      // 2. Transform DTO → domain model
+      map((dtos) =>
+        dtos.map((dto) => ({
+          id: dto.accountId,
+          displayName: `${dto.firstName} ${dto.lastName}`,
+          balance: parseFloat(dto.balance),
+          isActive: dto.status === 'ACTIVE',
+        })),
+      ),
+
+      // 3. Error handling with fallback
+      catchError((error) => {
+        console.error('Failed to load accounts', error);
+        return of([]); // Return empty array instead of throwing
+      }),
+
+      // 4. Cache result (shareReplay prevents multiple HTTP calls)
+      shareReplay({ bufferSize: 1, refCount: true }),
+    );
+  }
+}
+```
+
+**Component Usage (Convert Observable → Signal):**
+
+```typescript
+@Component({
+  selector: 'app-account-list',
+  template: `
+    @if (loading()) {
+      <app-spinner />
+    } @else if (error()) {
+      <app-error-message [error]="error()" />
+    } @else {
+      @for (account of accounts(); track account.id) {
+        <app-account-card [account]="account" />
+      }
+    }
+  `,
+})
+export class AccountListComponent {
+  private readonly accountService = inject(AccountService);
+
+  // ✅ Convert Observable → Signal for template consumption
+  protected readonly accounts = toSignal(this.accountService.getAccounts(), { initialValue: [] });
+
+  protected readonly loading = signal(false);
+  protected readonly error = signal<string | null>(null);
+}
+```
+
+---
+
+### Pattern 2: Search with Debounce (RxJS Required)
+
+**AngularJS Pattern:**
+
+```javascript
+// search.controller.js
+controller('SearchCtrl', function ($scope, $timeout, AccountService) {
+  var searchTimeout;
+
+  $scope.searchQuery = '';
+  $scope.results = [];
+
+  $scope.onSearchChange = function () {
+    if (searchTimeout) {
+      $timeout.cancel(searchTimeout);
+    }
+
+    searchTimeout = $timeout(function () {
+      if ($scope.searchQuery.length >= 3) {
+        AccountService.search($scope.searchQuery).then(function (results) {
+          $scope.results = results;
+        });
+      }
+    }, 300); // Debounce 300ms
+  };
+});
+```
+
+**Angular 21 Pattern (RxJS + Signal Hybrid):**
+
+```typescript
+import { Component, signal, inject } from '@angular/core';
+import { toSignal, toObservable } from '@angular/core/rxjs-interop';
+import { debounceTime, distinctUntilChanged, switchMap, filter } from 'rxjs/operators';
+
+@Component({
+  selector: 'app-search',
+  template: `
+    <input
+      [value]="searchQuery()"
+      (input)="searchQuery.set($any($event.target).value)"
+      placeholder="Search accounts..."
+    />
+
+    @if (isSearching()) {
+      <app-spinner />
+    }
+
+    @for (result of searchResults(); track result.id) {
+      <app-account-card [account]="result" />
+    }
+  `,
+})
+export class SearchComponent {
+  private readonly accountService = inject(AccountService);
+
+  // 1. Signal for user input (reactive state)
+  protected readonly searchQuery = signal('');
+
+  // 2. Convert Signal → Observable to use RxJS operators
+  private readonly searchQuery$ = toObservable(this.searchQuery);
+
+  // 3. Apply RxJS operators (debounce, distinctUntilChanged, switchMap)
+  private readonly searchResults$ = this.searchQuery$.pipe(
+    debounceTime(300), // Wait 300ms after user stops typing
+    distinctUntilChanged(), // Only emit if value changed
+    filter((query) => query.length >= 3), // Only search if >= 3 chars
+    switchMap(
+      (query) => this.accountService.search(query), // Cancel previous search if new one starts
+    ),
+  );
+
+  // 4. Convert Observable → Signal for template
+  protected readonly searchResults = toSignal(this.searchResults$, {
+    initialValue: [],
+  });
+
+  protected readonly isSearching = computed(
+    () => this.searchQuery().length >= 3 && this.searchResults().length === 0,
+  );
+}
+```
+
+---
+
+### Pattern 3: Multiple API Calls (Sequential vs Parallel)
+
+**Scenario:** Load user, then load their accounts, then load transactions for first account.
+
+**AngularJS Pattern:**
+
+```javascript
+// Sequential (nested promises)
+UserService.getById(userId)
+  .then(function (user) {
+    return AccountService.getByUserId(user.id);
+  })
+  .then(function (accounts) {
+    return TransactionService.getByAccountId(accounts[0].id);
+  })
+  .then(function (transactions) {
+    $scope.transactions = transactions;
+  });
+```
+
+**Angular 21 Pattern (RxJS Sequential):**
+
+```typescript
+// Sequential: each call waits for previous
+this.userService.getById(userId).pipe(
+  switchMap(user => this.accountService.getByUserId(user.id)),
+  switchMap(accounts => this.transactionService.getByAccountId(accounts[0].id)),
+  catchError(error => {
+    console.error('Failed to load transaction data', error);
+    return of([]);
+  })
+).subscribe(transactions => {
+  this.transactions.set(transactions);  // Update signal
+});
+
+// ✅ BETTER: Convert to signal
+protected readonly transactions = toSignal(
+  this.userService.getById(userId).pipe(
+    switchMap(user => this.accountService.getByUserId(user.id)),
+    switchMap(accounts => this.transactionService.getByAccountId(accounts[0].id)),
+    catchError(() => of([]))
+  ),
+  { initialValue: [] }
+);
+```
+
+**Angular 21 Pattern (RxJS Parallel with forkJoin):**
+
+```typescript
+import { forkJoin } from 'rxjs';
+
+// Parallel: all calls start simultaneously
+protected readonly dashboardData = toSignal(
+  forkJoin({
+    user: this.userService.getById(userId),
+    accounts: this.accountService.getAll(),
+    recentTransactions: this.transactionService.getRecent(10)
+  }).pipe(
+    catchError(error => {
+      console.error('Failed to load dashboard', error);
+      return of({ user: null, accounts: [], recentTransactions: [] });
+    })
+  ),
+  { initialValue: null }
+);
+
+// Template usage:
+// @if (dashboardData(); as data) {
+//   <h1>{{ data.user.name }}</h1>
+//   <app-account-list [accounts]="data.accounts" />
+//   <app-transaction-list [transactions]="data.recentTransactions" />
+// }
+```
+
+---
+
+### Pattern 4: WebSocket / Real-Time Data (RxJS Required)
+
+**AngularJS Pattern:**
+
+```javascript
+// websocket.service.js
+factory('WebSocketService', function ($rootScope) {
+  var ws = new WebSocket('wss://api.bank.com/notifications');
+
+  ws.onmessage = function (event) {
+    $rootScope.$broadcast('notification', JSON.parse(event.data));
+  };
+
+  return {
+    send: function (message) {
+      ws.send(JSON.stringify(message));
+    },
+  };
+});
+```
+
+**Angular 21 Pattern (RxJS WebSocket):**
+
+```typescript
+import { Injectable } from '@angular/core';
+import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
+import { Observable } from 'rxjs';
+import { retry, catchError } from 'rxjs/operators';
+
+export interface Notification {
+  type: 'PAYMENT' | 'ALERT' | 'MESSAGE';
+  message: string;
+  timestamp: number;
+}
+
+@Injectable({ providedIn: 'root' })
+export class WebSocketService {
+  private ws$: WebSocketSubject<Notification>;
+
+  constructor() {
+    this.ws$ = webSocket<Notification>({
+      url: 'wss://api.bank.com/notifications',
+      deserializer: (e) => JSON.parse(e.data),
+      serializer: (value) => JSON.stringify(value),
+    });
+  }
+
+  getNotifications(): Observable<Notification> {
+    return this.ws$.pipe(
+      retry({ count: 5, delay: 3000 }), // Reconnect on disconnect
+      catchError((error) => {
+        console.error('WebSocket error', error);
+        throw error;
+      }),
+    );
+  }
+
+  send(message: Notification): void {
+    this.ws$.next(message);
+  }
+}
+
+// Component
+@Component({
+  selector: 'app-notifications',
+  template: `
+    @for (notification of notifications(); track notification.timestamp) {
+      <div class="notification">{{ notification.message }}</div>
+    }
+  `,
+})
+export class NotificationsComponent {
+  private readonly wsService = inject(WebSocketService);
+
+  // ✅ Convert WebSocket Observable → Signal
+  protected readonly notifications = toSignal(
+    this.wsService.getNotifications().pipe(
+      scan((acc, notification) => [...acc, notification], [] as Notification[]),
+      // Keep last 10 notifications
+      map((notifications) => notifications.slice(-10)),
+    ),
+    { initialValue: [] },
+  );
+}
+```
+
+---
+
+### Pattern 5: Form Value Changes with Validation
+
+**AngularJS Pattern:**
+
+```javascript
+$scope.$watch('email', function (newVal) {
+  if (newVal && newVal.includes('@')) {
+    $scope.emailValid = true;
+  } else {
+    $scope.emailValid = false;
+  }
+});
+```
+
+**Angular 21 Pattern (Signal + Computed — No RxJS Needed):**
+
+```typescript
+@Component({
+  selector: 'app-form',
+  template: `
+    <input type="email" [value]="email()" (input)="email.set($any($event.target).value)" />
+    @if (!emailValid()) {
+      <span class="error">Invalid email</span>
+    }
+  `,
+})
+export class FormComponent {
+  protected readonly email = signal('');
+
+  // ✅ Pure signal — no RxJS needed
+  protected readonly emailValid = computed(() => {
+    const email = this.email();
+    return email.length > 0 && email.includes('@') && email.includes('.');
+  });
+}
+```
+
+**If you need debounce for expensive validation (e.g., API call to check username availability):**
+
+```typescript
+@Component({
+  /* ... */
+})
+export class FormComponent {
+  protected readonly username = signal('');
+
+  private readonly username$ = toObservable(this.username);
+
+  // ✅ Use RxJS for debounced async validation
+  private readonly usernameAvailable$ = this.username$.pipe(
+    debounceTime(500),
+    distinctUntilChanged(),
+    filter((username) => username.length >= 3),
+    switchMap((username) => this.userService.checkUsernameAvailability(username)),
+    catchError(() => of(false)),
+  );
+
+  protected readonly usernameAvailable = toSignal(this.usernameAvailable$, {
+    initialValue: true,
+  });
+}
+```
+
+---
+
+### Decision Matrix: Signals vs RxJS
+
+| Use Case                                        | Solution                                        | Why                                     |
+| ----------------------------------------------- | ----------------------------------------------- | --------------------------------------- |
+| Component state (loading, selected item)        | **Signal**                                      | Synchronous, simple reactivity          |
+| Derived state (fullName = firstName + lastName) | **Computed Signal**                             | Pure transformation, no side effects    |
+| HTTP GET (one-shot request)                     | **RxJS + toSignal()**                           | Need HTTP operators (retry, catchError) |
+| HTTP POST (side effect, no template binding)    | **RxJS (no toSignal)**                          | Fire-and-forget, no UI update needed    |
+| Search with debounce                            | **Signal → toObservable() → RxJS → toSignal()** | Need debounceTime, distinctUntilChanged |
+| WebSocket / SSE                                 | **RxJS + toSignal()**                           | Continuous event stream                 |
+| Form validation (sync)                          | **Computed Signal**                             | No async, pure logic                    |
+| Form validation (async, e.g., username check)   | **Signal → toObservable() → RxJS → toSignal()** | Need debounce + switchMap               |
+| Multiple parallel API calls                     | **RxJS forkJoin + toSignal()**                  | Need parallel orchestration             |
+| Sequential API calls (A → B → C)                | **RxJS switchMap chain + toSignal()**           | Need async sequencing                   |
+| Timer / Interval                                | **RxJS interval() + toSignal()**                | Time-based Observable                   |
+| Router events                                   | **RxJS (router.events) + toSignal()**           | Built-in Observable API                 |
+
+---
+
+### Common RxJS Operators for Migration
+
+| Operator                 | Use Case                               | Example                                          |
+| ------------------------ | -------------------------------------- | ------------------------------------------------ |
+| **map**                  | Transform each value                   | `map(account => account.balance * 1.05)`         |
+| **filter**               | Skip values that don't match condition | `filter(balance => balance > 0)`                 |
+| **switchMap**            | Cancel previous, start new (search)    | `switchMap(query => this.search(query))`         |
+| **mergeMap**             | Run all in parallel                    | `mergeMap(id => this.loadAccount(id))`           |
+| **concatMap**            | Run sequentially (order preserved)     | `concatMap(payment => this.process(payment))`    |
+| **debounceTime**         | Wait X ms after last emission          | `debounceTime(300)`                              |
+| **distinctUntilChanged** | Only emit if value changed             | `distinctUntilChanged()`                         |
+| **retry**                | Retry on error                         | `retry({ count: 3, delay: 1000 })`               |
+| **catchError**           | Handle errors gracefully               | `catchError(() => of([]))`                       |
+| **shareReplay**          | Cache result, share among subscribers  | `shareReplay({ bufferSize: 1, refCount: true })` |
+| **combineLatest**        | Combine multiple Observables           | `combineLatest([obs1$, obs2$])`                  |
+| **forkJoin**             | Wait for all to complete (parallel)    | `forkJoin({ a: obs1$, b: obs2$ })`               |
+| **scan**                 | Accumulate values (like reduce)        | `scan((acc, val) => acc + val, 0)`               |
+| **takeUntil**            | Unsubscribe when trigger emits         | `takeUntil(this.destroy$)`                       |
+
+---
+
+### Anti-Pattern: Manual subscribe() in Components
+
+**❌ WRONG (AngularJS-style subscribe):**
+
+```typescript
+// DON'T DO THIS — manual subscription leaks memory
+export class BadComponent implements OnInit, OnDestroy {
+  private subscription: Subscription;
+  protected accounts: Account[] = [];
+
+  ngOnInit(): void {
+    this.subscription = this.accountService.getAccounts().subscribe((accounts) => {
+      this.accounts = accounts; // Manual assignment
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.subscription.unsubscribe(); // Must remember to clean up!
+  }
+}
+```
+
+**✅ CORRECT (Signal-first):**
+
+```typescript
+export class GoodComponent {
+  private readonly accountService = inject(AccountService);
+
+  // ✅ toSignal() auto-unsubscribes when component destroys
+  protected readonly accounts = toSignal(this.accountService.getAccounts(), { initialValue: [] });
+}
+```
+
+---
+
+### When to Keep subscribe()
+
+**Only use manual subscribe() for side effects (no UI update):**
+
+```typescript
+export class PaymentComponent {
+  private readonly paymentService = inject(PaymentService);
+
+  submitPayment(payment: Payment): void {
+    // ✅ OK to subscribe — this is a side effect, not UI state
+    this.paymentService
+      .process(payment)
+      .pipe(
+        tap(() => this.showSuccessToast()),
+        catchError((error) => {
+          this.showErrorToast(error.message);
+          return of(null);
+        }),
+      )
+      .subscribe(); // Fire-and-forget
+  }
+
+  private showSuccessToast(): void {
+    /* ... */
+  }
+  private showErrorToast(message: string): void {
+    /* ... */
+  }
+}
+```
+
+---
+
+### Migration Checklist: AngularJS Promises → RxJS
+
+| AngularJS                  | Angular 21 RxJS                              | Notes                                    |
+| -------------------------- | -------------------------------------------- | ---------------------------------------- |
+| `$http.get(url).then(fn)`  | `http.get(url).pipe(map(fn))`                | No `.then()` — use operators             |
+| `$http.get(url).catch(fn)` | `http.get(url).pipe(catchError(fn))`         | Must return Observable in catchError     |
+| `$q.defer()`               | ❌ Don't use — create Observable directly    | Deferred pattern is anti-pattern in RxJS |
+| `$q.all([p1, p2])`         | `forkJoin([obs1$, obs2$])`                   | Parallel execution                       |
+| `$q.when(value)`           | `of(value)`                                  | Immediate Observable                     |
+| `$timeout(fn, 1000)`       | `timer(1000).pipe(tap(fn))` OR `delay(1000)` | Use RxJS timer                           |
+| `$interval(fn, 1000)`      | `interval(1000).pipe(tap(fn))`               | Continuous timer                         |
+| `.then().then().then()`    | `.pipe(switchMap, switchMap, switchMap)`     | Chain with switchMap                     |
+
+---
+
+### Performance Tip: Avoid Unnecessary toSignal() Conversions
+
+```typescript
+// ❌ BAD: Convert Observable → Signal → Observable (unnecessary)
+protected readonly data = toSignal(this.http.get<Data>('/api/data'));
+protected readonly transformed$ = toObservable(this.data).pipe(
+  map(data => data?.items ?? [])
+);
+
+// ✅ GOOD: Stay in Observable until final template consumption
+private readonly data$ = this.http.get<Data>('/api/data');
+protected readonly transformed = toSignal(
+  this.data$.pipe(map(data => data.items)),
+  { initialValue: [] }
+);
+```
+
+---
+
+_**Section 3.10 complete.** RxJS migration strategy covers when to use RxJS vs signals, API response transformation patterns, search with debounce, parallel/sequential API calls, WebSocket integration, form validation, operator usage guide, and anti-patterns to avoid._
+
+---
+
+_**Part 3 complete.** The LLD covers the code-level patterns for every AngularJS artefact type: controllers → components, services → injectables, directives → components/directives/pipes, filters → pipes, route guards, Nx library structure, signal pattern mapping, security implementation, global state migration, i18n migration, and RxJS migration strategy._
+
+---
+
+## 3.11 — Angular 21.x Exclusive APIs: Modern Migration Targets
+
+> **Enterprise Architect Note:** Angular 21.1 and 21.2 introduced a set of APIs that are now the idiomatic Angular way to do things. When migrating from AngularJS, teams should target these APIs directly — not the Angular 14/15/16 equivalents that older guides recommend. This section documents every API that is new or promoted to stable in Angular 21.x.
+
+---
+
+### 3.11.1 — `httpResource()` and `resource()` — Declarative Reactive HTTP (Angular 21 Stable)
+
+**Why this matters:** Every AngularJS guide shows `$http.get()` converted to `toSignal(this.http.get(...))`. Angular 21 ships `httpResource()` — a first-class reactive HTTP primitive that gives you `value()`, `isLoading()`, `error()`, and `reload()` as signals out of the box. This eliminates the `toSignal + catchError + initialValue` boilerplate that appears 50+ times in a typical migration.
+
+**The progression: AngularJS → Angular 21.0 → Angular 21.1+**
+
+```typescript
+// ─── 1. AngularJS (Legacy) ───
+.controller('AccountsCtrl', function ($scope, $http) {
+  $scope.accounts = [];
+  $scope.loading = true;
+  $scope.error = null;
+
+  $http.get('/api/accounts')
+    .then(function (response) {
+      $scope.accounts = response.data;
+      $scope.loading = false;
+    })
+    .catch(function (err) {
+      $scope.error = err.message;
+      $scope.loading = false;
+    });
+});
+
+// ─── 2. Angular 21.0 (toSignal pattern — still valid) ───
+import { Component, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { catchError, of } from 'rxjs';
+
+@Component({ /* ... */ })
+export class AccountsComponent {
+  private readonly http = inject(HttpClient);
+
+  protected readonly accounts = toSignal(
+    this.http.get<Account[]>('/api/accounts').pipe(
+      catchError(() => of([]))
+    ),
+    { initialValue: [] }
+  );
+  // ❌ No loading state, no error signal, no reload capability without extra plumbing
+}
+
+// ─── 3. Angular 21.1+ (httpResource — the modern way) ───
+import { Component, inject } from '@angular/core';
+import { httpResource } from '@angular/core';   // ✅ Angular 21.1 stable
+import { HttpClient } from '@angular/common/http';
+
+@Component({
+  selector: 'app-accounts',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    @if (accountsResource.isLoading()) {
+      <app-skeleton rows="5" />
+    } @else if (accountsResource.error()) {
+      <app-error [message]="accountsResource.error()" (retry)="accountsResource.reload()" />
+    } @else {
+      @for (account of accountsResource.value(); track account.id) {
+        <app-account-card [account]="account" />
+      }
+    }
+  `,
+})
+export class AccountsComponent {
+  protected readonly accountsResource = httpResource<Account[]>('/api/accounts');
+  // ✅ accountsResource.value()     — Signal<Account[] | undefined>
+  // ✅ accountsResource.isLoading() — Signal<boolean>
+  // ✅ accountsResource.error()     — Signal<unknown>
+  // ✅ accountsResource.reload()    — imperative refresh (e.g., after create/update)
+  // ✅ accountsResource.hasValue()  — Signal<boolean>
+  // ✅ accountsResource.status()    — Signal<ResourceStatus>
+}
+```
+
+**`httpResource()` with reactive URL (signal-driven requests):**
+
+```typescript
+import { Component, signal, inject } from '@angular/core';
+import { httpResource } from '@angular/core';
+
+@Component({
+  /* ... */
+})
+export class AccountDetailComponent {
+  // Route param drives the request — when selectedId changes, resource auto-refetches
+  protected readonly selectedId = signal<string | null>(null);
+
+  protected readonly accountResource = httpResource<Account>(() => {
+    const id = this.selectedId();
+    return id ? `/api/accounts/${id}` : undefined; // undefined = skip request
+  });
+
+  // AngularJS equivalent:
+  // $scope.$watch('selectedId', function (id) {
+  //   if (id) $http.get('/api/accounts/' + id).then(r => $scope.account = r.data);
+  // });
+}
+```
+
+**`httpResource()` with POST/headers (full `HttpRequest` config):**
+
+```typescript
+import { httpResource } from '@angular/core';
+import { HttpRequest } from '@angular/common/http';
+
+@Component({
+  /* ... */
+})
+export class TransactionsComponent {
+  private readonly filters = signal<TransactionFilter>({ from: '2024-01', status: 'active' });
+
+  protected readonly transactionsResource = httpResource<Transaction[]>(() => ({
+    url: '/api/transactions',
+    method: 'POST',
+    body: this.filters(), // Reactive body — refetches when filters signal changes
+    headers: { 'X-Tenant': 'bank' },
+  }));
+}
+```
+
+**`resource()` — for non-HTTP async operations (IndexedDB, Web Workers, custom promises):**
+
+```typescript
+import { Component, signal, resource } from '@angular/core';
+
+@Component({
+  /* ... */
+})
+export class ReportComponent {
+  private readonly reportParams = signal({ quarter: 'Q1', year: 2025 });
+
+  // resource() replaces toSignal(someObservable) when you control the async operation
+  protected readonly reportResource = resource({
+    request: () => this.reportParams(), // Tracks signal; re-runs loader when it changes
+    loader: async ({ request }) => {
+      // Any async operation: IndexedDB, Web Worker, fetch, etc.
+      const data = await this.reportWorker.compute(request);
+      return data;
+    },
+  });
+
+  // reportResource.value()     — Signal<ReportData | undefined>
+  // reportResource.isLoading() — Signal<boolean>
+  // reportResource.error()     — Signal<unknown>
+  // reportResource.reload()    — force re-run of loader
+}
+```
+
+**When to use `httpResource()` vs `toSignal()` vs plain `Observable`:**
+
+| Scenario                                            | Recommended Approach                       | Reason                                                      |
+| --------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------- |
+| Fetching data tied to route params / filter signals | `httpResource()`                           | Auto-refetch, loading/error signals built in                |
+| Complex pipeline (debounce, switchMap, retry)       | `toSignal(observable$.pipe(...))`          | RxJS operators are more powerful for complex flows          |
+| POST/mutation (form submit, create, delete)         | `http.post()` in method, no `httpResource` | Resources are for reading data, not mutations               |
+| Non-HTTP async (IndexedDB, Worker, custom)          | `resource()`                               | Generalised reactive async primitive                        |
+| WebSocket streaming                                 | `toSignal(webSocket$.pipe(...))`           | Continuous stream — `resource()` is one-shot                |
+| Simple one-time load on init                        | `toSignal()` still fine                    | Don't rewrite working code; use `httpResource` for new work |
+
+---
+
+### 3.11.2 — Signal-Based DOM Queries: `viewChild()`, `contentChild()`, `viewChildren()`, `contentChildren()`
+
+**Why this matters:** AngularJS used `angular.element('[selector]')` for DOM access. Angular 14/15 guides show `@ViewChild` decorator. Angular 21 uses function-based signal queries — they return `Signal<T>` and work in templates, `computed()`, and `effect()` natively.
+
+> ⚠️ **Guide Correction:** The two `@ViewChild` examples in this guide (chart integration, plugin host) reflect third-party library compatibility patterns. For all first-party Angular code, use signal-based queries.
+
+**Migration: `@ViewChild` → `viewChild()`**
+
+```typescript
+// ─── AngularJS (Legacy DOM access) ───
+.directive('chartWrapper', function ($element, $scope) {
+  const container = $element.find('.chart-container')[0];
+  const chart = new Chart(container, $scope.config);
+});
+
+// ─── Angular 14-20 (decorator-based — still works but legacy) ───
+import { ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+
+@Component({ /* ... */ })
+export class ChartComponent implements AfterViewInit {
+  @ViewChild('chartContainer') containerRef!: ElementRef;  // ❌ Not a signal — can't use in computed/effect
+
+  ngAfterViewInit() {
+    // Must use lifecycle hook — decorator value not available until after view init
+    const chart = new Chart(this.containerRef.nativeElement, this.config());
+  }
+}
+
+// ─── Angular 21 (signal-based — the modern way) ───
+import { Component, viewChild, ElementRef, effect, inject } from '@angular/core';
+
+@Component({
+  selector: 'app-chart',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `<div #chartContainer class="w-full h-[300px]"></div>`,
+})
+export class ChartComponent {
+  protected readonly containerRef = viewChild.required<ElementRef>('chartContainer');
+  // ✅ viewChild.required() — Signal<ElementRef> — guaranteed non-null after view init
+  // ✅ viewChild()           — Signal<ElementRef | undefined> — nullable variant
+
+  constructor() {
+    // effect() runs after view is initialized — safe DOM access
+    effect(() => {
+      new Chart(this.containerRef().nativeElement, this.config());
+    });
+  }
+}
+```
+
+**`viewChildren()` — replacing QueryList:**
+
+```typescript
+// ─── Angular 14-20 (QueryList — imperative, no signal) ───
+@ViewChildren(TodoItemComponent) items!: QueryList<TodoItemComponent>;
+
+ngAfterViewInit() {
+  this.items.changes.subscribe(list => this.count.set(list.length));  // Extra RxJS wiring
+}
+
+// ─── Angular 21 (signal array — reactive) ───
+import { viewChildren } from '@angular/core';
+
+@Component({ /* ... */ })
+export class TodoListComponent {
+  protected readonly items = viewChildren(TodoItemComponent);
+  // items() — Signal<readonly TodoItemComponent[]>
+  // Reactive in computed() and effect() natively
+
+  protected readonly visibleCount = computed(() => this.items().filter(i => i.isVisible()).length);
+  // ✅ Recomputes automatically when child components change
+}
+```
+
+**`contentChild()` / `contentChildren()` — replacing `@ContentChild`:**
+
+```typescript
+// ─── Angular 14-20 (decorator — legacy) ───
+@ContentChild(NavItemComponent) navItem!: NavItemComponent;
+
+// ─── Angular 21 (signal-based) ───
+import { contentChild, contentChildren } from '@angular/core';
+
+@Component({ /* ... */ })
+export class NavComponent {
+  protected readonly activeItem = contentChild(NavItemComponent);    // Signal<NavItemComponent | undefined>
+  protected readonly allItems = contentChildren(NavItemComponent);   // Signal<readonly NavItemComponent[]>
+
+  protected readonly activeLabel = computed(() => this.activeItem()?.label ?? '');
+}
+```
+
+**Signal query migration table:**
+
+| Legacy Decorator                       | Angular 21 Signal Function                  | Return Type                       |
+| -------------------------------------- | ------------------------------------------- | --------------------------------- |
+| `@ViewChild(T)`                        | `viewChild(T)`                              | `Signal<T \| undefined>`          |
+| `@ViewChild(T, { required: true })`    | `viewChild.required(T)`                     | `Signal<T>`                       |
+| `@ViewChildren(T)`                     | `viewChildren(T)`                           | `Signal<readonly T[]>`            |
+| `@ContentChild(T)`                     | `contentChild(T)`                           | `Signal<T \| undefined>`          |
+| `@ContentChild(T, { required: true })` | `contentChild.required(T)`                  | `Signal<T>`                       |
+| `@ContentChildren(T)`                  | `contentChildren(T)`                        | `Signal<readonly T[]>`            |
+| `@ViewChild('refName')` (string)       | `viewChild<ElementRef>('refName')`          | `Signal<ElementRef \| undefined>` |
+| `@ViewChild('refName')` (required)     | `viewChild.required<ElementRef>('refName')` | `Signal<ElementRef>`              |
+
+---
+
+### 3.11.3 — `@let` — Template Variable Declarations (Angular 18+, Improved in 21.1)
+
+**Why this matters:** AngularJS used `ng-init` to declare template variables (a common pattern). Angular 21 has `@let` as the modern, type-safe equivalent — and it's far more useful than `*ngLet` structural directives from community libraries.
+
+```html
+<!-- AngularJS: ng-init for template variables (unreliable, anti-pattern) -->
+<div ng-init="totalWithTax = order.total * 1.2">Total: {{ totalWithTax }}</div>
+
+<!-- Angular 14-20: Needed extra structural directive or component split -->
+<!-- No native way to declare template variables -->
+
+<!-- Angular 21: @let — native template variable declarations -->
+@let currentUser = userResource.value(); @let totalWithTax = (order()?.total ?? 0) * 1.2; @let
+isAdminUser = currentUser?.roles?.includes('admin') ?? false; @if (currentUser) {
+<h2>Welcome, {{ currentUser.name }}</h2>
+
+@let greeting = isAdminUser ? 'Admin Dashboard' : 'My Account';
+<h3>{{ greeting }}</h3>
+}
+
+<p>Total inc. tax: {{ totalWithTax | currency }}</p>
+```
+
+**`@let` with async resource values — avoids repeated `()` calls:**
+
+```html
+<!-- Without @let — repeated function calls (re-evaluated every render) -->
+@if (accountsResource.value()) {
+<app-header [account]="accountsResource.value()!" />
+<app-body [account]="accountsResource.value()!" />
+<app-footer [account]="accountsResource.value()!" />
+}
+
+<!-- With @let — single evaluation, type-narrowed -->
+@let account = accountsResource.value(); @if (account) {
+<app-header [account]="account" />
+<!-- account is Account (not Account | undefined) -->
+<app-body [account]="account" />
+<app-footer [account]="account" />
+}
+```
+
+**`@let` rules and limitations:**
+
+| Rule                  | Detail                                                              |
+| --------------------- | ------------------------------------------------------------------- |
+| Scope                 | Block-scoped — visible only within the enclosing `@if`, `@for` etc. |
+| Reactivity            | Re-evaluated every render cycle — not itself a signal               |
+| Read-only             | Cannot be assigned to (like `const` in TypeScript)                  |
+| Works with signals    | `@let count = mySignal();` — reads signal, but `@let` not reactive  |
+| Multiple declarations | Multiple `@let` in same block allowed                               |
+
+---
+
+### 3.11.4 — `afterRender()` and `afterNextRender()` — Browser-Only Lifecycle Hooks
+
+**Why this matters:** AngularJS directives ran `link` functions that directly touched the DOM — this caused SSR incompatibilities. Angular 21 provides `afterRender()` and `afterNextRender()` as the safe, SSR-aware replacements for DOM operations that must run in the browser.
+
+```typescript
+// ─── AngularJS (Direct DOM manipulation in link function) ───
+.directive('scrollable', function () {
+  return {
+    link: function ($scope, $element) {
+      $element[0].scrollTop = 0;  // ❌ Runs everywhere including SSR
+    }
+  };
+});
+
+// ─── Angular 14-20 (ngAfterViewInit — still SSR-unsafe without isPlatformBrowser) ───
+@Component({ /* ... */ })
+export class ScrollableComponent implements AfterViewInit {
+  private readonly platformId = inject(PLATFORM_ID);
+
+  ngAfterViewInit() {
+    if (isPlatformBrowser(this.platformId)) {  // Manual platform guard required
+      window.scrollTo(0, 0);
+    }
+  }
+}
+
+// ─── Angular 21 (afterRender / afterNextRender — SSR-safe by design) ───
+import { Component, afterRender, afterNextRender, ElementRef, viewChild } from '@angular/core';
+
+@Component({
+  selector: 'app-scrollable',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `<div #container class="overflow-y-auto h-[400px]"><ng-content /></div>`,
+})
+export class ScrollableComponent {
+  private readonly container = viewChild.required<ElementRef>('container');
+
+  constructor() {
+    // afterNextRender: runs ONCE after the very first render — good for one-time setup
+    afterNextRender(() => {
+      // ✅ Only runs in browser — never runs on server during SSR
+      this.container().nativeElement.scrollTop = 0;
+      this.initChartLibrary(this.container().nativeElement);
+    });
+
+    // afterRender: runs AFTER EVERY render cycle — use for DOM sync that must stay current
+    afterRender(() => {
+      // ✅ Browser only; runs after every change detection pass
+      // Use for: measuring DOM dimensions, updating Canvas/WebGL, third-party DOM libraries
+      this.updateScrollIndicator();
+    });
+  }
+}
+```
+
+**`afterRender()` phases — fine-grained rendering pipeline control:**
+
+```typescript
+import { afterRender, AfterRenderPhase } from '@angular/core';
+
+constructor() {
+  // Phase 1: EarlyRead — read layout before Angular writes to DOM
+  afterRender({ phase: AfterRenderPhase.EarlyRead, read: () => {
+    const height = this.container().nativeElement.offsetHeight;
+    this.containerHeight.set(height);
+  }});
+
+  // Phase 2: Write — write DOM changes after Angular finishes
+  afterRender({ phase: AfterRenderPhase.Write, write: () => {
+    this.container().nativeElement.style.maxHeight = `${this.containerHeight()}px`;
+  }});
+
+  // Phase 3: Read — final DOM read after all writes
+  afterRender({ phase: AfterRenderPhase.Read, read: () => {
+    this.scrollPosition.set(this.container().nativeElement.scrollTop);
+  }});
+}
+```
+
+**Migration decision table:**
+
+| Legacy Pattern                            | Angular 21 Replacement | Why                                           |
+| ----------------------------------------- | ---------------------- | --------------------------------------------- |
+| `ngAfterViewInit` (DOM ops)               | `afterNextRender()`    | SSR-safe, no `isPlatformBrowser` guard needed |
+| `ngAfterViewChecked` (DOM sync)           | `afterRender()`        | Runs after every render, browser-only         |
+| `$element.ready()` in AngularJS directive | `afterNextRender()`    | Browser lifecycle — one-time DOM setup        |
+| `$timeout(fn, 0)` for next tick DOM       | `afterNextRender()`    | Clean async DOM access without setTimeout     |
+
+---
+
+### 3.11.5 — `untracked()` — Breaking Signal Dependency Chains
+
+**Why this matters:** AngularJS `$watch` ran on every `$digest` cycle — there was no concept of reading a value without subscribing to it. Angular 21 `untracked()` solves a real problem: reading a signal inside `computed()` or `effect()` without adding it to the reactive dependency graph.
+
+```typescript
+import { Component, signal, computed, effect, untracked } from '@angular/core';
+
+@Component({
+  /* ... */
+})
+export class AuditComponent {
+  private readonly currentValue = signal(0);
+  private readonly auditLog = signal<AuditEntry[]>([]);
+
+  constructor() {
+    // ❌ PROBLEM: Effect reads auditLog inside — creates circular dependency
+    effect(() => {
+      const val = this.currentValue(); // Tracks currentValue
+      const log = this.auditLog(); // ❌ Also tracks auditLog — triggers effect again when log appended
+      this.auditLog.set([...log, { val, timestamp: Date.now() }]); // Infinite loop risk
+    });
+
+    // ✅ SOLUTION: untracked() reads auditLog WITHOUT adding it as a dependency
+    effect(() => {
+      const val = this.currentValue(); // ✅ Tracks currentValue (triggers effect)
+      const currentLog = untracked(() => this.auditLog()); // ✅ Reads auditLog WITHOUT tracking it
+      this.auditLog.set([...currentLog, { val, timestamp: Date.now() }]);
+    });
+  }
+}
+```
+
+**`untracked()` in `computed()` — conditional reactive dependencies:**
+
+```typescript
+@Component({
+  /* ... */
+})
+export class DashboardComponent {
+  private readonly userId = signal<string | null>(null);
+  private readonly cachedUserData = signal<UserData | null>(null);
+
+  protected readonly displayName = computed(() => {
+    const id = this.userId(); // Reactive: recomputes when userId changes
+    if (!id) return 'Guest';
+
+    // Read cachedUserData WITHOUT making it a dependency of this computed
+    // Only re-fetch logic based on userId, not every time cache updates
+    const cached = untracked(() => this.cachedUserData());
+    return cached?.name ?? 'Loading...';
+  });
+}
+```
+
+---
+
+### 3.11.6 — `DestroyRef` — Explicit Lifecycle Cleanup Beyond `takeUntilDestroyed()`
+
+**Why this matters:** AngularJS had `$scope.$on('$destroy', cleanupFn)` for cleanup. Angular 21 has `DestroyRef` — a service injected per-component that provides a `onDestroy()` callback for non-RxJS resources (timers, WebSocket connections, third-party library instances).
+
+```typescript
+// ─── AngularJS (destroy hook) ───
+.controller('ChartCtrl', function ($scope) {
+  const chart = new Chart(document.getElementById('chart'));
+
+  $scope.$on('$destroy', function () {
+    chart.destroy();  // Clean up third-party library
+  });
+});
+
+// ─── Angular 21 (DestroyRef — composable, works anywhere in injection context) ───
+import { Component, inject, DestroyRef, afterNextRender, viewChild, ElementRef } from '@angular/core';
+
+@Component({
+  selector: 'app-chart',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `<canvas #canvas></canvas>`,
+})
+export class ChartComponent {
+  private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
+  private readonly destroyRef = inject(DestroyRef);    // ✅ Inject destroy lifecycle
+
+  constructor() {
+    afterNextRender(() => {
+      const chart = new Chart(this.canvas().nativeElement, this.chartConfig());
+
+      // Register cleanup — runs when component is destroyed
+      this.destroyRef.onDestroy(() => chart.destroy());  // ✅ No ngOnDestroy needed
+    });
+  }
+}
+```
+
+**`DestroyRef` in services — composable cleanup without component lifecycle:**
+
+```typescript
+// ─── AngularJS (factory cleanup — no native support) ───
+.factory('WebSocketService', function ($rootScope) {
+  const ws = new WebSocket('wss://api/live');
+  // ❌ No standard cleanup — devs manually called .close() or hoped for GC
+  return { ws };
+});
+
+// ─── Angular 21 (Service with DestroyRef) ───
+import { Injectable, inject, DestroyRef } from '@angular/core';
+
+@Injectable()  // Scoped service (not providedIn: 'root') — destroyed with component
+export class LiveFeedService {
+  private readonly destroyRef = inject(DestroyRef);
+  private ws!: WebSocket;
+
+  connect(url: string): void {
+    this.ws = new WebSocket(url);
+
+    // Auto-cleanup when the service is destroyed (component or route scope)
+    this.destroyRef.onDestroy(() => {
+      if (this.ws.readyState === WebSocket.OPEN) {
+        this.ws.close();
+      }
+    });
+  }
+}
+```
+
+**`takeUntilDestroyed()` vs `DestroyRef.onDestroy()` — when to use each:**
+
+| Scenario                                      | Use                                                                        |
+| --------------------------------------------- | -------------------------------------------------------------------------- |
+| Unsubscribing from RxJS Observables           | `takeUntilDestroyed()` in pipe                                             |
+| Destroying third-party library instance       | `destroyRef.onDestroy()`                                                   |
+| Closing WebSocket / EventSource               | `destroyRef.onDestroy()`                                                   |
+| Clearing `setInterval` / `setTimeout`         | `destroyRef.onDestroy()`                                                   |
+| Removing native DOM event listeners           | `destroyRef.onDestroy()`                                                   |
+| General RxJS subscription in constructor      | `takeUntilDestroyed()` (no DestroyRef arg needed in component constructor) |
+| In a utility function / non-component context | `takeUntilDestroyed(destroyRef)` (must pass DestroyRef explicitly)         |
+
+---
+
+### 3.11.7 — Input Transforms: `booleanAttribute`, `numberAttribute`
+
+**Why this matters:** AngularJS accepted `ng-disabled="true"` as a string. Angular 21 input transforms handle the boolean/number coercion that every developer wrote manually.
+
+```typescript
+// ─── Angular 14-20 (manual coercion — common pattern) ───
+@Input() set disabled(value: string | boolean) {
+  this._disabled = value === '' || value === true || value === 'true';
+}
+
+// ─── Angular 21 (input transform — declarative) ───
+import { Component, input, booleanAttribute, numberAttribute } from '@angular/core';
+
+@Component({ /* ... */ })
+export class ButtonComponent {
+  // booleanAttribute: '' | 'true' | true → true; 'false' | false | undefined → false
+  readonly disabled = input(false, { transform: booleanAttribute });
+  // <app-button disabled />          → disabled() === true
+  // <app-button [disabled]="isDisabled()" /> → passes boolean signal value
+
+  // numberAttribute: converts string to number (or NaN if invalid)
+  readonly tabIndex = input(0, { transform: numberAttribute });
+  // <app-button tabIndex="3" />       → tabIndex() === 3
+}
+```
+
+---
+
+### 3.11.8 — `outputFromObservable()` and `outputToObservable()` — RxJS Output Bridge
+
+**Why this matters:** When migrating services that emit events as Observables (Subjects), `outputFromObservable()` creates an Angular 21 signal output from an existing Observable without manual `EventEmitter` wiring.
+
+```typescript
+// ─── AngularJS (event broadcast) ───
+.factory('NotificationService', function ($rootScope) {
+  return {
+    notify: function (msg) { $rootScope.$broadcast('notification', msg); }
+  };
+});
+
+// ─── Angular 21: outputFromObservable — bridge existing Observable to output() API ───
+import { Component, inject } from '@angular/core';
+import { outputFromObservable, outputToObservable } from '@angular/core/rxjs-interop';
+
+@Component({
+  selector: 'app-notification-host',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `<!-- ... -->`,
+})
+export class NotificationHostComponent {
+  private readonly notificationService = inject(NotificationService);
+
+  // Convert Observable<Notification> → Angular 21 output()
+  readonly notification = outputFromObservable(
+    this.notificationService.notifications$
+  );
+  // Parent can: (notification)="handleNotification($event)"
+}
+
+// outputToObservable: convert output() EventEmitter → Observable for RxJS consumers
+import { outputToObservable } from '@angular/core/rxjs-interop';
+
+class ConsumerComponent {
+  private readonly child = viewChild.required(NotificationHostComponent);
+
+  constructor() {
+    afterNextRender(() => {
+      // Convert signal output back to Observable if a service needs it
+      const notifications$ = outputToObservable(this.child().notification);
+      notifications$.pipe(takeUntilDestroyed()).subscribe(/* ... */);
+    });
+  }
+}
+```
+
+---
+
+### 3.11.9 — `withEventReplay()` — SSR Event Capture Before Hydration
+
+**Why this matters:** Without `withEventReplay()`, if a user clicks a button before Angular's hydration completes, the event is lost. For banking apps with impatient users, this means lost form submissions or navigation clicks. `withEventReplay()` captures these events and replays them once hydration is complete.
+
+```typescript
+// ─── Without withEventReplay (Angular 21 default without this option) ───
+// User clicks "Submit" at t=0ms (before hydration at t=500ms)
+// → Event is silently lost; form never submits
+
+// ─── With withEventReplay (Angular 21 recommended for forms and CTAs) ───
+// app.config.ts
+import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import {
+  provideClientHydration,
+  withEventReplay,
+  withIncrementalHydration,
+} from '@angular/platform-browser';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideClientHydration(
+      withEventReplay(), // ✅ Capture + replay events during hydration window
+      withIncrementalHydration(), // ✅ Hydrate only visible @defer blocks (pairs well with withEventReplay)
+    ),
+    provideZoneChangeDetection({ eventCoalescing: true }),
+  ],
+};
+```
+
+**What `withEventReplay()` captures:**
+
+| Event Type          | Replayed? | Notes                                                  |
+| ------------------- | --------- | ------------------------------------------------------ |
+| `click`             | ✅ Yes    | Button clicks, link navigation, form submit clicks     |
+| `input`             | ✅ Yes    | Text typed in inputs before hydration                  |
+| `submit`            | ✅ Yes    | Form submissions                                       |
+| `keydown` / `keyup` | ✅ Yes    | Keyboard interactions                                  |
+| `scroll`            | ❌ No     | Scroll position not replayed (not a user intent event) |
+| `mousemove`         | ❌ No     | Mouse tracking not replayed                            |
+
+---
+
+### 3.11.10 — Route-Level SSR Rendering Modes (Angular 19+ — Critical for Enterprise SSR)
+
+**Why this matters:** AngularJS had no SSR. The Angular 21 SSR migration guide shows `provideServerRendering()` but Angular 19+ added fine-grained per-route rendering mode control — critical for enterprise apps where some screens are static (Prerender), some are dynamic SSR (Server), and some are client-only (Client).
+
+```typescript
+// app.routes.server.ts — Server-side rendering configuration per route
+import { RenderMode, ServerRoute } from '@angular/ssr';
+
+export const serverRoutes: ServerRoute[] = [
+  // Static marketing pages — pre-rendered at build time (fastest LCP)
+  {
+    path: 'home',
+    renderMode: RenderMode.Prerender,
+  },
+  {
+    path: 'about',
+    renderMode: RenderMode.Prerender,
+  },
+
+  // Authenticated dynamic screens — server-rendered on each request
+  {
+    path: 'accounts',
+    renderMode: RenderMode.Server, // ✅ Fresh data on every request (banking requirement)
+  },
+  {
+    path: 'accounts/:id',
+    renderMode: RenderMode.Server, // ✅ Dynamic params — must be Server mode
+  },
+  {
+    path: 'transactions',
+    renderMode: RenderMode.Server,
+  },
+
+  // Admin tools with heavy client-side JS — skip SSR entirely
+  {
+    path: 'admin/report-builder',
+    renderMode: RenderMode.Client, // ✅ Client-only — too dynamic for SSR
+  },
+
+  // Login / public pages — pre-rendered
+  {
+    path: 'login',
+    renderMode: RenderMode.Prerender,
+  },
+
+  // Fallback for all remaining routes
+  {
+    path: '**',
+    renderMode: RenderMode.Server,
+  },
+];
+```
+
+**Register server routes in `app.config.server.ts`:**
+
+```typescript
+// app.config.server.ts
+import { mergeApplicationConfig, ApplicationConfig } from '@angular/core';
+import { provideServerRendering, provideServerRoutesConfig } from '@angular/ssr';
+import { appConfig } from './app.config';
+import { serverRoutes } from './app.routes.server';
+
+const serverConfig: ApplicationConfig = {
+  providers: [
+    provideServerRendering(),
+    provideServerRoutesConfig(serverRoutes), // ✅ Register per-route rendering modes
+  ],
+};
+
+export const config = mergeApplicationConfig(appConfig, serverConfig);
+```
+
+**Rendering mode decision matrix for banking migration:**
+
+| Route Type                   | Rendering Mode | Reason                                                  |
+| ---------------------------- | -------------- | ------------------------------------------------------- |
+| Marketing / landing pages    | `Prerender`    | Static content, best LCP, no server cost per request    |
+| Login / registration         | `Prerender`    | No dynamic data, CDN-cached                             |
+| Dashboard (personalised)     | `Server`       | User-specific data, must be fresh                       |
+| Account list / detail        | `Server`       | Real-time balances — stale data unacceptable in banking |
+| Transaction history          | `Server`       | Compliance requires fresh data, no caching              |
+| Report builder / admin tools | `Client`       | Complex interactivity, D3/Canvas — SSR adds no value    |
+| Error pages (404, 500)       | `Prerender`    | Static, always available even if server is down         |
+
+---
+
+### 3.11.11 — `provideZonelessChangeDetection()` — Stable in Angular 21
+
+> **Breaking API Name Change:** In Angular 21, `provideExperimentalZonelessChangeDetection()` was graduated to `provideZonelessChangeDetection()`. The experimental prefix has been removed. Update all references before upgrading.
+
+**The migration path for AngularJS → Angular 21 full zoneless:**
+
+```
+Phase 1 (Now):          Zone.js active   → OnPush everywhere
+Phase 2 (After Sprint): Zone.js + OnPush → provideZonelessChangeDetection() opt-in
+Phase 3 (Goal):         Full zoneless    → Remove zone.js from polyfills in angular.json
+```
+
+```typescript
+// Phase 2: app.config.ts — enable zoneless (Angular 21 stable API)
+import { ApplicationConfig, provideZonelessChangeDetection } from '@angular/core';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZonelessChangeDetection(), // ✅ Angular 21 stable — no longer "Experimental"
+    // ⚠️ Requirements before enabling:
+    //   1. ALL components have ChangeDetectionStrategy.OnPush
+    //   2. ALL state mutations go through signal.set() / signal.update()
+    //   3. No library code relies on Zone.js patching (check third-party libs)
+    //   4. Remove zone.js from polyfills in angular.json (Phase 3)
+  ],
+};
+```
+
+```json
+// Phase 3: angular.json — remove zone.js polyfill
+{
+  "projects": {
+    "banking-ng21": {
+      "architect": {
+        "build": {
+          "options": {
+            "polyfills": [
+              // "zone.js"  ← Remove this line when fully zoneless
+            ]
+          }
+        },
+        "test": {
+          "options": {
+            "polyfills": [
+              // "zone.js/testing"  ← Also remove from test config
+            ]
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+**Zoneless readiness checklist for enterprise migration:**
+
+```
+□ All 120 migrated controllers → components use ChangeDetectionStrategy.OnPush
+□ Signal coverage audit complete — no BehaviorSubject for component-local state
+□ Third-party libraries audited for Zone.js dependency (ag-Grid, Chart.js, etc.)
+□ HTTP interceptors use functional API (HttpInterceptorFn) — not class-based
+□ setTimeout / setInterval wrapped to update signals after execution
+□ E2E test suite passes with zoneless enabled
+□ Bundle size reduction validated (target: ~15KB reduction from zone.js removal)
+```
+
+---
+
+### 3.11.12 — `provideAppInitializer()` — Modern Bootstrap Initialization (Angular 19+)
+
+**Why this matters:** `APP_INITIALIZER` with `multi: true` is verbose and error-prone. Angular 19+ introduced `provideAppInitializer()` as a cleaner, type-safe alternative for loading feature flags, auth state, and configuration before the app renders.
+
+```typescript
+// ─── Legacy pattern (still works but verbose) ───
+import { APP_INITIALIZER } from '@angular/core';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    {
+      provide: APP_INITIALIZER,
+      useFactory: (featureService: FeatureFlagService) => () => featureService.load(),
+      deps: [FeatureFlagService],
+      multi: true,
+    },
+  ],
+};
+
+// ─── Angular 21 preferred pattern (provideAppInitializer) ───
+import { provideAppInitializer, inject } from '@angular/core';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    // Initializer 1: Load feature flags
+    provideAppInitializer(() => {
+      const featureService = inject(FeatureFlagService); // ✅ inject() works here
+      return featureService.load(); // Return Promise<void> or Observable<void>
+    }),
+
+    // Initializer 2: Restore auth session
+    provideAppInitializer(() => {
+      const authService = inject(AuthService);
+      return authService.restoreSession(); // Called before any route renders
+    }),
+
+    // Initializer 3: Load i18n translations
+    provideAppInitializer(() => {
+      const i18n = inject(TranslationService);
+      return i18n.loadLocale('en-GB');
+    }),
+
+    // All three run in parallel; app bootstraps only after all resolve
+  ],
+};
+```
+
+**`provideAppInitializer()` vs `APP_INITIALIZER` comparison:**
+
+| Feature               | `APP_INITIALIZER`                       | `provideAppInitializer()` (Angular 19+)  |
+| --------------------- | --------------------------------------- | ---------------------------------------- |
+| Syntax                | Verbose factory + deps array            | Concise function with `inject()` inside  |
+| Type safety           | Loose — factory return type not checked | Strongly typed — TypeScript enforced     |
+| Multiple initializers | `multi: true` (easy to forget)          | Multiple `provideAppInitializer()` calls |
+| `inject()` support    | Only via `deps` array                   | ✅ Native `inject()` in function body    |
+| Parallel execution    | ✅ All run in parallel                  | ✅ All run in parallel                   |
+
+---
+
+_**Section 3.11 complete.** Angular 21.x exclusive APIs: `httpResource()`, `resource()`, signal-based queries (`viewChild`, `contentChild`, `viewChildren`, `contentChildren`), `@let` template variables, `afterRender`/`afterNextRender` lifecycle hooks, `untracked()`, `DestroyRef`, input transforms, `outputFromObservable()`, `withEventReplay()` for SSR, route-level rendering modes (`RenderMode`), `provideZonelessChangeDetection()` stable API, and `provideAppInitializer()`. Target these APIs directly — not Angular 14/16/18 intermediaries._
+
+---
+
+_**Part 3 complete.** The LLD covers the code-level patterns for every AngularJS artefact type: controllers → components, services → injectables, directives → components/directives/pipes, filters → pipes, route guards, Nx library structure, signal pattern mapping, security implementation, global state migration, i18n migration, RxJS migration strategy, and Angular 21.x exclusive modern APIs._
 
 ---
 
@@ -3515,15 +6232,234 @@ _**Part 4 complete.** The Nx workspace is now scaffolded with all apps, librarie
 
 ---
 
-> **Ready for Part 5?** Part 5 covers **AI Prompts, GitHub MCP, agents.md, skills.md** — the complete AI-assisted development setup using GitHub Copilot, custom agents, and MCP servers for automated migration workflows.
+> **Ready for Part 5?** Part 5 covers **AI Prompts, MCP Servers (Angular 21, Angular Material), agents.md, skills.md** — the complete AI-assisted development setup using GitHub Copilot, custom agents, and MCP servers for automated migration workflows and live Angular API queries.
 
 ---
 
 <!-- pagebreak -->
 
-# Part 5 — AI Prompts, GitHub MCP, agents.md & skills.md
+# Part 5 — AI Prompts, MCP Servers, agents.md & skills.md
 
-> **How to use this section:** Copy each prompt directly into GitHub Copilot Chat or VS Code Copilot. The prompts are ordered to follow the migration lifecycle — discovery → design → implementation → testing → review. The custom agent and skill definitions at the end of this section can be dropped into your `.github/` folder to activate specialised Copilot behaviour across the whole team.
+> **How to use this section:** This part has three major components: (1) **MCP Server Setup** for live Angular 21 and Angular Material API queries, (2) **Migration Prompts** optimized for GitHub Copilot Chat, and (3) **Custom Agents and Skills** for team-wide AI customization. MCP servers eliminate the need to manually specify Angular 21 patterns — the AI can query the official API directly.
+
+---
+
+## 5.0 — MCP Server Setup for Angular 21 Migration
+
+### What are MCP Servers?
+
+**Model Context Protocol (MCP)** servers provide live, authoritative API documentation to AI tools. Instead of relying on the AI's training data (which may be outdated), MCP servers let the AI **query the latest Angular 21 API in real-time**.
+
+**Benefits for Migration:**
+
+- ✅ No need to manually specify "use signal(), not BehaviorSubject"
+- ✅ AI always uses current Angular 21 APIs (signals, input(), output(), @if, @for)
+- ✅ Reduces hallucinations (AI can verify APIs exist before generating code)
+- ✅ Material Design components auto-discovered if using Angular Material
+
+---
+
+### 5.0.1 — Angular 21 MCP Server Setup
+
+**Purpose:** Provides live access to Angular 21 API documentation (signals, components, directives, router, forms, HttpClient).
+
+**Installation:**
+
+```json
+// .vscode/mcp-settings.json (or global MCP config)
+{
+  "mcpServers": {
+    "angular-cli": {
+      "command": "npx",
+      "args": ["-y", "@angular/cli-mcp-server"],
+      "env": {
+        "ANGULAR_VERSION": "21"
+      }
+    }
+  }
+}
+```
+
+**Available Tools (Auto-discovered by Copilot):**
+
+| Tool                                   | Purpose                                                         | Example Query                                     |
+| -------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------- |
+| `mcp_angular-cli_get_best_practices`   | Returns Angular 21 best practices for signals, OnPush, inject() | "What's the Angular 21 way to handle form state?" |
+| `mcp_angular-cli_search_documentation` | Searches official Angular docs                                  | "How do I use toSignal with HttpClient?"          |
+| `mcp_angular-cli_ai_tutor`             | Explains Angular concepts                                       | "Explain computed() vs effect()"                  |
+
+**How to Use in Prompts:**
+
+Instead of:
+
+```
+❌ Migrate this controller to Angular 21 with signals, inject(), @if/@for
+```
+
+Simply:
+
+```
+✅ @angular-cli Migrate this AngularJS controller to Angular 21 using current best practices
+
+<paste controller code>
+```
+
+The MCP server will automatically provide:
+
+- Current signal APIs
+- Modern control flow syntax
+- inject() pattern
+- OnPush change detection
+
+---
+
+### 5.0.2 — Angular Material MCP Server Setup (Optional)
+
+**When to use:** If your migration uses Angular Material for UI components.
+
+**Installation:**
+
+```json
+// .vscode/mcp-settings.json
+{
+  "mcpServers": {
+    "angular-cli": {
+      /* ... */
+    },
+    "angular-material": {
+      "command": "npx",
+      "args": ["-y", "@angular/material-mcp-server"],
+      "env": {
+        "MATERIAL_VERSION": "21"
+      }
+    }
+  }
+}
+```
+
+**Available Components (Auto-discovered):**
+
+- MatButton, MatInput, MatSelect, MatDialog, MatTable, MatPaginator, MatSort, MatDatepicker, MatAutocomplete, etc.
+
+**Example Prompt:**
+
+```
+@angular-material Generate a data table component for account list with:
+- Sortable columns
+- Pagination (50 items per page)
+- Row selection
+- Export to CSV button
+
+Use Angular 21 signals for state.
+```
+
+MCP server will provide:
+
+- Correct Material imports
+- Signal-based MatTableDataSource alternative
+- Proper column definitions
+- Accessibility attributes (aria-labels)
+
+---
+
+### 5.0.3 — Custom Banking MCP Server (Advanced)
+
+For enterprise teams, create a **custom MCP server** that knows your domain models and business rules.
+
+**Example: Banking Domain MCP Server**
+
+```typescript
+// tools/mcp-server/banking-domain-server.ts
+import { MCPServer } from '@modelcontextprotocol/sdk';
+
+const server = new MCPServer({
+  name: 'banking-domain',
+  version: '1.0.0',
+});
+
+server.addTool({
+  name: 'get_account_validation_rules',
+  description: 'Returns validation rules for account numbers, routing numbers, amounts',
+  handler: async () => {
+    return {
+      accountNumber: { pattern: /^\d{10,12}$/, message: 'Must be 10-12 digits' },
+      routingNumber: { pattern: /^\d{9}$/, message: 'Must be 9 digits' },
+      amount: { min: 0.01, max: 100000, message: 'Must be between $0.01 and $100,000' },
+    };
+  },
+});
+
+server.addTool({
+  name: 'get_shared_models',
+  description: 'Returns TypeScript interfaces from libs/shared-models',
+  handler: async () => {
+    return {
+      Account: 'interface Account { id: string; accountNumber: string; balance: number; ... }',
+      Transaction: 'interface Transaction { id: string; amount: number; date: Date; ... }',
+      User: 'interface User { id: string; name: string; email: string; roles: string[]; ... }',
+    };
+  },
+});
+
+server.listen(3001);
+```
+
+**Usage:**
+
+```
+@banking-domain Generate a payment form component that validates inputs using our domain rules
+```
+
+AI will automatically apply your custom validation patterns.
+
+---
+
+### 5.0.4 — MCP Server Best Practices
+
+**1. Always tag MCP servers in prompts:**
+
+```
+@angular-cli @angular-material Generate a dialog component for payment confirmation
+```
+
+**2. Let MCP servers discover APIs (don't over-specify):**
+
+❌ Bad:
+
+```
+Use signal(), computed(), effect(), inject(), input(), output(), @if, @for, OnPush, toSignal()
+```
+
+✅ Good:
+
+```
+@angular-cli Use Angular 21 best practices
+```
+
+**3. Verify MCP server is active:**
+
+```bash
+# Check if MCP servers are running
+code --list-extensions | grep mcp
+
+# View MCP server logs
+tail -f ~/.vscode/extensions/github.copilot-*/mcp.log
+```
+
+**4. Combine MCP with custom agents (see Section 5.7):**
+
+```yaml
+# .github/agents/migration-expert.agent.md
+---
+name: migration-expert
+mcp_servers:
+  - angular-cli
+  - angular-material
+  - banking-domain
+---
+```
+
+---
 
 ---
 
@@ -3534,18 +6470,18 @@ Use these prompts during **Phase 1** of the migration (discovery and inventory).
 ### Prompt 5.1.1 — Full codebase inventory
 
 ```
-@workspace /explain
+@workspace I have a legacy AngularJS 1.8 application at apps/banking-legacy/.
 
-I have a legacy AngularJS 1.8 application at apps/banking-legacy/. Please analyse the codebase and produce a structured inventory with counts and file locations for:
-1. Controllers — list each controller name, file path, and how many $scope properties it defines
-2. Services and factories — list type (service/factory/provider), name, file path
-3. Directives — list name, type (element/attribute/class), file path
-4. Filters — list name, usage count across templates, file path
-5. Routes — list all states/routes with their template and controller
-6. Third-party dependencies — read bower.json or package.json and list every library with version
-7. HTTP calls — find all $http.get/post/put/delete usages and list the endpoint URLs
+Analyze and produce a structured inventory:
+1. Controllers (name, file, $scope property count)
+2. Services/factories (type, name, file)
+3. Directives (name, type, file)
+4. Filters (name, usage count, file)
+5. Routes (all states with templates)
+6. Third-party dependencies (from package.json/bower.json)
+7. HTTP endpoints (all $http calls)
 
-Format output as a markdown table for each category. Highlight any controller with more than 200 lines or more than 15 $scope properties as a HIGH COMPLEXITY item.
+Format as markdown tables. Flag controllers >200 lines or >15 $scope properties as HIGH COMPLEXITY.
 ```
 
 ### Prompt 5.1.2 — Controller complexity scoring
@@ -3692,21 +6628,20 @@ Output the full routes file. Group routes by the 8 feature domains identified ea
 ### Prompt 5.2.5 — Form migration (AngularJS ng-model → Angular 21 signals)
 
 ```
-Convert the following AngularJS form (HTML template + controller) to an Angular 21 signal-based reactive form.
+@angular-cli Convert this AngularJS form to Angular 21 using best form strategy.
 
-[PASTE HTML TEMPLATE]
-[PASTE CONTROLLER CODE]
+[PASTE FORM CODE]
+
+Choose optimal pattern:
+- Simple (<10 fields): signal() per field + computed() validation
+- Complex (10+ fields): model() with two-way binding
+- Dependent fields: linkedSignal() for reactive dependencies
 
 Requirements:
-- Use signal() for each form field value — no FormGroup, FormControl, or ngModel
-- Use computed() for all validation errors (return null when valid, error message string when invalid)
-- Use computed() for isValid (true only when all field errors are null)
-- Use computed() for form dirty state
-- On submit: check isValid() before calling the service; show all computed errors simultaneously
-- Replace ng-required, ng-minlength, ng-pattern with computed() validators
-- Template uses @if to show/hide error messages based on computed error signals
-- Accessibility: each input has aria-describedby pointing to its error message element; error elements have role="alert" and aria-live="polite"
-- Preserve all validation rules exactly — do not loosen or change them
+- Preserve all validation rules exactly
+- Use computed() for errors (null when valid)
+- Accessibility: aria-describedby, role="alert"
+- Template uses @if for error display
 ```
 
 ### Prompt 5.2.6 — $http interceptor migration
@@ -4781,11 +7716,41 @@ export const serverConfig: ApplicationConfig = {
 
 // 2. @defer for non-critical sections (defers JS download entirely)
 // template:
-// @defer (on viewport) {
-//   <app-transaction-chart />  ← Downloads ONLY when user scrolls to it
-// } @placeholder {
-//   <div class="h-64 bg-gray-100 animate-pulse"></div>  ← Skeleton shown immediately
-// }
+@defer (on viewport) {
+  <app-transaction-chart />  // ← Downloads ONLY when user scrolls to it
+} @placeholder {
+  <div class="h-64 bg-gray-100 animate-pulse"></div>  // ← Skeleton shown immediately
+}
+
+// ⚠️ @defer + SSR Hydration Warning:
+// Problem: @defer (on viewport) works differently on server vs client
+// Server can't detect viewport → always renders @placeholder
+// Client hydration may trigger immediate load → causes flicker
+
+// ✅ SAFE @defer patterns for SSR:
+@defer (on timer(2s)) {
+  <app-heavy-component />  // Timer works same on server and client
+}
+
+// ⚠️ RISKY: Viewport-based (server can't detect)
+@defer (on viewport) {
+  <app-chart />  // May cause hydration mismatch
+} @placeholder {
+  <app-skeleton />
+}
+
+// ✅ FIX: Combine with isPlatformBrowser()
+protected readonly canLoadCharts = computed(() =>
+  isPlatformBrowser(inject(PLATFORM_ID))
+);
+
+@if (canLoadCharts()) {
+  @defer (on viewport) {
+    <app-chart />
+  }
+} @else {
+  <app-skeleton />
+}
 
 // 3. Lazy-load all 8 feature domains
 // app.routes.ts
@@ -4801,6 +7766,29 @@ export const routes: Routes = [
 // 4. Preload strategy: preload likely next routes during idle time
 // app.config.ts
 provideRouter(routes, withPreloading(QuicklinkStrategy)),  // preload on <a> hover
+```
+
+```html
+<!-- 5. Priority hints for hero images (LCP optimization) -->
+<img
+  ngSrc="/hero-dashboard.jpg"
+  alt="Banking Dashboard"
+  width="1200"
+  height="600"
+  priority  <!-- ← NgOptimizedImage directive: adds fetchpriority="high" -->
+/>
+
+<!-- Manual fetchpriority (if not using NgOptimizedImage) -->
+<img
+  src="/hero-image.jpg"
+  alt="Hero"
+  fetchpriority="high"  <!-- ← Browser loads this FIRST (LCP element) -->
+  width="1200"
+  height="600"
+/>
+
+<!-- ⚠️ Only use fetchpriority="high" on 1-2 critical LCP images per page -->
+<!-- Too many "high" priority → browser ignores priority hints -->
 ```
 
 ```nginx
@@ -4843,12 +7831,13 @@ location = /index.html {
   // Only re-renders when input signals change — not on every event
 })
 
-// 2. Zoneless Angular (Angular 18+) — eliminate Zone.js entirely
+// 2. Zoneless Angular (Angular 21 stable — no longer experimental)
 // app.config.ts
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideExperimentalZonelessChangeDetection(),  // ✅ Remove Zone.js from bundle
-    // Requires: all state changes via signals, no setTimeout without signal trigger
+    provideZonelessChangeDetection(),  // ✅ Stable API in Angular 21 — was 'Experimental' in Angular 18-20
+    // Removes Zone.js from bundle (~15KB), eliminates $digest-equivalent overhead
+    // Requires: all state via signals; no setTimeout/setInterval used to trigger UI updates
   ],
 };
 
@@ -5175,6 +8164,270 @@ Refresh token also in memory. Silent refresh scheduled 60 seconds before expiry.
 
 ## Review Date: Revisit if switching to BFF architecture
 ```
+
+---
+
+## 6.6 — Client-Side Data Migration Strategy
+
+**Challenge:** If Angular 21 changes client-side data schemas (localStorage, IndexedDB, sessionStorage), existing users need migration.
+
+### Scenario: AngularJS Stored User Preferences in localStorage
+
+**AngularJS Schema (Legacy):**
+
+```javascript
+// Stored as plain JSON string
+localStorage.setItem(
+  'userPrefs',
+  JSON.stringify({
+    theme: 'dark',
+    language: 'en',
+  }),
+);
+
+// Read
+var prefs = JSON.parse(localStorage.getItem('userPrefs') || '{}');
+```
+
+**Angular 21 Schema (New):**
+
+```typescript
+export interface UserPreferences {
+  theme: 'light' | 'dark' | 'system'; // ← 'system' is new
+  language: string;
+  accessibility: {
+    // ← New nested object
+    highContrast: boolean;
+    reducedMotion: boolean;
+  };
+}
+```
+
+---
+
+### Migration Function (Runs Once on App Bootstrap)
+
+```typescript
+// libs/shared-utils/src/lib/client-data-migration.service.ts
+import { Injectable } from '@angular/core';
+
+export interface UserPreferencesV1 {
+  theme: string;
+  language: string;
+}
+
+export interface UserPreferencesV2 {
+  theme: 'light' | 'dark' | 'system';
+  language: string;
+  accessibility: { highContrast: boolean; reducedMotion: boolean };
+}
+
+@Injectable({ providedIn: 'root' })
+export class ClientDataMigrationService {
+  private readonly CURRENT_SCHEMA_VERSION = 2;
+
+  migrate(): void {
+    const schemaVersion = this.getSchemaVersion();
+
+    if (schemaVersion < this.CURRENT_SCHEMA_VERSION) {
+      console.log(
+        `[Migration] Upgrading client data from v${schemaVersion} to v${this.CURRENT_SCHEMA_VERSION}`,
+      );
+
+      if (schemaVersion === 1) {
+        this.migrateV1ToV2();
+      }
+
+      this.setSchemaVersion(this.CURRENT_SCHEMA_VERSION);
+    }
+  }
+
+  private migrateV1ToV2(): void {
+    const legacyPrefs = localStorage.getItem('userPrefs');
+
+    if (!legacyPrefs) return;
+
+    try {
+      const v1: UserPreferencesV1 = JSON.parse(legacyPrefs);
+
+      const v2: UserPreferencesV2 = {
+        theme: this.mapTheme(v1.theme),
+        language: v1.language || 'en',
+        accessibility: {
+          highContrast: false, // Default for existing users
+          reducedMotion: false,
+        },
+      };
+
+      localStorage.setItem('userPrefs_v2', JSON.stringify(v2));
+      localStorage.removeItem('userPrefs'); // Clean up legacy
+
+      console.log('[Migration] User preferences upgraded to v2');
+    } catch (err) {
+      console.error('[Migration] Failed to migrate user preferences:', err);
+      // Fallback: keep legacy data, don't break app
+    }
+  }
+
+  private mapTheme(legacyTheme: string): 'light' | 'dark' | 'system' {
+    if (legacyTheme === 'dark') return 'dark';
+    if (legacyTheme === 'light') return 'light';
+    return 'system'; // New default
+  }
+
+  private getSchemaVersion(): number {
+    const version = localStorage.getItem('client_schema_version');
+    return version ? parseInt(version, 10) : 1; // Assume v1 if not set
+  }
+
+  private setSchemaVersion(version: number): void {
+    localStorage.setItem('client_schema_version', version.toString());
+  }
+}
+```
+
+---
+
+### Bootstrap Integration (Runs Before App Loads)
+
+```typescript
+// apps/banking-ng21/src/app/app.config.ts
+import { APP_INITIALIZER, ApplicationConfig } from '@angular/core';
+import { ClientDataMigrationService } from '@banking/shared-utils';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    {
+      provide: APP_INITIALIZER,
+      useFactory: (migrationService: ClientDataMigrationService) => () => {
+        migrationService.migrate(); // Runs BEFORE app renders
+      },
+      deps: [ClientDataMigrationService],
+      multi: true,
+    },
+    // ... other providers
+  ],
+};
+```
+
+**Result:** Existing users with `userPrefs` (v1) are automatically upgraded to `userPrefs_v2` on their first visit to Angular 21.
+
+---
+
+### IndexedDB Migration Example
+
+If using IndexedDB for offline data:
+
+```typescript
+import { openDB, IDBPDatabase } from 'idb';
+
+export class IndexedDBMigrationService {
+  async migrate(): Promise<void> {
+    const db = await openDB('BankingApp', 2, {
+      // ← Version 2
+      upgrade(db, oldVersion, newVersion, transaction) {
+        if (oldVersion < 2) {
+          // Add new object store
+          db.createObjectStore('transactions', { keyPath: 'id' });
+
+          // Migrate data from old store
+          const oldStore = transaction.objectStore('accounts');
+          const accounts = await oldStore.getAll();
+
+          const newStore = transaction.objectStore('transactions');
+          accounts.forEach((account) => {
+            // Transform and insert into new store
+            newStore.add({ id: account.id, ...account });
+          });
+        }
+      },
+    });
+  }
+}
+```
+
+---
+
+### SessionStorage (Temporary Data)
+
+**Rule:** Don't migrate sessionStorage — it's ephemeral. Just clear on schema change:
+
+```typescript
+if (schemaVersion < this.CURRENT_SCHEMA_VERSION) {
+  sessionStorage.clear(); // Force fresh session
+}
+```
+
+---
+
+### Migration Checklist
+
+| Data Type                       | Migration Strategy                  | When to Run                     |
+| ------------------------------- | ----------------------------------- | ------------------------------- |
+| **localStorage (user prefs)**   | Migrate with version check          | `APP_INITIALIZER`               |
+| **IndexedDB (offline data)**    | Use `idb` library upgrade callback  | On `openDB()`                   |
+| **sessionStorage (temp state)** | Clear on version change             | `APP_INITIALIZER`               |
+| **Cookies (auth)**              | Backend sets; no migration needed   | N/A                             |
+| **Cache API (PWA)**             | Delete old caches in service worker | Service worker `activate` event |
+
+---
+
+### Testing Data Migration
+
+```typescript
+// client-data-migration.service.spec.ts
+import { TestBed } from '@angular/core/testing';
+import { ClientDataMigrationService } from './client-data-migration.service';
+
+describe('ClientDataMigrationService', () => {
+  let service: ClientDataMigrationService;
+
+  beforeEach(() => {
+    localStorage.clear();
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(ClientDataMigrationService);
+  });
+
+  it('should migrate v1 preferences to v2', () => {
+    // Arrange: set up v1 data
+    localStorage.setItem('userPrefs', JSON.stringify({ theme: 'dark', language: 'en' }));
+    localStorage.setItem('client_schema_version', '1');
+
+    // Act: run migration
+    service.migrate();
+
+    // Assert: v2 data exists
+    const v2Prefs = JSON.parse(localStorage.getItem('userPrefs_v2') || '{}');
+    expect(v2Prefs.theme).toBe('dark');
+    expect(v2Prefs.accessibility).toEqual({ highContrast: false, reducedMotion: false });
+    expect(localStorage.getItem('userPrefs')).toBeNull(); // v1 cleaned up
+    expect(localStorage.getItem('client_schema_version')).toBe('2');
+  });
+
+  it('should not migrate if already on v2', () => {
+    // Arrange
+    localStorage.setItem(
+      'userPrefs_v2',
+      JSON.stringify({
+        theme: 'system',
+        language: 'es',
+        accessibility: { highContrast: true, reducedMotion: false },
+      }),
+    );
+    localStorage.setItem('client_schema_version', '2');
+
+    const spy = vi.spyOn(console, 'log');
+
+    // Act
+    service.migrate();
+
+    // Assert: no migration message
+    expect(spy).not.toHaveBeenCalledWith(expect.stringContaining('Upgrading'));
+  });
+});
+```
+
+---
 
 ### ADR-003: Angular SSR Strategy
 
@@ -7283,35 +10536,627 @@ If error rate > 1% at any stage → rollback to 0%
 
 ---
 
-## 8.7 — Monitoring & Observability
+## 8.6.5 — Emergency Rollback Playbook
 
-### Application Insights Dashboard Queries
+**Critical for Production:** Every team member must know how to execute an emergency rollback.
+
+### Scenario 1: Critical Bug in Angular 21 Production
+
+**Trigger:** Error rate > 1% for 5+ consecutive minutes OR critical business path broken
+
+**Action Timeline:**
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ T+0 min    │ Incident declared (PagerDuty/Slack alert)         │
+├──────────────────────────────────────────────────────────────────┤
+│ T+2 min    │ Feature flag kill switch activated                │
+├──────────────────────────────────────────────────────────────────┤
+│ T+5 min    │ CDN cache purged (all users see legacy)          │
+├──────────────────────────────────────────────────────────────────┤
+│ T+10 min   │ Post-mortem begins; root cause analysis          │
+├──────────────────────────────────────────────────────────────────┤
+│ T+24 hrs   │ Fix deployed + tested OR migration paused        │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**Step 1: Feature Flag Kill Switch (< 2 minutes)**
+
+```bash
+# Option A: API call (if you have feature flag service)
+curl -X PUT https://api.bank.com/admin/feature-flags/ng21-global \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -d '{"enabled": false}'
+
+# Option B: Environment variable (Azure Static Web Apps)
+az staticwebapp appsettings set \
+  --name banking-ng21-prod \
+  --setting-names NG21_ENABLED=false
+
+# Option C: Direct database update (LaunchDarkly/ConfigCat)
+# Use admin UI to disable flag immediately
+```
+
+**Result:** All users instantly fall back to legacy AngularJS iframe. No logout required.
+
+**Step 2: CDN Cache Purge (< 5 minutes)**
+
+```bash
+# Azure CDN
+az cdn endpoint purge \
+  --profile-name banking-cdn \
+  --name banking-endpoint \
+  --resource-group banking-rg \
+  --content-paths "/*"
+
+# Azure Front Door
+az afd endpoint purge \
+  --profile-name banking-migration \
+  --endpoint-name bank-com \
+  --resource-group banking-rg \
+  --content-paths "/*"
+
+# Cloudflare
+curl -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/purge_cache" \
+  -H "Authorization: Bearer $CF_TOKEN" \
+  -d '{"purge_everything":true}'
+```
+
+**Step 3: Verify Rollback Success**
+
+```bash
+# Check error rate drops
+curl https://api.applicationinsights.io/v1/apps/$APP_ID/metrics/exceptions/count \
+  -H "x-api-key: $AI_KEY" | jq '.value.count'
+
+# Should return to baseline within 5 minutes
+```
+
+---
+
+### Scenario 2: Performance Regression (LCP/INP degraded)
+
+**Trigger:** Core Web Vitals > red threshold for 15+ minutes
+
+**Canary Dial-Back Strategy:**
+
+```typescript
+// Gradual rollback (no hard cutover)
+canaryService.setCanaryPercentage(50); // Reduce from 100% to 50%
+// Monitor for 15 minutes
+canaryService.setCanaryPercentage(25); // Further reduce
+// Monitor for 15 minutes
+canaryService.setCanaryPercentage(0); // Full rollback if still degraded
+```
+
+**Application Insights Query:**
 
 ```kusto
-// Query 1: Top 10 slowest pages
+customMetrics
+| where name in ("LCP", "INP")
+| where customDimensions.version == "ng21"
+| summarize
+    p50=percentile(value, 50),
+    p75=percentile(value, 75),
+    p95=percentile(value, 95)
+  by bin(timestamp, 5m), name
+| render timechart
+```
+
+**Decision:** If p95 LCP > 3.0s OR p95 INP > 300ms for 15 minutes → rollback.
+
+---
+
+### Scenario 3: Database Schema / API Contract Incompatibility
+
+**Problem:** Angular 21 depends on API v2 endpoint that breaks for legacy AngularJS.
+
+**Prevention (Mandatory):**
+
+```
+API Versioning Strategy:
+
+/api/v1/accounts  ← AngularJS uses this (never break)
+/api/v2/accounts  ← Angular 21 uses this (new fields, breaking changes OK)
+
+Both versions run in parallel for 90 days minimum.
+After 90 days post-migration, deprecate v1.
+```
+
+**Rollback:** If API v2 breaks, Angular 21 falls back to v1 automatically:
+
+```typescript
+// libs/shared-auth/src/lib/api-version.interceptor.ts
+export const apiVersionInterceptor: HttpInterceptorFn = (req, next) => {
+  const featureFlags = inject(FeatureFlagsService);
+
+  // Use v2 if Angular 21 features enabled, else v1
+  const apiVersion = featureFlags.isNg21Enabled() ? 'v2' : 'v1';
+
+  const modifiedReq = req.clone({
+    url: req.url.replace('/api/', `/api/${apiVersion}/`),
+  });
+
+  return next(modifiedReq);
+};
+```
+
+---
+
+### Scenario 4: Auth Session Desync (Users Logged Out)
+
+**Trigger:** Spike in login page traffic (> 3× baseline)
+
+**Root Cause:** Token storage mismatch between AngularJS (localStorage) and Angular 21 (memory).
+
+**Rollback:**
+
+```typescript
+// Emergency patch: read from both locations
+export class AuthService {
+  private readonly _token = signal<string | null>(
+    localStorage.getItem('auth_token') ?? null, // ← Fallback to legacy storage
+  );
+}
+```
+
+**Prevention:** Migration script runs on app bootstrap (see Section 6.6).
+
+---
+
+### Rollback Communication Template
+
+**Slack Incident Channel:**
+
+```
+🚨 INCIDENT: Angular 21 Rollback Executed
+
+Time: 2026-05-29 14:35 UTC
+Trigger: Error rate 2.3% (threshold: 1%)
+Action: Feature flag NG21_ENABLED set to false
+Impact: All users reverted to legacy AngularJS
+User Impact: Zero (seamless fallback via iframe)
+Session Impact: No logouts required
+
+Next Steps:
+1. Root cause analysis in progress (ETA: 2 hours)
+2. Fix branch: fix/ng21-payment-validation
+3. Re-deployment ETA: 6 hours (includes full regression test)
+
+Status Page: https://status.bank.com/incidents/2024-05-29-ng21
+```
+
+---
+
+## 8.7 — Monitoring & Observability Strategy
+
+**Production Requirement:** Every Angular 21 screen must emit telemetry. No blind deployments.
+
+### Key Metrics Dashboard (Application Insights + Grafana)
+
+#### User Experience Metrics (SLIs — Service Level Indicators)
+
+| Metric                   | Target (SLO)   | Alert Threshold | Query                                                                                                     |
+| ------------------------ | -------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
+| **LCP (p95)**            | ≤ 2.0s         | > 2.5s          | `customMetrics \| where name == "LCP" \| summarize p95(value)`                                            |
+| **Error rate**           | < 0.1%         | > 0.5%          | `exceptions \| where severityLevel >= 3 \| summarize count() by bin(timestamp, 5m)`                       |
+| **API latency (p95)**    | ≤ 300ms        | > 500ms         | `requests \| where name contains "/api/" \| summarize p95(duration)`                                      |
+| **Session success rate** | > 99%          | < 98%           | `customEvents \| where name == "SessionComplete" \| summarize successRate=countif(success==true)/count()` |
+| **Feature flag health**  | 100% reachable | Any failure     | `dependencies \| where target == "feature-flag-api" \| where success == false`                            |
+
+#### Migration Health Metrics
+
+| Metric                   | Target              | Query                                                                                                                                |
+| ------------------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Angular 21 adoption      | +5% per sprint      | `pageViews \| where url contains "/ng21/" \| summarize adoption=count() / (select count() from pageViews where timestamp > ago(1d))` |
+| Feature flag coverage    | 100% of 120 screens | `customMetrics \| where name == "FeatureFlagEvaluation" \| distinct featureName \| count()`                                          |
+| Legacy screen count      | -10 per sprint      | `pageViews \| where url contains "/legacy/" or url contains "#!/" \| distinct url \| count()`                                        |
+| Module Federation errors | 0 per day           | `traces \| where message contains "Module Federation" and severityLevel >= 3 \| count()`                                             |
+
+---
+
+### Application Insights KQL Queries
+
+```kusto
+// Query 1: Top 10 slowest Angular 21 pages
 requests
 | where timestamp > ago(24h)
-| summarize avg(duration), count() by name
-| top 10 by avg_duration desc
+| where url contains "/ng21/"
+| summarize avg(duration), p95=percentile(duration, 95), count() by name
+| order by p95 desc
+| take 10
 
-// Query 2: Error rate by hour
+// Query 2: Error rate by hour (compare legacy vs ng21)
 exceptions
 | where timestamp > ago(7d)
-| summarize ErrorCount = count() by bin(timestamp, 1h)
+| extend AppVersion = tostring(customDimensions.version)
+| summarize ErrorCount = count() by bin(timestamp, 1h), AppVersion
 | render timechart
 
-// Query 3: Users affected by errors
+// Query 3: Users affected by errors (prioritize by impact)
 exceptions
 | where timestamp > ago(24h)
-| summarize AffectedUsers = dcount(user_Id), ErrorCount = count() by problemId
+| summarize
+    AffectedUsers = dcount(user_Id),
+    ErrorCount = count(),
+    FirstSeen = min(timestamp),
+    LastSeen = max(timestamp)
+  by problemId, outerMessage
 | order by AffectedUsers desc
 
 // Query 4: Module Federation load failures
 traces
-| where message contains "Module Federation"
+| where message contains "Module Federation" or message contains "remoteEntry.js"
 | where severityLevel >= 3
-| summarize count() by message
+| summarize
+    FailureCount = count(),
+    UniqueUsers = dcount(user_Id),
+    SampleMessage = any(message)
+  by bin(timestamp, 5m)
+| where FailureCount > 5
+| render timechart
+
+// Query 5: API error rate spike detection
+requests
+| where timestamp > ago(1h)
+| where resultCode >= 400
+| summarize ErrorRate = count() * 100.0 / (countif(resultCode < 400) + count()) by bin(timestamp, 1m)
+| where ErrorRate > 1.0  // Alert if error rate > 1%
+
+// Query 6: Feature flag performance (canary rollout health)
+customEvents
+| where name == "FeatureFlagEvaluated"
+| extend FlagName = tostring(customDimensions.flagName)
+| extend IsEnabled = tobool(customDimensions.enabled)
+| summarize EnabledCount = countif(IsEnabled), TotalEvaluations = count() by FlagName
+| extend RolloutPercentage = (EnabledCount * 100.0) / TotalEvaluations
+| order by RolloutPercentage desc
 ```
+
+---
+
+### Real-Time Alerts (Azure Monitor)
+
+```json
+// Alert Rule 1: High Error Rate
+{
+  "name": "Angular21-HighErrorRate",
+  "condition": {
+    "query": "exceptions | where customDimensions.version == 'ng21' | summarize count()",
+    "threshold": 10,
+    "timeAggregation": "Total",
+    "windowSize": "PT5M"
+  },
+  "actions": [
+    { "actionGroupId": "/subscriptions/.../actionGroups/on-call-team" }
+  ],
+  "severity": 1
+}
+
+// Alert Rule 2: LCP Degradation
+{
+  "name": "Angular21-LCP-Degraded",
+  "condition": {
+    "query": "customMetrics | where name == 'LCP' | summarize p95=percentile(value, 95)",
+    "threshold": 2500,
+    "operator": "GreaterThan",
+    "windowSize": "PT15M"
+  },
+  "severity": 2
+}
+
+// Alert Rule 3: Feature Flag Service Down
+{
+  "name": "FeatureFlags-Unavailable",
+  "condition": {
+    "query": "dependencies | where target == 'feature-flag-api' | where success == false | summarize count()",
+    "threshold": 5,
+    "windowSize": "PT5M"
+  },
+  "severity": 0
+}
+```
+
+---
+
+### Incident Response Runbook
+
+**Trigger:** Error rate > 1% for 5 consecutive minutes  
+**Severity:** P1 (Critical)  
+**SLO:** Rollback within 5 minutes OR root cause identified within 15 minutes
+
+**Action Steps:**
+
+1. **Investigate** (0–5 min):
+   - Check Application Insights exceptions dashboard
+   - Identify affected component (use `problemId` grouping)
+   - Determine if issue is Angular 21-specific (check `customDimensions.version`)
+
+2. **Mitigate** (5–10 min):
+   - If Angular 21-related: Execute feature flag rollback (Section 8.6.5)
+   - If API-related: Roll back API deployment OR disable affected endpoint
+   - If infrastructure: Scale up resources OR failover to backup region
+
+3. **Communicate** (10–15 min):
+   - Update status page: https://status.bank.com
+   - Slack #incidents channel: Post incident summary
+   - Email stakeholders if customer-facing
+
+4. **Root Cause Analysis** (within 24 hrs):
+   - Post-Incident Review (PIR) document
+   - Timeline reconstruction
+   - Corrective actions
+   - Preventive measures
+
+---
+
+### Grafana Dashboard (Alternative to Application Insights UI)
+
+```yaml
+# Grafana dashboard JSON (simplified)
+{
+  'dashboard':
+    {
+      'title': 'Angular 21 Migration Health',
+      'panels':
+        [
+          {
+            'title': 'Error Rate (last 24h)',
+            'targets':
+              [
+                {
+                  'datasource': 'Azure Monitor',
+                  'query': "exceptions | where customDimensions.version == 'ng21' | summarize count() by bin(timestamp, 5m)",
+                },
+              ],
+          },
+          {
+            'title': 'LCP p95 (target: 2.0s)',
+            'targets':
+              [
+                {
+                  'query': "customMetrics | where name == 'LCP' | summarize p95=percentile(value, 95) by bin(timestamp, 5m)",
+                },
+              ],
+            'thresholds': [{ 'value': 2000, 'color': 'green' }, { 'value': 2500, 'color': 'red' }],
+          },
+          {
+            'title': 'Angular 21 Adoption %',
+            'targets':
+              [
+                {
+                  'query': "pageViews | extend IsNg21 = url contains '/ng21/' | summarize Adoption = countif(IsNg21) * 100.0 / count() by bin(timestamp, 1h)",
+                },
+              ],
+          },
+        ],
+    },
+}
+```
+
+---
+
+### Web Vitals Instrumentation (Client-Side)
+
+```typescript
+// libs/shared-utils/src/lib/web-vitals.service.ts
+import { Injectable, inject } from '@angular/core';
+import { onCLS, onFCP, onINP, onLCP, onTTFB } from 'web-vitals';
+import { ApplicationInsights } from '@microsoft/applicationinsights-web';
+
+@Injectable({ providedIn: 'root' })
+export class WebVitalsService {
+  private readonly appInsights = inject(ApplicationInsights);
+
+  init(): void {
+    onLCP((metric) => {
+      this.appInsights.trackMetric({ name: 'LCP', average: metric.value });
+    });
+
+    onINP((metric) => {
+      this.appInsights.trackMetric({ name: 'INP', average: metric.value });
+    });
+
+    onCLS((metric) => {
+      this.appInsights.trackMetric({ name: 'CLS', average: metric.value });
+    });
+
+    onFCP((metric) => {
+      this.appInsights.trackMetric({ name: 'FCP', average: metric.value });
+    });
+
+    onTTFB((metric) => {
+      this.appInsights.trackMetric({ name: 'TTFB', average: metric.value });
+    });
+  }
+}
+
+// app.config.ts — initialize on bootstrap
+export const appConfig: ApplicationConfig = {
+  providers: [
+    {
+      provide: APP_INITIALIZER,
+      useFactory: () => () => inject(WebVitalsService).init(),
+      multi: true,
+    },
+  ],
+};
+```
+
+---
+
+## 8.8 — Cost Estimation & Budget
+
+**Why this matters:** Stakeholders need cost justification for migration. Azure + GitHub Actions costs can surprise teams.
+
+### Azure Infrastructure (Monthly Costs — USD)
+
+| Resource                   | Tier                           | Quantity               | Unit Cost                  | Monthly Cost                    |
+| -------------------------- | ------------------------------ | ---------------------- | -------------------------- | ------------------------------- |
+| **Azure Static Web Apps**  | Standard                       | 2 (shell + remote)     | $9/app                     | **$18**                         |
+| **Azure App Service**      | B1 (Basic, 1 core, 1.75GB RAM) | 1 (legacy AngularJS)   | $55/month                  | **$55**                         |
+| **Azure Front Door**       | Standard                       | 1                      | $35 base + $0.01/GB egress | **$35–60** (depends on traffic) |
+| **Application Insights**   | Pay-as-you-go                  | ~50GB/month            | $2.30/GB (first 5GB free)  | **$104**                        |
+| **Azure CDN**              | Standard Microsoft             | 1                      | $0.081/GB (first 10TB)     | **$40** (500GB/month traffic)   |
+| **Azure DevOps Pipelines** | Self-hosted agents             | 0 (use GitHub Actions) | $0                         | **$0**                          |
+| **Total Azure**            |                                |                        |                            | **~$252/month**                 |
+
+**Post-migration (legacy decommissioned):**  
+Remove Azure App Service → **~$197/month** (22% savings)
+
+---
+
+### GitHub Actions CI/CD (Monthly Minutes)
+
+| Workflow                   | Triggers              | Runs/day | Minutes/run | Total/month                  |
+| -------------------------- | --------------------- | -------- | ----------- | ---------------------------- |
+| **CI (PR builds)**         | Every PR push         | 20       | 8 min       | 20 × 8 × 30 = **4,800 min**  |
+| **Deploy shell**           | Main branch merge     | 2        | 5 min       | 2 × 5 × 30 = **300 min**     |
+| **Deploy remote**          | Feature branch deploy | 5        | 6 min       | 5 × 6 × 30 = **900 min**     |
+| **E2E tests (Playwright)** | Nightly + PR          | 10       | 15 min      | 10 × 15 × 30 = **4,500 min** |
+| **Lighthouse CI**          | Every deploy          | 7        | 3 min       | 7 × 3 × 30 = **630 min**     |
+| **Security scan (Snyk)**   | Weekly                | 1        | 5 min       | 1 × 5 × 4 = **20 min**       |
+| **Total**                  |                       |          |             | **11,150 min/month**         |
+
+**GitHub Actions Pricing:**
+
+- Free tier: 3,000 minutes/month (included with GitHub Team)
+- Overage: $0.008/minute for private repos
+- **Cost:** (11,150 - 3,000) × $0.008 = **$65.20/month**
+
+**Alternative:** Self-hosted GitHub runners on Azure VM (B2s: $30/month) → **$30/month** instead of $65
+
+---
+
+### Total Migration Cost (During 12-Month Migration)
+
+| Category             | Monthly Cost   | Annual Cost     |
+| -------------------- | -------------- | --------------- |
+| Azure infrastructure | $252           | **$3,024**      |
+| GitHub Actions       | $65            | **$780**        |
+| **Total**            | **$317/month** | **$3,804/year** |
+
+**Post-Migration (Steady State):**
+
+- Remove legacy App Service: -$55/month
+- Remove shell app (merge into single SPA): -$9/month
+- **New Total:** $253/month = **$3,036/year**
+
+---
+
+### Cost Optimization Strategies
+
+#### 1. Self-Hosted GitHub Runners
+
+```yaml
+# .github/workflows/ci.yml
+jobs:
+  build:
+    runs-on: self-hosted # ← Use Azure VM instead of GitHub-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci
+      - run: npx nx affected --target=build
+```
+
+**Savings:** $65/month → $30/month (Azure B2s VM) = **$35/month saved**
+
+#### 2. Lighthouse CI Sampling (Not Every Deploy)
+
+```yaml
+# Only run Lighthouse on main branch, not PRs
+on:
+  push:
+    branches: [main]
+```
+
+**Savings:** ~2,000 minutes/month = **$16/month saved**
+
+#### 3. Application Insights Data Sampling
+
+```typescript
+// Reduce telemetry volume by 50% (sample 1 in 2 requests)
+const appInsights = new ApplicationInsights({
+  config: {
+    samplingPercentage: 50, // ← 50% of telemetry
+  },
+});
+```
+
+**Savings:** 50GB → 25GB = $2.30 × 25GB = $57.50/month (vs $104) = **$46.50/month saved**
+
+**⚠️ Trade-off:** Lower telemetry = less debugging data. Only enable in non-production.
+
+#### 4. Azure Front Door → nginx on VM
+
+If traffic is low (< 1M requests/month), replace Azure Front Door with nginx:
+
+```
+Azure VM (B2s) with nginx: $30/month
+Azure Front Door Standard: $35–60/month
+
+Savings: $5–30/month
+```
+
+---
+
+### ROI Calculation (Migration Justification)
+
+**Costs:**
+
+- Migration labor: 6 engineers × 12 months × $10,000/month = **$720,000**
+- Infrastructure: $3,804/year
+- **Total:** **$723,804**
+
+**Benefits:**
+
+- **Security:** AngularJS 1.8 EOL = unpatched CVEs = regulatory risk (PCI-DSS non-compliance)
+- **Performance:** 60% faster LCP (2.0s vs 5.0s) = 15% conversion rate improvement
+- **Developer velocity:** 40% faster feature development (signals vs $scope)
+- **Recruitment:** Modern tech stack attracts talent
+
+**Payback Period:**
+
+If 15% conversion improvement = $2M additional revenue/year:  
+**ROI = 176%** in year 1.
+
+---
+
+### Budget Approval Template (for Stakeholders)
+
+```markdown
+## Angular 21 Migration — Budget Request
+
+**Total Cost:** $723,804 (12-month migration)  
+**Ongoing Cost:** $3,036/year (post-migration infrastructure)
+
+**Breakdown:**
+
+- Labor: $720,000 (6 FTEs × 12 months)
+- Azure: $3,024
+- GitHub Actions: $780
+
+**Business Case:**
+
+1. **Security Compliance:** AngularJS 1.8 reached EOL Dec 2021 — no security patches
+2. **Performance:** 60% faster page load → 15% conversion lift → $2M revenue
+3. **Maintenance:** 40% reduction in bug fix time (modern tooling)
+4. **Talent:** Modern stack reduces hiring cost by 25%
+
+**Risk of NOT Migrating:**
+
+- Regulatory penalties (PCI-DSS requires patched software)
+- Security breach (unpatched XSS vulnerabilities)
+- Developer attrition (legacy tech stack)
+
+**Approval Required:** [Signature]
+```
+
+---
+
+_**Part 8 complete.** Deployment architecture now includes emergency rollback playbooks, comprehensive monitoring with SLIs/SLOs, real-time alerting, incident response runbooks, and complete cost analysis with ROI justification._
+
+---
 
 ### Real-Time Alerts
 
