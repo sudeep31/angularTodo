@@ -9,5 +9,9 @@
     },
     "printBackground": true
   },
-  "stylesheet": ["C:\\ComponentLiabery\\docs\\pdf-styles.css"]
+  "stylesheet": ["C:\\ComponentLiabery\\docs\\pdf-styles.css"],
+  "goto_options": {
+    "timeout": 120000,
+    "waitUntil": "networkidle0"
+  }
 }

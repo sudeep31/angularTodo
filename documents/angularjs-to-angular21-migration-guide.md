@@ -1518,7 +1518,7 @@ Provide a fix for every finding rated Medium or above.
 
 > **AngularJS is JavaScript** — there are no interfaces, types, generics, or enums. Every data shape is implicit: `$http` responses are `any`, `$scope` properties are typed as "whatever was last assigned to them", and constants are plain objects with string values. Before writing a single line of Angular 21, you must extract these implicit contracts into explicit TypeScript. The questions below drive that extraction process.
 
-> 🔗 **Cross-reference:** These questions identify *what* to extract. The implementation patterns (how to write interfaces, enums, generics, and `Record` types in code) are covered in **[Section 3.12 — TypeScript Type System Migration](#312--typescript-type-system-migration-interfaces-types-generics-records--enums)**.
+> 🔗 **Cross-reference:** These questions identify _what_ to extract. The implementation patterns (how to write interfaces, enums, generics, and `Record` types in code) are covered in **[Section 3.12 — TypeScript Type System Migration](#312--typescript-type-system-migration-interfaces-types-generics-records--enums)**.
 
 ---
 
@@ -1532,6 +1532,7 @@ Provide a fix for every finding rated Medium or above.
 Analyse the AngularJS 1.8 codebase and extract TypeScript interfaces from every implicit data contract.
 
 **Find implicit shapes in these sources:**
+
 1. `$http.get('/api/...')` → `.then(function(r) { $scope.data = r.data; })` — what properties does r.data have?
 2. `$scope.*` assignments — what properties are assigned, and what are their inferred types?
 3. `ng-repeat="item in items"` — what is the shape of `item`?
@@ -1539,6 +1540,7 @@ Analyse the AngularJS 1.8 codebase and extract TypeScript interfaces from every 
 5. Form models — `$scope.formData = {}` built up with `formData.name`, `formData.email`, etc.
 
 **For each shape found:**
+
 - Infer a name from context (e.g., Account, Transaction, UserProfile)
 - List every property with its TypeScript type
 - Mark optional fields (conditionally assigned or sometimes absent in API responses) with `?`
@@ -1550,15 +1552,15 @@ Analyse the AngularJS 1.8 codebase and extract TypeScript interfaces from every 
 
 **Where implicit data shapes hide in a 100-screen banking app:**
 
-| AngularJS Source | Where to look | Expected interface |
-|---|---|---|
-| `$http.get('/api/accounts')` | AccountListCtrl, AccountService | `Account` |
-| `ng-repeat="txn in transactions"` | TransactionCtrl, transaction template | `Transaction` |
-| `$scope.formData = {}` on forms | Any form controller | `AccountForm`, `PaymentForm` |
-| `$http.post('/api/payments', data)` | Payment controllers | `PaymentRequest`, `PaymentResponse` |
-| `.constant('CONFIG', {...})` | App module constants | Config type alias |
-| `$scope.user` from AuthService | Auth/session controllers | `UserProfile` |
-| `ng-repeat="permission in permissions"` | RBAC controllers | `Permission` |
+| AngularJS Source                        | Where to look                         | Expected interface                  |
+| --------------------------------------- | ------------------------------------- | ----------------------------------- |
+| `$http.get('/api/accounts')`            | AccountListCtrl, AccountService       | `Account`                           |
+| `ng-repeat="txn in transactions"`       | TransactionCtrl, transaction template | `Transaction`                       |
+| `$scope.formData = {}` on forms         | Any form controller                   | `AccountForm`, `PaymentForm`        |
+| `$http.post('/api/payments', data)`     | Payment controllers                   | `PaymentRequest`, `PaymentResponse` |
+| `.constant('CONFIG', {...})`            | App module constants                  | Config type alias                   |
+| `$scope.user` from AuthService          | Auth/session controllers              | `UserProfile`                       |
+| `ng-repeat="permission in permissions"` | RBAC controllers                      | `Permission`                        |
 
 ---
 
@@ -1579,6 +1581,7 @@ Scan the codebase for patterns that should become TypeScript enums or string lit
 6. Event name strings: `$rootScope.$broadcast('user:logout')` → string constants object
 
 **For each pattern found, recommend the right TypeScript construct:**
+
 - Fixed, closed set used in runtime switch/if AND iterated with Object.values → `enum`
 - Fixed, closed set serialised over HTTP (JSON) and only used for type checking → string literal `type`
 - Numeric ordinal semantics → numeric `enum`
@@ -1606,6 +1609,7 @@ For every service and data-loading pattern being migrated, identify where generi
 6. API response wrappers — does every response come wrapped in `{ data: T, meta: Pagination }`?
 
 **For each AngularJS service being migrated:**
+
 - State the current untyped return value (typically `any` or bare `$http` promise)
 - Provide the Angular 21 typed equivalent with correct generic parameter
 - Flag any remaining `any` or `unknown` and explain why it could not be typed
@@ -1626,6 +1630,7 @@ migration shims with an eslint-disable comment and a linked TODO tracking ticket
 Apply these rules when choosing a TypeScript construct. Add this to the team's coding standards.
 
 **Decision rules:**
+
 - `interface` — object shapes that may be extended via `extends` or implemented by classes
 - `type` — unions, intersections, utility types (Partial<T>, Pick<T,K>), and shapes never extended
 - `Record<K, V>` — homogeneous key→value maps; replaces `{ [key: string]: V }` anti-pattern
@@ -1635,6 +1640,7 @@ Apply these rules when choosing a TypeScript construct. Add this to the team's c
 - `class` — only for Angular services, components, and anything instantiated by the DI container
 
 **Audit for these anti-patterns and list every instance:**
+
 - `any` → correct interface or generic parameter
 - `{}` used as a map → `Record<string, T>`
 - `Object` type → `Record<string, unknown>` or a named interface
@@ -5578,8 +5584,8 @@ export class AccountListComponent {
 // optional — the server omits the key entirely:               { "id": "123" }    (no "nickname" key)
 
 export interface Account {
-  closedAt: string | null;    // ✅ Always present in JSON, value is null or an ISO date
-  nickname?: string;          // ✅ Key may not exist at all in the JSON response
+  closedAt: string | null; // ✅ Always present in JSON, value is null or an ISO date
+  nickname?: string; // ✅ Key may not exist at all in the JSON response
 }
 
 // NEVER use undefined for API values — JSON.stringify strips undefined keys.
@@ -5596,20 +5602,20 @@ export interface Account {
 export interface Transaction {
   id: string;
   amount: number;
-  merchant: { id: string; name: string; category: string; };
+  merchant: { id: string; name: string; category: string };
 }
 
 // Option B — Named child interface (recommended when shape appears in multiple parents)
 export interface Merchant {
   id: string;
   name: string;
-  category: MerchantCategory;    // ← string literal union
+  category: MerchantCategory; // ← string literal union
 }
 
 export interface Transaction {
   id: string;
   amount: number;
-  merchant: Merchant;            // ✅ Reusable — Merchant imported by StandingOrder, etc.
+  merchant: Merchant; // ✅ Reusable — Merchant imported by StandingOrder, etc.
 }
 ```
 
@@ -5676,10 +5682,10 @@ if ($scope.account.status === 'Frozen') { /* TYPO — will never match 'frozen' 
 // Option A: String enum
 // ✅ Use when: values must match exact API strings AND you need Object.values() at runtime
 export enum AccountStatus {
-  Active  = 'active',
+  Active = 'active',
   Dormant = 'dormant',
-  Closed  = 'closed',
-  Frozen  = 'frozen',
+  Closed = 'closed',
+  Frozen = 'frozen',
 }
 // AccountStatus.Active  === 'active'  — true (string enum values are the strings themselves)
 // Object.values(AccountStatus)        — ['active', 'dormant', 'closed', 'frozen']
@@ -5694,8 +5700,8 @@ export type AccountStatusType = 'active' | 'dormant' | 'closed' | 'frozen';
 // ✅ Use when: compile-time constant, never iterated, performance matters
 export const enum AccountTier {
   Standard = 'STANDARD',
-  Silver   = 'SILVER',
-  Gold     = 'GOLD',
+  Silver = 'SILVER',
+  Gold = 'GOLD',
   Platinum = 'PLATINUM',
 }
 // Compiler inlines the value everywhere — no runtime object generated
@@ -5715,16 +5721,24 @@ export const enum AccountTier {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @switch (status()) {
-      @case (AccountStatus.Active)  { <span class="text-green-700">Active</span>  }
-      @case (AccountStatus.Frozen)  { <span class="text-red-700">Frozen</span>    }
-      @case (AccountStatus.Dormant) { <span class="text-amber-700">Dormant</span> }
-      @case (AccountStatus.Closed)  { <span class="text-neutral-500">Closed</span> }
+      @case (AccountStatus.Active) {
+        <span class="text-green-700">Active</span>
+      }
+      @case (AccountStatus.Frozen) {
+        <span class="text-red-700">Frozen</span>
+      }
+      @case (AccountStatus.Dormant) {
+        <span class="text-amber-700">Dormant</span>
+      }
+      @case (AccountStatus.Closed) {
+        <span class="text-neutral-500">Closed</span>
+      }
     }
   `,
 })
 export class AccountStatusBadgeComponent {
   readonly status = input.required<AccountStatus>();
-  protected readonly AccountStatus = AccountStatus;  // expose enum to template
+  protected readonly AccountStatus = AccountStatus; // expose enum to template
 }
 ```
 
@@ -5733,10 +5747,10 @@ export class AccountStatusBadgeComponent {
 ```typescript
 // libs/shared-auth/src/lib/user-role.enum.ts
 export enum UserRole {
-  Admin               = 'admin',
+  Admin = 'admin',
   RelationshipManager = 'relationship-manager',
-  CustomerService     = 'customer-service',
-  ReadOnly            = 'read-only',
+  CustomerService = 'customer-service',
+  ReadOnly = 'read-only',
 }
 
 // Route guard — no magic strings
@@ -5818,14 +5832,16 @@ const txnCache     = inject(EntityCacheService<Transaction>);
 
 ```typescript
 export interface ApiError {
-  code: string;           // e.g. 'INSUFFICIENT_FUNDS', 'ACCOUNT_FROZEN'
+  code: string; // e.g. 'INSUFFICIENT_FUNDS', 'ACCOUNT_FROZEN'
   message: string;
-  field?: string;         // present for validation errors
+  field?: string; // present for validation errors
   severity: 'error' | 'warning' | 'info';
 }
 
 // httpResource error is typed via the T-generic on the resource:
-@Component({ /* ... */ })
+@Component({
+  /* ... */
+})
 export class PaymentComponent {
   protected readonly paymentResource = httpResource<PaymentResponse>({
     url: () => '/api/payments',
@@ -5895,14 +5911,14 @@ errors.update(e => ({ ...e, accountNumber: 'Account number is required' }));
 
 **`Record<K,V>` vs `Map<K,V>` — when to choose each:**
 
-| Scenario | `Record<K,V>` | `Map<K,V>` |
-|---|---|---|
-| Comes from / goes to a JSON API | ✅ Always | ❌ Map doesn't serialise to JSON |
-| Key is a string literal union (closed set) | ✅ Best choice | Works but less type-safe |
-| Key is a runtime dynamic string | ✅ OK | ✅ Better for large sets |
-| Used in Angular signals (needs immutable update) | ✅ Spread-update works | ✅ But needs `new Map()` to trigger signal |
-| Needs `.forEach()`, `.entries()`, `.size` | ❌ Use `Object.entries()` | ✅ Native iteration |
-| Needs ordered insertion | ❌ | ✅ `Map` preserves insertion order |
+| Scenario                                         | `Record<K,V>`             | `Map<K,V>`                                 |
+| ------------------------------------------------ | ------------------------- | ------------------------------------------ |
+| Comes from / goes to a JSON API                  | ✅ Always                 | ❌ Map doesn't serialise to JSON           |
+| Key is a string literal union (closed set)       | ✅ Best choice            | Works but less type-safe                   |
+| Key is a runtime dynamic string                  | ✅ OK                     | ✅ Better for large sets                   |
+| Used in Angular signals (needs immutable update) | ✅ Spread-update works    | ✅ But needs `new Map()` to trigger signal |
+| Needs `.forEach()`, `.entries()`, `.size`        | ❌ Use `Object.entries()` | ✅ Native iteration                        |
+| Needs ordered insertion                          | ❌                        | ✅ `Map` preserves insertion order         |
 
 ---
 
@@ -5920,27 +5936,41 @@ AngularJS had no type system, so every TypeScript construct is new to a team com
 // ─── Decision table (add to team's coding-standards.md) ───
 
 // 1. INTERFACE — domain entity shapes that may be extended
-export interface Account { id: string; balance: number; status: AccountStatus; }
-export interface SavingsAccount extends Account { interestRate: number; }  // extends works
+export interface Account {
+  id: string;
+  balance: number;
+  status: AccountStatus;
+}
+export interface SavingsAccount extends Account {
+  interestRate: number;
+} // extends works
 
 // 2. TYPE — unions, intersections, utility types, shapes that will never be extended
-export type AccountStatusType = 'active' | 'dormant' | 'closed';   // union
-export type AccountSummary = Pick<Account, 'id' | 'accountNumber' | 'balance'>;  // utility
-export type AccountOrNull = Account | null;                          // union with null
+export type AccountStatusType = 'active' | 'dormant' | 'closed'; // union
+export type AccountSummary = Pick<Account, 'id' | 'accountNumber' | 'balance'>; // utility
+export type AccountOrNull = Account | null; // union with null
 
 // 3. RECORD — homogeneous key→value maps (never use { [key: string]: any })
 export type AccountMap = Record<string, Account>;
-export type ColumnVisibility = Record<ColumnId, boolean>;           // constrained keys
+export type ColumnVisibility = Record<ColumnId, boolean>; // constrained keys
 
 // 4. ENUM — named constants with a closed value set (string enum for API values)
-export enum AccountStatus { Active = 'active', Frozen = 'frozen' }
+export enum AccountStatus {
+  Active = 'active',
+  Frozen = 'frozen',
+}
 
 // 5. CONST ENUM — build-time constants (no runtime object, smaller bundle)
-export const enum SortDirection { Asc = 'asc', Desc = 'desc' }
+export const enum SortDirection {
+  Asc = 'asc',
+  Desc = 'desc',
+}
 
 // 6. CLASS — only for DI-managed objects (services, components, guards, interceptors)
 @Injectable({ providedIn: 'root' })
-export class AccountService { /* ... */ }
+export class AccountService {
+  /* ... */
+}
 
 // Anti-patterns to ban in code review:
 // ❌  any                          → replace with correct interface or generic
@@ -5954,20 +5984,16 @@ export class AccountService { /* ... */ }
 
 ```typescript
 // libs/shared-models/src/lib/index.ts
-export type { Account }              from './account.interface';
-export type { Transaction }          from './transaction.interface';
-export type { UserProfile }          from './user-profile.interface';
-export type { Merchant }             from './merchant.interface';
-export type { PaymentRequest,
-              PaymentResponse }      from './payment.interface';
-export type { ApiResponse,
-              PagedResponse }        from './api-response.interface';
-export type { FormErrors,
-              ColumnVisibility }     from './ui-state.types';
-export      { AccountStatus }        from './enums/account-status.enum';
-export      { UserRole }             from './enums/user-role.enum';
-export type { AccountStatusType,
-              ColumnId }             from './enums/string-unions';
+export type { Account } from './account.interface';
+export type { Transaction } from './transaction.interface';
+export type { UserProfile } from './user-profile.interface';
+export type { Merchant } from './merchant.interface';
+export type { PaymentRequest, PaymentResponse } from './payment.interface';
+export type { ApiResponse, PagedResponse } from './api-response.interface';
+export type { FormErrors, ColumnVisibility } from './ui-state.types';
+export { AccountStatus } from './enums/account-status.enum';
+export { UserRole } from './enums/user-role.enum';
+export type { AccountStatusType, ColumnId } from './enums/string-unions';
 
 // Usage in any library or app:
 // import { Account, AccountStatus, PagedResponse } from '@banking/shared-models';

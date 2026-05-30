@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Design Patterns &amp; Architectural Patterns — Angular 21</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      line-height: 1.7;
+      color: #1e1e2e;
+      background: #fff;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 32px;
+    }
+
+    h1 { font-size: 2rem; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
+    h2 { font-size: 1.4rem; font-weight: 700; color: #1e40af; margin: 40px 0 12px; border-bottom: 2px solid #dbeafe; padding-bottom: 6px; }
+    h3 { font-size: 1.15rem; font-weight: 600; color: #1e3a8a; margin: 28px 0 10px; }
+    h4 { font-size: 1rem; font-weight: 600; color: #374151; margin: 20px 0 8px; }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: #6b7280;
+      margin-bottom: 8px;
+      font-style: italic;
+    }
+
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    p { margin: 10px 0; }
+
+    ul, ol { padding-left: 24px; margin: 10px 0; }
+    li { margin: 4px 0; }
+
+    blockquote {
+      border-left: 4px solid #3b82f6;
+      background: #eff6ff;
+      padding: 10px 16px;
+      margin: 16px 0;
+      border-radius: 0 6px 6px 0;
+      color: #1e40af;
+      font-size: 0.92rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 0.88rem;
+    }
+    thead tr { background: #1e40af; color: #fff; }
+    th { padding: 9px 12px; text-align: left; font-weight: 600; }
+    td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+    tbody tr:nth-child(even) { background: #f8fafc; }
+    tbody tr:hover { background: #eff6ff; }
+
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 16px 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      margin: 14px 0;
+    }
+
+    code {
+      font-family: 'Cascadia Code', 'Consolas', 'Fira Code', monospace;
+    }
+
+    p code, li code, td code {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      padding: 2px 5px;
+      font-size: 0.85em;
+      color: #0f172a;
+    }
+
+    pre code { background: none; border: none; padding: 0; font-size: inherit; color: inherit; }
+
+    .badge {
+      display: inline-block;
+      background: #dbeafe;
+      color: #1e40af;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .badge.green { background: #dcfce7; color: #166534; }
+    .badge.amber { background: #fef3c7; color: #92400e; }
+    .badge.red { background: #fee2e2; color: #991b1b; }
+
+    .toc {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 24px 0 32px;
+    }
+    .toc h2 { margin-top: 0; border: none; font-size: 1rem; color: #374151; }
+    .toc ol { padding-left: 20px; }
+    .toc li { margin: 5px 0; font-size: 0.9rem; }
+
+    .section-intro {
+      background: #f0f9ff;
+      border-left: 4px solid #0ea5e9;
+      padding: 12px 16px;
+      border-radius: 0 6px 6px 0;
+      margin: 12px 0 20px;
+      font-size: 0.9rem;
+    }
+
+    hr { border: none; border-top: 1px solid #e5e7eb; margin: 32px 0; }
+
+    .pattern-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 24px 0;
+    }
+    .pattern-card h4 {
+      margin-top: 0;
+      font-size: 1.1rem;
+      color: #1e3a8a;
+    }
+
+    .diagram-block {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 16px 0;
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      font-size: 0.82rem;
+      white-space: pre;
+      overflow-x: auto;
+      line-height: 1.6;
+    }
+
+    .flow-arrow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 8px 0;
+      font-size: 0.88rem;
+    }
+
+    .phase-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .phase-box {
+      border: 1px solid #bfdbfe;
+      border-radius: 6px;
+      padding: 12px 14px;
+      background: #eff6ff;
+    }
+    .phase-box h5 { color: #1e40af; margin-bottom: 6px; font-size: 0.9rem; }
+    .phase-box p { font-size: 0.82rem; color: #374151; margin: 0; }
+
+    .walkthrough {
+      background: #f0f4ff;
+      border-left: 4px solid #3b82f6;
+      border-radius: 0 6px 6px 0;
+      padding: 14px 18px;
+      margin: 14px 0;
+      font-size: 0.88rem;
+    }
+    .walkthrough strong { color: #1e3a8a; }
+    .walkthrough ol { padding-left: 20px; margin: 10px 0 0; }
+    .walkthrough li { margin: 5px 0; line-height: 1.6; color: #1e293b; }
+    .walkthrough > p { margin-top: 10px; padding-top: 8px; border-top: 1px solid #bfdbfe; color: #1e40af; }
+
+    footer {
+      margin-top: 48px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 0.8rem;
+      color: #9ca3af;
+      text-align: center;
+    }
+
+    @media print {
+      body { padding: 20px; font-size: 11px; }
+      pre { font-size: 0.78rem; }
+      .pattern-card { break-inside: avoid; }
+      h2 { break-before: page; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Design Patterns &amp; Architectural Patterns for Front-End Engineers</h1>
+  <p class="subtitle">
+    <strong>Sudeep Parchure</strong> &nbsp;|&nbsp; AI Assisted &nbsp;|&nbsp; May 2026 &nbsp;|&nbsp; Angular Solutions Architect
+  </p>
+  <blockquote>
+    Source code and working examples: <a href="https://github.com/sudeep31/angularTodo/blob/gitHubCopioletAngularTodo/documents">github.com/sudeep31/angularTodo — documents folder</a>
+  </blockquote>
+
+  <!-- ============================================================ -->
+  <!-- TABLE OF CONTENTS -->
+  <!-- ============================================================ -->
+  <div class="toc">
+    <h2>Table of Contents</h2>
+    <ol>
+      <li><a href="#s1">Introduction — Why Patterns Matter</a></li>
+      <li><a href="#s2">Design Patterns — GoF &amp; Front-End</a>
+        <ol>
+          <li><a href="#s2-1">Creational Patterns</a></li>
+          <li><a href="#s2-2">Structural Patterns</a></li>
+          <li><a href="#s2-3">Behavioural Patterns</a></li>
+        </ol>
+      </li>
+      <li><a href="#s3">Architectural Patterns</a>
+        <ol>
+          <li><a href="#s3-1">Micro-Frontend (MFE)</a></li>
+          <li><a href="#s3-2">Atomic Design</a></li>
+          <li><a href="#s3-3">Backend for Frontend (BFF)</a></li>
+          <li><a href="#s3-4">Saga Pattern</a></li>
+          <li><a href="#s3-5">CQRS &amp; Event Sourcing</a></li>
+          <li><a href="#s3-6">Flux / NgRx (Redux)</a></li>
+          <li><a href="#s3-7">Smart / Presentational Components</a></li>
+          <li><a href="#s3-8">Feature-Sliced Design</a></li>
+        </ol>
+      </li>
+      <li><a href="#s4">Architectural Strategies</a>
+        <ol>
+          <li><a href="#s4-1">The 12-Factor App — Front-End Context</a></li>
+          <li><a href="#s4-2">The 6-Hour Design Approach</a></li>
+        </ol>
+      </li>
+      <li><a href="#s5">Tools &amp; Diagram Types</a></li>
+      <li><a href="#s6">System Design Case Studies</a>
+        <ol>
+          <li><a href="#s6-1">Enterprise Banking Application</a></li>
+          <li><a href="#s6-2">AngularJS → Angular 21.2 Migration</a></li>
+        </ol>
+      </li>
+      <li><a href="#s7">Resources</a></li>
+    </ol>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 1 -->
+  <!-- ============================================================ -->
+  <h2 id="s1">1. Introduction — Why Patterns Matter</h2>
+  <p>Patterns are <strong>proven, reusable solutions to recurring problems</strong> in software design. They are not copy-paste code — they are vocabulary and blueprints. For a front-end engineer working with Angular 21, patterns answer three questions:</p>
+
+  <table>
+    <thead><tr><th>Question</th><th>Pattern Category</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td>How do I structure this object or service?</td><td>Design Pattern (GoF)</td><td>Factory, Singleton, Facade</td></tr>
+      <tr><td>How do I organise the application?</td><td>Architectural Pattern</td><td>MFE, Atomic Design, NgRx</td></tr>
+      <tr><td>How do I make the right strategic decisions at scale?</td><td>Architectural Strategy</td><td>12-Factor, 6-Hour Design</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Angular 21 Context</h3>
+  <table>
+    <thead><tr><th>Angular 21 Feature</th><th>Pattern Impact</th></tr></thead>
+    <tbody>
+      <tr><td><code>signal()</code>, <code>computed()</code>, <code>effect()</code></td><td>Replaces RxJS for local state; changes Observer pattern implementation</td></tr>
+      <tr><td><code>input()</code> / <code>output()</code> functions</td><td>Replaces <code>@Input()</code> / <code>@Output()</code> decorators</td></tr>
+      <tr><td><code>inject()</code> function</td><td>Replaces constructor injection; enables functional patterns</td></tr>
+      <tr><td>Signal-based forms</td><td>Replaces reactive forms for many use cases</td></tr>
+      <tr><td>Standalone components</td><td>Enables Feature-Sliced Design without NgModules</td></tr>
+      <tr><td>SSR + hydration</td><td>Affects BFF and state transfer patterns</td></tr>
+      <tr><td><code>@defer</code> blocks</td><td>Lazy-loading pattern built into templates</td></tr>
+    </tbody>
+  </table>
+
+  <blockquote><strong>Principle:</strong> Never apply a pattern just because it exists. Apply it when the problem it solves is present in your codebase.</blockquote>
+
+  <hr />
+
+  <!-- ============================================================ -->
+  <!-- SECTION 2 -->
+  <!-- ============================================================ -->
+  <h2 id="s2">2. Design Patterns — GoF &amp; Front-End</h2>
+  <div class="section-intro">The Gang of Four (GoF) catalogue defines 23 patterns across three categories. This section maps each relevant pattern to Angular 21, shows how it is implemented, and gives real-world examples.</div>
+
+  <!-- 2.1 Creational -->
+  <h3 id="s2-1">2.1 Creational Patterns</h3>
+  <p>Creational patterns deal with <strong>how objects are created</strong>, decoupling the creation logic from the consuming code.</p>
+
+  <div class="pattern-card">
+    <h4><span class="badge">Creational</span> Factory Pattern</h4>
+    <p><strong>What it is:</strong> A function or class that creates objects without exposing instantiation logic to the caller.</p>
+    <p><strong>How it helps:</strong> Centralises creation logic, makes swapping implementations easy, and removes <code>new</code> calls from consuming code.</p>
+    <pre><code>// token-storage.factory.ts
+export type StorageType = 'local' | 'session' | 'memory';
+
+export interface TokenStorage {
+  get(key: string): string | null;
+  set(key: string, value: string): void;
+  remove(key: string): void;
+}
+
+class LocalTokenStorage implements TokenStorage {
+  get(key: string) { return localStorage.getItem(key); }
+  set(key: string, value: string) { localStorage.setItem(key, value); }
+  remove(key: string) { localStorage.removeItem(key); }
+}
+
+class MemoryTokenStorage implements TokenStorage {
+  private store = new Map&lt;string, string&gt;();
+  get(key: string) { return this.store.get(key) ?? null; }
+  set(key: string, value: string) { this.store.set(key, value); }
+  remove(key: string) { this.store.delete(key); }
+}
+
+export function createTokenStorage(type: StorageType): TokenStorage {
+  switch (type) {
+    case 'local':   return new LocalTokenStorage();
+    case 'memory':  return new MemoryTokenStorage();
+    default:        return new MemoryTokenStorage();
+  }
+}
+
+export const TOKEN_STORAGE = new InjectionToken&lt;TokenStorage&gt;('TOKEN_STORAGE', {
+  providedIn: 'root',
+  factory: () =&gt; createTokenStorage(
+    inject(PLATFORM_ID) === 'browser' ? 'local' : 'memory'
+  ),
+});</code></pre>
+    <div class="walkthrough">
+      <strong>Code walkthrough — how this becomes the Factory Pattern:</strong>
+      <ol>
+        <li><strong><code>StorageType</code> and <code>TokenStorage</code> interface</strong> — Define the contract first. Every storage class must implement <code>get()</code>, <code>set()</code>, and <code>remove()</code>. Callers will only ever see this interface — never a concrete class.</li>
+        <li><strong><code>LocalTokenStorage</code>, <code>MemoryTokenStorage</code></strong> — Concrete implementations, each wrapping a different mechanism. Crucially, none of these classes are exported. They are implementation details hidden inside the file.</li>
+        <li><strong><code>createTokenStorage(type)</code> — this is the Factory function.</strong> It accepts a plain <code>StorageType</code> string and returns whichever concrete class matches. The caller never writes <code>new LocalTokenStorage()</code>. That decision lives in one place: the factory.</li>
+        <li><strong><code>TOKEN_STORAGE</code> injection token</strong> — Angular's DI calls the factory automatically. It reads <code>PLATFORM_ID</code> to pick <code>'local'</code> in the browser and <code>'memory'</code> on the server (SSR). Any service that injects <code>TOKEN_STORAGE</code> gets the right implementation with no platform-detection code of its own.</li>
+      </ol>
+      <p><strong>Pattern conclusion:</strong> The interface hides the concrete types. The factory centralises all creation logic. Consumers depend on the <code>TokenStorage</code> abstraction — they never import or instantiate a storage class directly. Swapping the implementation means changing one line inside the factory — zero changes anywhere else.</p>
+    </div>
+    <p><strong>Real-world use:</strong> Banking app — SSR uses in-memory storage, browser uses <code>localStorage</code>. The factory decides at runtime.</p>
+  </div>
+
+  <div class="pattern-card">
+    <h4><span class="badge">Creational</span> Singleton Pattern</h4>
+    <p><strong>What it is:</strong> Ensures a class has only one instance and provides a global access point to it.</p>
+    <p><strong>How it helps:</strong> Shared state (auth tokens, feature flags, app config) lives in one place.</p>
+    <pre><code>// auth.service.ts — Angular-native singleton
+@Injectable({ providedIn: 'root' })
+export class AuthService {
+  private readonly _user = signal&lt;User | null&gt;(null);
+  readonly user = this._user.asReadonly();
+  readonly isAuthenticated = computed(() =&gt; this._user() !== null);
+
+  login(credentials: Credentials): Observable&lt;void&gt; {
+    return this.http.post&lt;AuthResponse&gt;('/api/auth/login', credentials).pipe(
+      tap(response =&gt; this._user.set(response.user))
+    );
+  }
+
+  logout(): void {
+    this._user.set(null);
+  }
+}</code></pre>
+    <div class="walkthrough">
+      <strong>Code walkthrough — how this becomes the Singleton Pattern:</strong>
+      <ol>
+        <li><strong><code>@Injectable({ providedIn: 'root' })</code></strong> — This single line is the Singleton declaration. Angular's DI container creates exactly <strong>one instance</strong> of <code>AuthService</code> for the entire application. Angular's injector is the Singleton registry — no static variables needed.</li>
+        <li><strong><code>private readonly _user = signal&lt;User | null&gt;(null)</code></strong> — A private writable signal. Only methods inside this class can change the user. This enforces controlled mutation — the core discipline of a Singleton.</li>
+        <li><strong><code>readonly user = this._user.asReadonly()</code></strong> — A public read-only projection. Consumers can read the current user but cannot call <code>_user.set()</code> from outside.</li>
+        <li><strong><code>readonly isAuthenticated = computed(...)</code></strong> — Derived state from the single source of truth. All consumers see the same value because they all reference the same instance.</li>
+        <li><strong><code>login()</code> / <code>logout()</code></strong> — The only mutation paths. Because every component injects the <em>same object</em>, calling <code>logout()</code> in the top nav immediately updates every other component reading <code>isAuthenticated</code>.</li>
+      </ol>
+      <p><strong>Pattern conclusion:</strong> <code>providedIn: 'root'</code> is Angular's native Singleton mechanism. Every component, service, and interceptor that injects <code>AuthService</code> receives the <strong>same object</strong>. There is no <code>getInstance()</code> — the DI container manages the lifecycle and guarantees uniqueness.</p>
+    </div>
+    <blockquote><strong>Anti-pattern warning:</strong> Do not implement the classic <code>getInstance()</code> static method in Angular. Let the DI container manage the singleton lifecycle.</blockquote>
+    <p><strong>Real-world use:</strong> <code>AuthService</code>, <code>FeatureFlagService</code>, <code>AppConfigService</code>.</p>
+  </div>
+
+  <div class="pattern-card">
+    <h4><span class="badge">Creational</span> Builder Pattern</h4>
+    <p><strong>What it is:</strong> Separates the construction of a complex object from its representation, allowing step-by-step construction.</p>
+    <p><strong>How it helps:</strong> Avoids constructor telescoping. Makes complex object creation readable and testable.</p>
+    <pre><code>// http-request.builder.ts
+export class HttpRequestBuilder&lt;T&gt; {
+  private url = '';
+  private params = new HttpParams();
+  private headers = new HttpHeaders();
+
+  withUrl(url: string): this { this.url = url; return this; }
+  withParam(key: string, value: string): this {
+    this.params = this.params.set(key, value);
+    return this;
+  }
+  withBearerToken(token: string): this {
+    this.headers = this.headers.set('Authorization', `Bearer ${token}`);
+    return this;
+  }
+  build(): { url: string; options: object } {
+    return { url: this.url, options: { params: this.params, headers: this.headers } };
+  }
+}
+
+// Usage
+const request = new HttpRequestBuilder&lt;Transaction[]&gt;()
+  .withUrl('/api/transactions')
+  .withParam('accountId', '12345')
+  .withParam('pageSize', '50')
+  .withBearerToken(inject(AuthService).token())
+  .build();</code></pre>
+    <div class="walkthrough">
+      <strong>Code walkthrough — how this becomes the Builder Pattern:</strong>
+      <ol>
+        <li><strong>Private fields (<code>url</code>, <code>params</code>, <code>headers</code>)</strong> — The parts of the product under construction. Private, not exposed until <code>build()</code> is called. Nobody outside the builder can see a half-assembled request.</li>
+        <li><strong><code>withUrl()</code>, <code>withParam()</code>, <code>withBearerToken()</code></strong> — Each method sets one property and returns <code>this</code>. Returning <code>this</code> is the Builder signature move — it enables <strong>method chaining</strong>.</li>
+        <li><strong>Method chaining is self-documenting</strong> — The call reads: <em>"Build a request, set its URL, add two query params, attach a bearer token, then build."</em> No positional arguments to misorder.</li>
+        <li><strong><code>build()</code></strong> — The terminal step. Assembles all accumulated parts into the final result object. You cannot use a half-built request because there is no result until <code>build()</code> is called.</li>
+      </ol>
+      <p><strong>Pattern conclusion:</strong> Without a builder you would pass 6 optional parameters to a function and struggle to remember which position is which. The builder names each step, makes construction legible, and enforces a <code>build()</code> gate so only complete objects are produced. Adding a new parameter (e.g. a timeout) means adding one <code>withTimeout()</code> method — no existing callers break.</p>
+    </div>
+    <p><strong>Real-world use:</strong> Building paginated API requests, constructing chart config objects, assembling form field metadata.</p>
+  </div>
+
+  <!-- 2.2 Structural -->
+  <h3 id="s2-2">2.2 Structural Patterns</h3>
+  <p>Structural patterns deal with <strong>how objects and classes are composed</strong> to form larger structures.</p>
+
+  <div class="pattern-card">
+    <h4><span class="badge green">Structural</span> Facade Pattern</h4>
+    <p><strong>What it is:</strong> Provides a simplified interface to a complex subsystem of services, APIs, or libraries.</p>
+    <p><strong>How it helps:</strong> Components talk to one facade instead of six services. The facade owns the orchestration complexity.</p>
+    <pre><code>// account-facade.service.ts
+@Injectable({ providedIn: 'root' })
+export class AccountFacade {
+  private readonly accountApi = inject(AccountApiService);
+  private readonly transactionApi = inject(TransactionApiService);
+  private readonly notificationService = inject(NotificationService);
+  private readonly store = inject(Store);
+
+  readonly accounts = toSignal(this.store.select(selectAllAccounts), { initialValue: [] });
+  readonly isLoading = toSignal(this.store.select(selectAccountsLoading), { initialValue: false });
+
+  loadDashboard(userId: string): void {
+    this.store.dispatch(AccountActions.loadAccounts({ userId }));
+  }
+
+  async transferFunds(from: string, to: string, amount: number): Promise&lt;void&gt; {
+    try {
+      await firstValueFrom(this.accountApi.transfer({ from, to, amount }));
+      this.notificationService.success(`Transferred £${amount}`);
+    } catch {
+      this.notificationService.error('Transfer failed — please retry');
+    }
+  }
+}
+
+// dashboard.component.ts — only knows about facade
+@Component({ changeDetection: ChangeDetectionStrategy.OnPush })
+export class DashboardComponent {
+  protected readonly facade = inject(AccountFacade);
+}</code></pre>
+    <div class="walkthrough">
+      <strong>Code walkthrough — how this becomes the Facade Pattern:</strong>
+      <ol>
+        <li><strong><code>AccountFacade</code> injects four dependencies</strong> — <code>AccountApiService</code>, <code>TransactionApiService</code>, <code>NotificationService</code>, and <code>Store</code>. These four are the <strong>complex subsystem</strong>. The facade is the single point that knows all of them.</li>
+        <li><strong><code>readonly accounts</code> and <code>readonly isLoading</code></strong> — Signals derived from the NgRx store. The component reads these without ever importing <code>Store</code> or knowing which selector drives them.</li>
+        <li><strong><code>loadDashboard(userId)</code></strong> — One method call dispatches an NgRx action. The component does not import <code>AccountActions</code>, does not know the action type, does not know the store exists.</li>
+        <li><strong><code>transferFunds()</code></strong> — Orchestrates three internal steps: API call, notification, and store reload. Error handling is centralised here. The component calls one method — the entire workflow is hidden.</li>
+        <li><strong><code>DashboardComponent</code></strong> — Injects only <code>AccountFacade</code>. If any underlying service changes its API, <code>DashboardComponent</code> is untouched.</li>
+      </ol>
+      <p><strong>Pattern conclusion:</strong> Instead of the component knowing about four services, it knows about one — the facade. The facade is the <strong>single point of contact</strong>. Refactoring an underlying service changes one file (the facade), not every component that uses it.</p>
+    </div>
+    <p><strong>Real-world use:</strong> Banking dashboard facade, checkout facade, user profile facade.</p>
+  </div>
+
+  <div class="pattern-card">
+    <h4><span class="badge green">Structural</span> Adapter Pattern</h4>
+    <p><strong>What it is:</strong> Converts the interface of one class into another interface that clients expect.</p>
+    <p><strong>How it helps:</strong> When integrating a third-party API that returns a different data shape, the adapter normalises it.</p>
+    <pre><code>// legacy-account.adapter.ts
+export interface LegacyAccountDto {
+  acct_no: string;
+  acct_type: string;
+  bal: number;
+  ccy: string;
+}
+
+export interface Account {
+  id: string;
+  type: 'current' | 'savings' | 'isa';
+  balance: number;
+  currency: string;
+}
+
+export function adaptLegacyAccount(dto: LegacyAccountDto): Account {
+  return {
+    id: dto.acct_no,
+    type: mapAccountType(dto.acct_type),
+    balance: dto.bal,
+    currency: dto.ccy,
+  };
+}
+
+@Injectable({ providedIn: 'root' })
+export class AccountApiService {
+  getAccounts(): Observable&lt;Account[]&gt; {
+    return this.http.get&lt;LegacyAccountDto[]&gt;('/legacy/api/accounts').pipe(
+      map(dtos =&gt; dtos.map(adaptLegacyAccount))
+    );
+  }
+}</code></pre>
+    <div class="walkthrough">
+      <strong>Code walkthrough — how this becomes the Adapter Pattern:</strong>
+      <ol>
+        <li><strong><code>LegacyAccountDto</code></strong> — The <strong>incompatible interface</strong> from the legacy API. Fields have cryptic names (<code>acct_no</code>, <code>bal</code>, <code>ccy</code>) and legacy type codes. You cannot change it — it is what the third-party system sends.</li>
+        <li><strong><code>Account</code></strong> — The <strong>target interface</strong> your Angular app expects. Clean, descriptive names. This is what all components, services, and state management code works with.</li>
+        <li><strong><code>adaptLegacyAccount(dto)</code> — this is the Adapter.</strong> It takes the incompatible type and returns the target type. Each field mapping is explicit: <code>dto.acct_no → id</code>, <code>dto.bal → balance</code>, <code>dto.ccy → currency</code>.</li>
+        <li><strong><code>mapAccountType()</code></strong> — A helper that translates legacy string codes (<code>'CA'</code>) to typed union values (<code>'current'</code>). The adapter does not just rename — it translates domain concepts.</li>
+        <li><strong><code>AccountApiService.getAccounts()</code></strong> — The HTTP response is <code>LegacyAccountDto[]</code> but the return type is <code>Observable&lt;Account[]&gt;</code>. The <code>.pipe(map(...adaptLegacyAccount))</code> is the adapter firing at the boundary. The rest of the app never imports <code>LegacyAccountDto</code>.</li>
+      </ol>
+      <p><strong>Pattern conclusion:</strong> The legacy API and your application speak different "languages". The Adapter is the translator — all legacy complexity is contained in one file. When the legacy API changes its field names, you update one file, the adapter. Every component, service, and test in your application continues to work with the clean <code>Account</code> interface.</p>
+    </div>
+    <p><strong>Real-world use:</strong> AngularJS → Angular 21 migration, integrating third-party payment SDKs, normalising multi-bank API responses.</p>
+  </div>
+
+  <div class="pattern-card">
+    <h4><span class="badge green">Structural</span> Decorator Pattern</h4>
+    <p><strong>What it is:</strong> Adds behaviour to an object dynamically without modifying its class.</p>
+    <p><strong>How it helps:</strong> Cross-cutting concerns (logging, caching, retry) added without polluting business logic.</p>
+    <pre><code>// cached-account-api.service.ts
+@Injectable()
+export class CachedAccountApiService extends AccountApiService {
+  private readonly cache = new Map&lt;string, { data: Account[]; timestamp: number }&gt;();
+  private readonly TTL = 60_000;
+
+  override getAccounts(): Observable&lt;Account[]&gt; {
+    const cached = this.cache.get('accounts');
+    if (cached &amp;&amp; Date.now() - cached.timestamp &lt; this.TTL) {
+      return of(cached.data);
+    }
+    return super.getAccounts().pipe(
+      tap(data =&gt; this.cache.set('accounts', { data, timestamp: Date.now() }))
+    );
+  }
+}
+
+// app.config.ts
+export const appConfig: ApplicationConfig = {
+  providers: [
+    { provide: AccountApiService, useClass: CachedAccountApiService },
+  ],
+};</code></pre>
+    <div class="walkthrough">
+      <strong>Code walkthrough — how this becomes the Decorator Pattern:</strong>
+      <ol>
+        <li><strong><code>extends AccountApiService</code></strong> — The Decorator inherits from the class it wraps. <code>CachedAccountApiService</code> IS an <code>AccountApiService</code> (same interface, same method signatures). Consumers do not know they are talking to a wrapper.</li>
+        <li><strong><code>private readonly cache = new Map&lt;...&gt;()</code></strong> — Internal state the original class does not have. This is the <strong>added behaviour</strong> — the cache layer is entirely new, bolted on without touching the original class.</li>
+        <li><strong><code>override getAccounts()</code></strong> — Intercepts the call before it reaches the real implementation. <code>override</code> makes this explicit and catches typos at compile time.</li>
+        <li><strong>Cache hit check</strong> — If data exists and is fresh, returns <code>of(cached.data)</code> immediately. No HTTP request is made. The original service is bypassed entirely.</li>
+        <li><strong><code>super.getAccounts()</code></strong> — Cache miss: delegates to the original service. The real service does not know it is being wrapped.</li>
+        <li><strong><code>{ provide: AccountApiService, useClass: CachedAccountApiService }</code></strong> — Angular's DI substitutes the decorator everywhere the original is injected. <strong>Zero changes in consuming code.</strong></li>
+      </ol>
+      <p><strong>Pattern conclusion:</strong> The cache behaviour is added without modifying <code>AccountApiService</code>. The original class is unchanged and still testable on its own. Consumers are unaware of the wrapper. This is Decorator: new behaviour added by wrapping, not by modifying.</p>
+    </div>
+    <p><strong>Real-world use:</strong> Caching HTTP responses, adding analytics tracking, wrapping API services with retry logic.</p>
+  </div>
+
+  <div class="pattern-card">
+    <h4><span class="badge green">Structural</span> Proxy Pattern — HTTP Interceptor</h4>
+    <p><strong>What it is:</strong> Provides a surrogate that controls access to another object, implementing the same interface.</p>
+    <p><strong>How it helps:</strong> Lazy loading, access control, and HTTP interceptors all follow this pattern.</p>
+    <pre><code>// auth.interceptor.ts
+export const authInterceptor: HttpInterceptorFn = (req, next) =&gt; {
+  const authService = inject(AuthService);
+  const token = authService.token();
+
+  if (!token) return next(req);
+
+  const authorisedReq = req.clone({
+    headers: req.headers.set('Authorization', `Bearer ${token}`),
+  });
+
+  return next(authorisedReq).pipe(
+    catchError(error =&gt; {
+      if (error.status === 401) authService.logout();
+      return throwError(() =&gt; error);
+    })
+  );
+};</code></pre>
+    <div class="walkthrough">
+      <strong>Code walkthrough — how this becomes the Proxy Pattern:</strong>
+      <ol>
+        <li><strong><code>HttpInterceptorFn</code></strong> — Angular's functional interceptor sits in the HTTP pipeline, <strong>between the component and the server</strong>. Every outbound request passes through it — this is the Proxy position.</li>
+        <li><strong><code>inject(AuthService)</code> and <code>authService.token()</code></strong> — The proxy reads the token from the singleton service, handling this cross-cutting concern so that components never have to.</li>
+        <li><strong><code>if (!token) return next(req)</code></strong> — The proxy is transparent when there is nothing to do. Unauthenticated requests pass through unchanged. The component is not aware this check happened.</li>
+        <li><strong><code>req.clone({ headers: ... })</code></strong> — HTTP requests are immutable. <code>clone()</code> creates a modified copy with the <code>Authorization</code> header injected. The component never modified the request — the proxy did.</li>
+        <li><strong><code>catchError(error =&gt; ...)</code></strong> — On a 401, the proxy calls <code>authService.logout()</code> and re-throws. The component that triggered the request does not need any 401-handling code — the proxy owns that responsibility.</li>
+      </ol>
+      <p><strong>Pattern conclusion:</strong> The component calls <code>this.http.get('/api/accounts')</code> as normal. It does not know a proxy exists. The interceptor — the Proxy — controls access to the HTTP resource: adding credentials on the way out and handling auth failures on the way back. This is exactly the Proxy pattern: a surrogate that controls and enriches access to another object.</p>
+    </div>
+    <p><strong>Real-world use:</strong> Auth token injection, request/response logging, rate limiting, offline queue.</p>
+  </div>
+
+  <!-- 2.3 Behavioural -->
+  <h3 id="s2-3">2.3 Behavioural Patterns</h3>
+  <p>Behavioural patterns deal with <strong>communication and responsibility between objects</strong>.</p>
+
+  <div class="pattern-card">
+    <h4><span class="badge amber">Behavioural</span> Observer Pattern — Signals</h4>
+    <p><strong>What it is:</strong> Defines a one-to-many dependency — when one object changes state, all dependents are notified automatically.</p>
+    <p><strong>How it helps:</strong> Decouples publishers from subscribers. Components react to state changes without polling.</p>
+    <pre><code>// notifications.service.ts
+@Injectable({ providedIn: 'root' })
+export class NotificationService {
+  private readonly _messages = signal&lt;Notification[]&gt;([]);
+  readonly messages = this._messages.asReadonly();
+  readonly unreadCount = computed(() =&gt; this._messages().filter(m =&gt; !m.read).length);
+
+  push(message: Notification): void {
+    this._messages.update(msgs =&gt; [...msgs, message]);
+  }
+}
+
+// notification-bell.component.ts — Observer
+@Component({ changeDetection: ChangeDetectionStrategy.OnPush })
+export class NotificationBellComponent {
+  protected readonly count = inject(NotificationService).unreadCount;
+  // Automatically re-renders when unreadCount changes
+}</code></pre>
+    <div class="walkthrough">
+      <strong>Code walkthrough — how this becomes the Observer Pattern:</strong>
+      <ol>
+        <li><strong><code>private readonly _messages = signal&lt;Notification[]&gt;([])</code></strong> — The <strong>Subject</strong> (the Observable source). Holds the canonical list. <code>private</code> means only methods inside this service can change it.</li>
+        <li><strong><code>readonly messages = this._messages.asReadonly()</code></strong> — A read-only <strong>Observable view</strong>. Observers can read but cannot push new values directly.</li>
+        <li><strong><code>readonly unreadCount = computed(...)</code></strong> — A <strong>derived Observable</strong>. Automatically recalculates whenever <code>_messages</code> changes. Any component that reads <code>unreadCount()</code> is an implicit subscriber.</li>
+        <li><strong><code>push(message)</code></strong> — Calls <code>update()</code> on the signal. This is the <strong>notify</strong> step. The signal graph propagates the change — every computed value and template binding depending on <code>_messages</code> is re-evaluated automatically.</li>
+        <li><strong><code>NotificationBellComponent.count</code></strong> — Reads <code>inject(NotificationService).unreadCount</code>. There is no <code>subscribe()</code> call. When <code>push()</code> is called anywhere in the app, Angular re-renders this component. No manual subscription, no memory leak from forgetting to unsubscribe.</li>
+      </ol>
+      <p><strong>Pattern conclusion:</strong> <code>_messages</code> is the publisher. <code>NotificationBellComponent</code> (and any other component reading the signal) is the subscriber. The signal graph IS the Observer pattern: when the source changes, all dependents are notified automatically. Angular Signals eliminate the subscribe/unsubscribe boilerplate while preserving the pattern's intent.</p>
+    </div>
+    <p><strong>Real-world use:</strong> Live transaction feeds, notification centres, real-time dashboard updates.</p>
+  </div>
+
+  <div class="pattern-card">
+    <h4><span class="badge amber">Behavioural</span> Strategy Pattern</h4>
+    <p><strong>What it is:</strong> Defines a family of algorithms, encapsulates each one, and makes them interchangeable.</p>
+    <p><strong>How it helps:</strong> Swap sorting, validation, or formatting logic at runtime without <code>if/switch</code> chains.</p>
+    <pre><code>// transaction-sort.strategy.ts
+export type SortStrategy = (a: Transaction, b: Transaction) =&gt; number;
+
+export const sortByDateDesc: SortStrategy = (a, b) =&gt;
+  new Date(b.date).getTime() - new Date(a.date).getTime();
+export const sortByAmountDesc: SortStrategy = (a, b) =&gt; b.amount - a.amount;
+
+// transaction-list.component.ts
+@Component({ changeDetection: ChangeDetectionStrategy.OnPush })
+export class TransactionListComponent {
+  private readonly transactions = inject(TransactionService).transactions;
+  protected readonly sortKey = signal&lt;'date' | 'amount'&gt;('date');
+
+  private readonly strategies = {
+    date: sortByDateDesc,
+    amount: sortByAmountDesc,
+  };
+
+  protected readonly sorted = computed(() =&gt;
+    [...this.transactions()].sort(this.strategies[this.sortKey()])
+  );
+}</code></pre>
+    <div class="walkthrough">
+      <strong>Code walkthrough — how this becomes the Strategy Pattern:</strong>
+      <ol>
+        <li><strong><code>SortStrategy</code> type</strong> — A function signature every strategy must satisfy. This is the <strong>strategy interface</strong> — the contract all algorithms share.</li>
+        <li><strong><code>sortByDateDesc</code>, <code>sortByAmountDesc</code></strong> — Two <strong>concrete strategies</strong>, each a pure function. They are interchangeable because they both satisfy <code>SortStrategy</code>. None know about the component or each other.</li>
+        <li><strong><code>sortKey = signal&lt;'date' | 'amount'&gt;('date')</code></strong> — The signal that determines which strategy is <strong>active at runtime</strong>. Changing this signal swaps the algorithm with no component rebuild.</li>
+        <li><strong><code>strategies: Record&lt;string, SortStrategy&gt;</code></strong> — A lookup map that links each key to a strategy function. Adding a new sort order means adding one entry to this map.</li>
+        <li><strong><code>sorted = computed(...)</code></strong> — Reads both <code>sortKey</code> and <code>transactions</code>. When either changes, it recomputes using whichever strategy is selected. The computed itself does not know which algorithm runs.</li>
+      </ol>
+      <p><strong>Pattern conclusion:</strong> The sorting algorithm is a <strong>variable</strong> — a first-class object selected at runtime. There is no <code>if/else</code> chain. Each algorithm is isolated and independently testable. Adding a new sort option does not touch existing code — this is the Open/Closed Principle, enabled by Strategy.</p>
+    </div>
+    <p><strong>Real-world use:</strong> Sorting/filtering strategies, payment validation (sort code vs IBAN), export format strategies.</p>
+  </div>
+
+  <div class="pattern-card">
+    <h4><span class="badge amber">Behavioural</span> Command Pattern</h4>
+    <p><strong>What it is:</strong> Encapsulates a request as an object, enabling parameterisation, queuing, logging, and undo/redo.</p>
+    <pre><code>// command.interface.ts
+export interface Command {
+  execute(): void;
+  undo(): void;
+  description: string;
+}
+
+// command-history.service.ts
+@Injectable({ providedIn: 'root' })
+export class CommandHistoryService {
+  private readonly _history = signal&lt;Command[]&gt;([]);
+  readonly history = this._history.asReadonly();
+
+  execute(command: Command): void {
+    command.execute();
+    this._history.update(h =&gt; [...h, command]);
+  }
+
+  undo(): void {
+    const last = this._history()[this._history().length - 1];
+    if (last) {
+      last.undo();
+      this._history.update(h =&gt; h.slice(0, -1));
+    }
+  }
+}</code></pre>
+    <div class="walkthrough">
+      <strong>Code walkthrough — how this becomes the Command Pattern:</strong>
+      <ol>
+        <li><strong><code>Command</code> interface</strong> — Defines the contract: every command must have <code>execute()</code>, <code>undo()</code>, and a <code>description</code>. This is the <strong>Command abstraction</strong> — the history service only knows this interface.</li>
+        <li><strong>Constructor captures all data</strong> — <code>api</code>, <code>store</code>, <code>from</code>, <code>to</code>, <code>amount</code> are stored at creation time. The command is a <strong>self-contained operation object</strong>.</li>
+        <li><strong><code>description</code></strong> — A human-readable label, useful for audit logs and undo history UI (<em>"Transfer £500 from 12345678 to 87654321"</em>).</li>
+        <li><strong><code>execute()</code></strong> — Performs the transfer via the API and refreshes the store. This is the <strong>forward operation</strong>.</li>
+        <li><strong><code>undo()</code></strong> — Performs a reverse transfer. This is the <strong>compensating operation</strong> — what makes this pattern powerful for financial UIs.</li>
+        <li><strong><code>CommandHistoryService.execute(command)</code></strong> — Runs the command and <strong>pushes it onto the history stack</strong>. The service does not know what the command does — it just calls <code>command.execute()</code> through the interface.</li>
+        <li><strong><code>undo()</code></strong> — Pops the last command and calls <code>command.undo()</code>. The service does not know the implementation — it only uses the <code>Command</code> interface.</li>
+      </ol>
+      <p><strong>Pattern conclusion:</strong> The transfer operation is encapsulated as an object with a known lifecycle: create → execute → optionally undo. The <code>CommandHistoryService</code> is the <strong>invoker</strong>. It can undo any command without knowing anything about banking logic. New commands (e.g. <code>CreatePayeeCommand</code>) are added by implementing <code>Command</code> — no history service code changes.</p>
+    </div>
+    <p><strong>Real-world use:</strong> Transaction undo, form wizard step history, admin bulk-action queues.</p>
+  </div>
+
+  <div class="pattern-card">
+    <h4><span class="badge amber">Behavioural</span> Mediator Pattern</h4>
+    <p><strong>What it is:</strong> Defines an object that encapsulates how a set of objects interact. Components communicate through the mediator rather than directly.</p>
+    <pre><code>// dashboard-mediator.service.ts
+@Injectable({ providedIn: 'root' })
+export class DashboardMediatorService {
+  private readonly _selectedAccount = signal&lt;string | null&gt;(null);
+  readonly selectedAccount = this._selectedAccount.asReadonly();
+
+  selectAccount(id: string): void {
+    this._selectedAccount.set(id);
+  }
+}
+
+// account-list.component.ts — publishes
+export class AccountListComponent {
+  private readonly mediator = inject(DashboardMediatorService);
+  onSelect(id: string): void { this.mediator.selectAccount(id); }
+}
+
+// transaction-panel.component.ts — subscribes
+export class TransactionPanelComponent {
+  protected readonly accountId = inject(DashboardMediatorService).selectedAccount;
+}</code></pre>
+    <div class="walkthrough">
+      <strong>Code walkthrough — how this becomes the Mediator Pattern:</strong>
+      <ol>
+        <li><strong><code>_selectedAccount</code></strong> — A private writable signal. This is the <strong>shared communication channel</strong> — the Mediator's state. No component holds this state; it lives in the Mediator.</li>
+        <li><strong><code>readonly selectedAccount = this._selectedAccount.asReadonly()</code></strong> — Public read-only access. Components can subscribe to changes but cannot write directly.</li>
+        <li><strong><code>selectAccount(id)</code></strong> — A public write method. Any component calls this to announce "the user selected this account". The Mediator does not know — or care — which component called it.</li>
+        <li><strong><code>AccountListComponent</code></strong> — Injects the Mediator and calls <code>mediator.selectAccount(id)</code> on user click. It does <strong>not</strong> hold a reference to <code>TransactionPanelComponent</code>. It does not know which other components care about account selection.</li>
+        <li><strong><code>TransactionPanelComponent.accountId</code></strong> — Reads <code>mediator.selectedAccount</code>. When <code>AccountListComponent</code> calls <code>selectAccount()</code>, this signal updates and <code>TransactionPanelComponent</code> re-renders. The two components have <strong>never referenced each other</strong>.</li>
+      </ol>
+      <p><strong>Pattern conclusion:</strong> Without a Mediator, <code>AccountListComponent</code> would hold a reference to <code>TransactionPanelComponent</code> — tight coupling. With the Mediator, both components only know the Mediator service. Connection count reduces from n×n (components referencing each other) to n×1 (every component talks only to the Mediator). Adding a new panel means injecting the Mediator — zero changes to existing components.</p>
+    </div>
+    <p><strong>Real-world use:</strong> Dashboard coordination, replaces complex chains of <code>@Output()</code> events between sibling components.</p>
+  </div>
+
+  <div class="pattern-card">
+    <h4><span class="badge amber">Behavioural</span> State Pattern — Signal State Machine</h4>
+    <p><strong>What it is:</strong> Allows an object to alter its behaviour when its internal state changes.</p>
+    <pre><code>// loan-application-state.ts
+export type LoanState = 'idle' | 'personal-details' | 'income-check' | 'credit-check' | 'decision' | 'approved' | 'declined';
+
+const TRANSITIONS: Record&lt;LoanState, LoanState[]&gt; = {
+  'idle':             ['personal-details'],
+  'personal-details': ['income-check'],
+  'income-check':     ['credit-check'],
+  'credit-check':     ['decision'],
+  'decision':         ['approved', 'declined'],
+  'approved':         [],
+  'declined':         ['personal-details'],
+};
+
+@Injectable({ providedIn: 'root' })
+export class LoanApplicationService {
+  private readonly _state = signal&lt;LoanState&gt;('idle');
+  readonly state = this._state.asReadonly();
+
+  transition(to: LoanState): void {
+    const allowed = TRANSITIONS[this._state()];
+    if (!allowed.includes(to)) throw new Error(`Invalid: ${this._state()} → ${to}`);
+    this._state.set(to);
+  }
+}</code></pre>
+    <div class="walkthrough">
+      <strong>Code walkthrough — how this becomes the State Pattern:</strong>
+      <ol>
+        <li><strong><code>LoanState</code> union type</strong> — Enumerates every possible state. These are the <strong>state nodes</strong>. The type system prevents any other string from being used.</li>
+        <li><strong><code>TRANSITIONS</code> map</strong> — Defines which states can follow which. <code>'decision'</code> can go to <code>'approved'</code> or <code>'declined'</code>. <code>'approved'</code> has an empty array — no valid next state. Illegal transitions are structurally impossible.</li>
+        <li><strong><code>_state = signal&lt;LoanState&gt;('idle')</code></strong> — A single signal holds the current state. The entire machine's memory is this one value.</li>
+        <li><strong><code>canSubmit = computed(...)</code></strong> — A derived signal that changes behaviour based on state. The template reads <code>canSubmit()</code> — no <code>if</code> chains needed in the template.</li>
+        <li><strong><code>transition(to)</code></strong> — The <strong>guard function</strong>. It reads <code>TRANSITIONS[current state]</code> and throws if the requested transition is not allowed. Only valid transitions reach <code>_state.set(to)</code>.</li>
+      </ol>
+      <p><strong>Pattern conclusion:</strong> The object's available actions change depending on <code>_state</code>. The <code>TRANSITIONS</code> map is a declarative replacement for complex <code>if/switch</code> logic. A developer reading the code immediately sees the full state graph. Adding a new state means one entry in <code>LoanState</code> and one row in <code>TRANSITIONS</code> — no existing transition logic changes.</p>
+    </div>
+    <p><strong>Real-world use:</strong> Loan application wizard, KYC onboarding, checkout state machine.</p>
+  </div>
+
+  <div class="pattern-card">
+    <h4><span class="badge amber">Behavioural</span> Chain of Responsibility — Validator Chain</h4>
+    <p><strong>What it is:</strong> Passes a request along a chain of handlers. Each handler decides to process it or pass it to the next.</p>
+    <pre><code>// validator-chain.ts
+export type ValidatorFn = (value: string) =&gt; string | null;
+
+export function createValidatorChain(...validators: ValidatorFn[]): ValidatorFn {
+  return (value: string): string | null =&gt; {
+    for (const validator of validators) {
+      const error = validator(value);
+      if (error) return error;
+    }
+    return null;
+  };
+}
+
+const required: ValidatorFn = v =&gt; v.trim() ? null : 'This field is required';
+const minLength = (n: number): ValidatorFn =&gt; v =&gt;
+  v.length &gt;= n ? null : `Minimum ${n} characters`;
+const sortCode: ValidatorFn = v =&gt;
+  /^\d{2}-\d{2}-\d{2}$/.test(v) ? null : 'Format must be 00-00-00';
+
+const validateSortCode = createValidatorChain(required, minLength(8), sortCode);</code></pre>
+    <div class="walkthrough">
+      <strong>Code walkthrough — how this becomes the Chain of Responsibility Pattern:</strong>
+      <ol>
+        <li><strong><code>ValidatorFn</code> type</strong> — Every handler in the chain must match this signature: takes a string, returns a string error or <code>null</code>. This is the <strong>handler interface</strong> — the chain does not care about implementation, only the contract.</li>
+        <li><strong><code>createValidatorChain(...validators)</code></strong> — The <strong>chain builder</strong>. Receives any number of handler functions and returns a new single function that runs them in sequence.</li>
+        <li><strong><code>for (const validator of validators)</code></strong> — Iterates through each handler in the order provided.</li>
+        <li><strong><code>if (error) return error</code></strong> — <strong>This is the chain-breaking behaviour.</strong> The first handler that finds a problem returns its error immediately. Remaining handlers do not run — matching the GoF intent.</li>
+        <li><strong><code>return null</code></strong> — If all handlers pass, the chain concludes with no error — the value is valid.</li>
+        <li><strong><code>requiredValidator</code>, <code>minLength(8)</code>, <code>sortCode</code></strong> — Three concrete handlers, each responsible for exactly one rule. None knows about the others.</li>
+        <li><strong><code>createValidatorChain(required, minLength(8), sortCode)</code></strong> — Assembles the chain. Order matters: cheapest checks first, most specific last. Exactly like HTTP middleware ordering.</li>
+      </ol>
+      <p><strong>Pattern conclusion:</strong> Each validator is a single-responsibility handler. None knows about the others. The chain builder links them without any handler needing modification. Adding a new rule means passing it as an extra argument — existing validators are unchanged. This is Chain of Responsibility: a request (the field value) passes through a sequence of handlers until one handles it or all pass.</p>
+    </div>
+    <p><strong>Real-world use:</strong> Form validation pipelines, Angular HTTP interceptor chain, middleware for auth → logging → error handling.</p>
+  </div>
+
+  <hr />
+
+  <!-- ============================================================ -->
+  <!-- SECTION 3 -->
+  <!-- ============================================================ -->
+  <h2 id="s3">3. Architectural Patterns</h2>
+  <div class="section-intro">Architectural patterns are <strong>high-level strategies</strong> for organising the entire application structure, team boundaries, and data flow.</div>
+
+  <h3 id="s3-1">3.1 Micro-Frontend (MFE)</h3>
+  <p><strong>What it is:</strong> Splits a large frontend application into smaller, independently deployable units, each owned by a separate team.</p>
+  <p><strong>How it helps:</strong> Independent deployment, technology isolation, and fault isolation per team.</p>
+
+  <div class="diagram-block">┌─────────────────────────────────────────────────────┐
+│                   Shell Application                  │
+│              (Angular 21 host app.config)            │
+├──────────────┬──────────────┬───────────────────────┤
+│  Accounts    │ Transactions │    Loans MFE           │
+│  MFE         │ MFE          │    (Team Lending)      │
+│  (Team Core) │ (Team Tx)    │                        │
+├──────────────┴──────────────┴───────────────────────┤
+│            Shared Design System (lib)                │
+│         Auth Token Service (singleton)               │
+└─────────────────────────────────────────────────────┘</div>
+
+  <pre><code>// federation.config.js — Accounts MFE (remote)
+module.exports = withModuleFederationPlugin({
+  name: 'accounts',
+  exposes: {
+    './AccountsModule': './src/app/features/accounts/accounts.routes.ts',
+  },
+  shared: {
+    '@angular/core': { singleton: true, strictVersion: true },
+    '@angular/router': { singleton: true, strictVersion: true },
+  },
+});
+
+// shell app.routes.ts — loading remote
+export const routes: Routes = [
+  {
+    path: 'accounts',
+    loadChildren: () =&gt;
+      loadRemoteModule({
+        type: 'module',
+        remoteEntry: environment.accountsMfeUrl,
+        exposedModule: './AccountsModule',
+      }).then(m =&gt; m.accountsRoutes),
+  },
+];</code></pre>
+  <p><strong>Real-world use:</strong> Large banking portals, insurance platforms with separate claim/policy/profile teams.</p>
+
+  <h3 id="s3-2">3.2 Atomic Design</h3>
+  <p><strong>What it is:</strong> Brad Frost's system for building design systems from Atoms → Molecules → Organisms → Templates → Pages.</p>
+
+  <div class="diagram-block">src/lib/
+├── atoms/         (Button, Input, Badge, Icon)
+├── molecules/     (FormField, AccountCard, SearchBar)
+├── organisms/     (TransactionTable, AccountSummary, NavigationHeader)
+├── templates/     (DashboardLayout, FormPageLayout)
+└── pages/         (DashboardPage, TransferPage)</div>
+
+  <pre><code>// atoms/button/button.component.ts
+@Component({
+  selector: 'lib-button',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    &lt;button [type]="type()" [disabled]="disabled()" [class]="buttonClasses()"&gt;
+      @if (loading()) {
+        &lt;span aria-hidden="true" class="spinner" /&gt;
+        &lt;span class="sr-only"&gt;Loading…&lt;/span&gt;
+      } @else {
+        &lt;ng-content /&gt;
+      }
+    &lt;/button&gt;
+  `,
+})
+export class ButtonComponent {
+  readonly type = input&lt;'button' | 'submit' | 'reset'&gt;('button');
+  readonly variant = input&lt;'primary' | 'secondary' | 'danger'&gt;('primary');
+  readonly disabled = input(false);
+  readonly loading = input(false);
+  protected readonly buttonClasses = computed(() =&gt;
+    `btn btn--${this.variant()} ${this.loading() ? 'btn--loading' : ''}`
+  );
+}</code></pre>
+
+  <h3 id="s3-3">3.3 Backend for Frontend (BFF)</h3>
+  <p><strong>What it is:</strong> A dedicated backend layer per frontend client that aggregates and shapes data specifically for its client.</p>
+
+  <div class="diagram-block">              ┌────────────────────┐
+              │  Angular 21 Web    │
+              └────────┬───────────┘
+                       │
+              ┌────────▼───────────┐
+              │     Web BFF        │
+              │   (NestJS)         │
+              │ - Aggregates APIs  │
+              │ - Shapes payload   │
+              │ - Handles auth     │
+              └──┬──────┬──────┬──┘
+                 │      │      │
+     ┌───────────┘  ┌───┘  ┌──┘
+     ▼              ▼      ▼
+┌─────────┐  ┌──────────┐  ┌───────────┐
+│Accounts │  │  Loans   │  │ Payments  │
+│Service  │  │  Service │  │ Service   │
+└─────────┘  └──────────┘  └───────────┘</div>
+
+  <pre><code>// account-bff.service.ts
+@Injectable({ providedIn: 'root' })
+export class AccountBffService {
+  // One BFF call returns pre-aggregated DashboardViewModel
+  getDashboard(): Observable&lt;DashboardViewModel&gt; {
+    return this.http.get&lt;DashboardViewModel&gt;('/bff/dashboard');
+  }
+}</code></pre>
+  <p><strong>Real-world use:</strong> Banking app — one BFF call returns accounts + transactions + alerts. SSR-friendly.</p>
+
+  <h3 id="s3-4">3.4 Saga Pattern</h3>
+  <p><strong>What it is:</strong> Manages long-running distributed transactions using a sequence of local transactions with compensating actions on failure. NgRx Effects implement this.</p>
+
+  <div class="diagram-block">START
+  └─► Create Account
+        ├─ SUCCESS → Provision Card
+        │               ├─ SUCCESS → Send Email → COMPLETE
+        │               └─ FAIL → Close Account (compensate) → FAILED
+        └─ FAIL → FAILED</div>
+
+  <pre><code>// account-onboarding.effects.ts
+startOnboarding$ = createEffect(() =&gt;
+  this.actions$.pipe(
+    ofType(OnboardingActions.start),
+    switchMap(({ customerId }) =&gt;
+      this.accountApi.createAccount(customerId).pipe(
+        switchMap(account =&gt;
+          this.cardApi.provisionCard(account.id).pipe(
+            switchMap(card =&gt;
+              this.emailApi.sendWelcome({ customerId, accountId: account.id }).pipe(
+                map(() =&gt; OnboardingActions.complete({ account, card })),
+                catchError(() =&gt; of(OnboardingActions.partialSuccess({ account, card })))
+              )
+            ),
+            catchError(err =&gt;
+              this.accountApi.closeAccount(account.id).pipe(
+                map(() =&gt; OnboardingActions.failed({ error: err.message }))
+              )
+            )
+          )
+        ),
+        catchError(err =&gt; of(OnboardingActions.failed({ error: err.message })))
+      )
+    )
+  )
+);</code></pre>
+  <p><strong>Real-world use:</strong> Banking onboarding, loan disbursement, e-commerce checkout.</p>
+
+  <h3 id="s3-5">3.5 CQRS &amp; Event Sourcing</h3>
+  <p><strong>CQRS:</strong> Separates read operations (queries) from write operations (commands). <strong>Event Sourcing:</strong> Stores the sequence of events that produced state rather than current state.</p>
+  <pre><code>// COMMANDS (write side) — dispatched actions
+store.dispatch(AccountActions.debit({ accountId, amount }));
+
+// QUERIES (read side) — selectors
+const balance = toSignal(store.select(selectAccountBalance(accountId)));
+
+// Every state change is an event
+type AccountEvent =
+  | { type: 'CREDITED'; accountId: string; amount: number }
+  | { type: 'DEBITED'; accountId: string; amount: number }
+
+function replayAccount(events: AccountEvent[]): AccountState {
+  return events.reduce(applyEvent, initialAccountState);
+}</code></pre>
+  <p><strong>Real-world use:</strong> Financial ledgers, audit trails, undo history.</p>
+
+  <h3 id="s3-6">3.6 Flux / NgRx (Redux)</h3>
+  <p><strong>What it is:</strong> Unidirectional data flow — Action → Reducer → State → View → Action.</p>
+
+  <div class="diagram-block">Component dispatches Action
+        ↓
+    Effects (side effects: API calls)
+        ↓
+    Reducer (pure function: state → new state)
+        ↓
+    Store (single source of truth)
+        ↓
+    Selector (memoised derived state)
+        ↓
+    Component (via toSignal())</div>
+
+  <pre><code>@Component({ changeDetection: ChangeDetectionStrategy.OnPush })
+export class AccountsComponent {
+  private readonly store = inject(Store);
+
+  protected readonly accounts = toSignal(
+    this.store.select(selectAllAccounts),
+    { initialValue: [] }
+  );
+  protected readonly isLoading = toSignal(
+    this.store.select(selectAccountsLoading),
+    { initialValue: false }
+  );
+}</code></pre>
+
+  <table>
+    <thead><tr><th>Scenario</th><th>Use</th></tr></thead>
+    <tbody>
+      <tr><td>Local component state</td><td><code>signal()</code></td></tr>
+      <tr><td>Shared state between sibling components</td><td>Service with <code>signal()</code></td></tr>
+      <tr><td>Complex async workflows</td><td>NgRx</td></tr>
+      <tr><td>Cross-MFE shared state</td><td>NgRx or EventBus</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="s3-7">3.7 Smart / Presentational Components</h3>
+  <p><strong>Smart (Container):</strong> Knows about the store/services. <strong>Presentational (Dumb):</strong> Receives data via <code>input()</code>. No service injection.</p>
+  <pre><code>// SMART — account-list-page.component.ts
+@Component({
+  selector: 'app-account-list-page',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    &lt;app-account-list
+      [accounts]="accounts()"
+      [isLoading]="isLoading()"
+      (accountSelected)="onSelect($event)"
+    /&gt;
+  `,
+})
+export class AccountListPageComponent {
+  private readonly store = inject(Store);
+  protected readonly accounts = toSignal(this.store.select(selectAllAccounts), { initialValue: [] });
+  protected onSelect(id: string): void {
+    this.store.dispatch(AccountActions.select({ id }));
+  }
+}
+
+// PRESENTATIONAL — no inject() of any service
+@Component({ selector: 'app-account-list', changeDetection: ChangeDetectionStrategy.OnPush })
+export class AccountListComponent {
+  readonly accounts = input.required&lt;Account[]&gt;();
+  readonly isLoading = input(false);
+  readonly accountSelected = output&lt;string&gt;();
+}</code></pre>
+
+  <h3 id="s3-8">3.8 Feature-Sliced Design</h3>
+  <p><strong>What it is:</strong> Organises code by <strong>feature</strong> and <strong>layer</strong>, not by file type. Each feature is a vertical slice containing its own components, services, state, and API.</p>
+  <div class="diagram-block">src/app/
+├── features/
+│   ├── accounts/
+│   │   ├── components/    (Smart + presentational)
+│   │   ├── services/      (AccountFacade, AccountApiService)
+│   │   ├── state/         (NgRx actions, reducers, effects, selectors)
+│   │   ├── models/        (Account interface, DTOs)
+│   │   └── accounts.routes.ts
+│   ├── transactions/
+│   └── loans/
+├── shared/
+│   ├── ui/                (Atomic design components)
+│   └── utils/             (Pure functions)
+└── core/
+    ├── interceptors/
+    └── app.config.ts</div>
+  <blockquote><strong>Rule:</strong> Features do not import from each other. They communicate through shared services or the store.</blockquote>
+
+  <hr />
+
+  <!-- ============================================================ -->
+  <!-- SECTION 4 -->
+  <!-- ============================================================ -->
+  <h2 id="s4">4. Architectural Strategies</h2>
+
+  <h3 id="s4-1">4.1 The 12-Factor App — Front-End Context</h3>
+  <table>
+    <thead><tr><th>Factor</th><th>Principle</th><th>Angular 21 Application</th></tr></thead>
+    <tbody>
+      <tr><td><strong>I. Codebase</strong></td><td>One codebase; multiple deploys</td><td>Single git repo per app/MFE; Nx monorepo</td></tr>
+      <tr><td><strong>II. Dependencies</strong></td><td>Explicitly declare and isolate</td><td><code>package.json</code> with exact versions; no CDN scripts</td></tr>
+      <tr><td><strong>III. Config</strong></td><td>Store config in environment</td><td><code>environment.ts</code>; <code>APP_CONFIG</code> injection token</td></tr>
+      <tr><td><strong>IV. Backing services</strong></td><td>Treat APIs as attached resources</td><td>Abstract all API calls behind service classes</td></tr>
+      <tr><td><strong>V. Build/Release/Run</strong></td><td>Strictly separate stages</td><td><code>ng build --configuration=production</code>; Docker image per env</td></tr>
+      <tr><td><strong>VI. Processes</strong></td><td>Stateless processes</td><td>SSR stateless; no user state in module-level variables</td></tr>
+      <tr><td><strong>VII. Port binding</strong></td><td>Export services via port binding</td><td>Dev server 4200; SSR 4000; MFEs 4201+</td></tr>
+      <tr><td><strong>VIII. Concurrency</strong></td><td>Scale via process model</td><td>Multiple SSR instances behind load balancer</td></tr>
+      <tr><td><strong>IX. Disposability</strong></td><td>Fast startup, graceful shutdown</td><td>Lazy routes; <code>@defer</code> blocks; small initial bundle</td></tr>
+      <tr><td><strong>X. Dev/prod parity</strong></td><td>Keep environments similar</td><td>Docker Compose for local; same Angular build config</td></tr>
+      <tr><td><strong>XI. Logs</strong></td><td>Treat logs as event streams</td><td><code>ErrorHandler</code> streams to logging service</td></tr>
+      <tr><td><strong>XII. Admin processes</strong></td><td>One-off admin tasks</td><td>Seeding scripts separate from app; migration CLI tools</td></tr>
+    </tbody>
+  </table>
+
+  <pre><code>// APP_CONFIG injection token (Factor III)
+export const APP_CONFIG = new InjectionToken&lt;AppConfig&gt;('APP_CONFIG');
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    {
+      provide: APP_CONFIG,
+      useValue: {
+        apiBaseUrl: environment.apiBaseUrl,
+        featureFlags: environment.featureFlags,
+        environment: environment.name,
+      },
+    },
+  ],
+};</code></pre>
+
+  <h3 id="s4-2">4.2 The 6-Hour Design Approach</h3>
+  <p>A <strong>time-boxed architectural decision framework</strong> — produce a shippable decision document in one focused session.</p>
+
+  <div class="phase-grid">
+    <div class="phase-box"><h5>Hour 1</h5><p>Understand requirements — what problem are we solving? Output: requirements doc, key constraints</p></div>
+    <div class="phase-box"><h5>Hour 2</h5><p>Identify components — what are the major building blocks? Output: component list, responsibility matrix</p></div>
+    <div class="phase-box"><h5>Hour 3</h5><p>Draw the architecture — how do components connect? Output: C4 Context + Container diagrams</p></div>
+    <div class="phase-box"><h5>Hour 4</h5><p>Identify risks — what can go wrong? Output: risk register, ADR draft</p></div>
+    <div class="phase-box"><h5>Hour 5</h5><p>Define interfaces — how do components communicate? Output: API contracts, event schemas</p></div>
+    <div class="phase-box"><h5>Hour 6</h5><p>Validate and decide — is this good enough to start? Output: ADR sign-off, backlog tickets</p></div>
+  </div>
+
+  <pre><code><!-- ADR template -->
+# ADR-001: Adopt Micro-Frontend Architecture for Banking Portal
+
+**Date:** 2026-05-21
+**Status:** Accepted
+**Context:** 4 teams working on overlapping features, causing deployment bottlenecks.
+**Decision:** Adopt MFE with Module Federation. Each team owns one remote.
+**Consequences:**
+- ✅ Independent deployments per team
+- ✅ Fault isolation between features
+- ❌ Shared dependency version coordination required
+**Alternatives considered:**
+- Monolith with lazy modules — rejected (deployment coupling remains)
+- iFrame-based MFE — rejected (accessibility and routing complexity)</code></pre>
+
+  <hr />
+
+  <!-- ============================================================ -->
+  <!-- SECTION 5 -->
+  <!-- ============================================================ -->
+  <h2 id="s5">5. Tools &amp; Diagram Types</h2>
+
+  <h3>Diagramming Tools</h3>
+  <table>
+    <thead><tr><th>Tool</th><th>Best For</th><th>Free?</th></tr></thead>
+    <tbody>
+      <tr><td><strong>draw.io / diagrams.net</strong></td><td>All diagram types; exports SVG/PNG; Confluence plugin</td><td><span class="badge green">Yes</span></td></tr>
+      <tr><td><strong>Mermaid</strong></td><td>Code-based diagrams in markdown; Git-friendly</td><td><span class="badge green">Yes</span></td></tr>
+      <tr><td><strong>Structurizr</strong></td><td>C4 Model diagrams; code-as-architecture</td><td>Free tier</td></tr>
+      <tr><td><strong>Lucidchart</strong></td><td>Collaborative enterprise diagramming</td><td><span class="badge red">Paid</span></td></tr>
+      <tr><td><strong>PlantUML</strong></td><td>UML from text; CI-friendly</td><td><span class="badge green">Yes</span></td></tr>
+      <tr><td><strong>Excalidraw</strong></td><td>Whiteboard-style sketching</td><td><span class="badge green">Yes</span></td></tr>
+      <tr><td><strong>Figma / FigJam</strong></td><td>Design system + architecture whiteboard</td><td><span class="badge red">Paid</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>C4 Model</h3>
+  <table>
+    <thead><tr><th>Level</th><th>Name</th><th>Shows</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>System Context</td><td>Who uses the system; what external systems it connects to</td></tr>
+      <tr><td>2</td><td>Container</td><td>Angular app, BFF, microservices, databases</td></tr>
+      <tr><td>3</td><td>Component</td><td>NgRx store, feature modules, services inside Angular app</td></tr>
+      <tr><td>4</td><td>Code</td><td>Class diagrams for complex components</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Sequence Diagram — Fund Transfer Flow (Mermaid)</h3>
+  <pre><code>sequenceDiagram
+  participant User
+  participant TransferComponent
+  participant AccountFacade
+  participant BFF
+  participant PaymentsService
+
+  User->>TransferComponent: Submit transfer form
+  TransferComponent->>AccountFacade: transferFunds(from, to, amount)
+  AccountFacade->>BFF: POST /bff/transfers
+  BFF->>PaymentsService: POST /payments/initiate
+  PaymentsService-->>BFF: Payment reference
+  BFF-->>AccountFacade: { success: true, reference }
+  AccountFacade-->>TransferComponent: dispatch(TransferSuccess)
+  TransferComponent-->>User: Show confirmation</code></pre>
+
+  <hr />
+
+  <!-- ============================================================ -->
+  <!-- SECTION 6 -->
+  <!-- ============================================================ -->
+  <h2 id="s6">6. System Design Case Studies</h2>
+
+  <h3 id="s6-1">6.1 Enterprise Banking Application</h3>
+
+  <h4>Requirements</h4>
+  <table>
+    <thead><tr><th>Category</th><th>Requirement</th></tr></thead>
+    <tbody>
+      <tr><td>Scale</td><td>2 million concurrent users at peak</td></tr>
+      <tr><td>Teams</td><td>8 product teams, 60+ engineers</td></tr>
+      <tr><td>Compliance</td><td>PSD2, GDPR, FCA regulations</td></tr>
+      <tr><td>Accessibility</td><td>WCAG 2.1 AA</td></tr>
+      <tr><td>Performance</td><td>LCP &lt; 2.5s, CLS &lt; 0.1, FID &lt; 100ms</td></tr>
+      <tr><td>Deployment</td><td>Blue/green, zero-downtime</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Architectural Decisions</h4>
+  <table>
+    <thead><tr><th>Decision</th><th>Choice</th><th>Rationale</th></tr></thead>
+    <tbody>
+      <tr><td>App structure</td><td>Micro-Frontend (Module Federation)</td><td>8 teams need independent deployments</td></tr>
+      <tr><td>State management</td><td>NgRx per MFE + Signal service for local state</td><td>Saga for complex workflows; signals for UI state</td></tr>
+      <tr><td>API layer</td><td>BFF (NestJS) per client type</td><td>Aggregate microservices; handle auth token exchange</td></tr>
+      <tr><td>Design system</td><td>Atomic Design component library</td><td>Consistent brand across all MFEs</td></tr>
+      <tr><td>SSR</td><td>Angular Universal with hydration</td><td>SEO + initial load performance</td></tr>
+      <tr><td>Auth</td><td>OAuth2 / OIDC with PKCE</td><td>Regulatory requirement; BFF holds refresh tokens</td></tr>
+      <tr><td>Testing</td><td>Vitest + Angular CDK + Cypress</td><td>Full confidence at each layer</td></tr>
+    </tbody>
+  </table>
+
+  <h4>System Architecture</h4>
+  <div class="diagram-block">┌──────────────────────────────────────────────────────────────┐
+│                         Clients                               │
+│  ┌──────────────────┐  ┌──────────────┐  ┌────────────────┐  │
+│  │ Angular 21 Web   │  │ Mobile App   │  │ Advisor Portal │  │
+│  │ (MFE Shell)      │  │ React Native │  │ Angular 21     │  │
+│  └────────┬─────────┘  └──────┬───────┘  └───────┬────────┘  │
+└───────────┼────────────────────┼──────────────────┼───────────┘
+            │                    │                  │
+    ┌────────▼──────┐  ┌─────────▼─────┐  ┌────────▼──────┐
+    │  Web BFF      │  │  Mobile BFF   │  │  Advisor BFF  │
+    │  (NestJS)     │  │  (NestJS)     │  │  (NestJS)     │
+    └────────┬──────┘  └───────────────┘  └───────────────┘
+             │
+    ┌────────▼────────────────────────────┐
+    │         Kong API Gateway             │
+    │      (Rate limiting, Auth)           │
+    └──┬─────┬──────┬──────┬──────────────┘
+       │     │      │      │
+  ┌────▼┐ ┌──▼──┐ ┌─▼───┐ ┌▼──────┐
+  │Accts│ │ Pay │ │Loans│ │Notif. │
+  │Svc  │ │ Svc │ │ Svc │ │ Svc   │
+  └─────┘ └─────┘ └─────┘ └───────┘</div>
+
+  <pre><code>// shell/app.config.ts
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideRouter(routes, withPreloading(PreloadAllModules)),
+    provideHttpClient(
+      withInterceptors([authInterceptor, loggingInterceptor, errorInterceptor])
+    ),
+    provideClientHydration(withEventReplay()),
+    provideStore(),
+    provideEffects(),
+    { provide: APP_CONFIG, useValue: { apiBaseUrl: environment.bffUrl } },
+  ],
+};</code></pre>
+
+  <h3 id="s6-2">6.2 AngularJS → Angular 21.2 Migration</h3>
+
+  <blockquote><strong>Context:</strong> A large enterprise banking app built in AngularJS 1.8 (2014–2019). 120+ controllers, 80+ services, 40+ directives. The goal is a zero-downtime, incremental migration to Angular 21.2 with SSR, Signals, and a modern design system — without a big-bang rewrite.</blockquote>
+
+  <h4>Strategy Comparison — Choose Your Path</h4>
+  <table>
+    <thead><tr><th>Strategy</th><th>Risk</th><th>Speed</th><th>Team Disruption</th><th>Recommended For</th></tr></thead>
+    <tbody>
+      <tr><td><strong>1. Strangler Fig + ngUpgrade (Hybrid)</strong></td><td>Medium</td><td>Slow–Medium</td><td>Low</td><td>Teams with AngularJS expertise, must maintain both</td></tr>
+      <tr><td><strong>2. Nx Workspace — Shell + Dual Apps (MFE)</strong></td><td>Low</td><td>Medium</td><td>Low</td><td>Large teams, feature-flag toggles, parallel delivery</td></tr>
+      <tr><td><strong>3. AI-Assisted Full Rewrite (Copilot-Led)</strong></td><td>Medium</td><td><strong>Fast</strong></td><td>Medium</td><td>Modern teams with good test coverage, tight deadlines</td></tr>
+      <tr><td><strong>4. Route-by-Route Strangler (No ngUpgrade)</strong></td><td>Low</td><td>Slow</td><td>Very Low</td><td>Small teams, low budget, risk-averse organisations</td></tr>
+      <tr><td><strong>5. Big-Bang Rewrite</strong></td><td><strong>High</strong></td><td>Fast on paper</td><td>High</td><td>❌ Not recommended — rarely succeeds at scale</td></tr>
+    </tbody>
+  </table>
+  <blockquote><strong>Recommended approach for an enterprise banking app: Strategy 2 (Nx Shell + MFE) with Strategy 3 (AI-Assisted) powering the actual code conversion.</strong> Use the shell to safely toggle between old and new, and use Copilot to accelerate the per-feature rewrites.</blockquote>
+
+  <!-- Strategy 1 -->
+  <h4>Strategy 1 — Strangler Fig with ngUpgrade (Hybrid Bootstrap)</h4>
+  <p>The Strangler Fig pattern grows the new Angular 21 app around the AngularJS shell — feature by feature, screen by screen — until the old system can be removed.</p>
+  <div class="diagram-block">┌─────────────────────────────────────────────────────────────┐
+│                   STRANGLER FIG PHASES                      │
+├──────────────────┬──────────────────┬───────────────────────┤
+│   PHASE 0        │   PHASE 1–2      │   PHASE 3             │
+│   Coexistence    │   Incremental    │   Completion          │
+│                  │   Replacement    │                       │
+│  AngularJS App   │  AngularJS App   │  Angular 21 App       │
+│  ┌────────────┐  │  ┌──────────┐    │  ┌─────────────────┐  │
+│  │ All routes │  │  │ Legacy   │    │  │ All routes ✅   │  │
+│  │ controller │  │  │ routes   │    │  │ Signals / SSR   │  │
+│  │ $scope     │  │  └──────────┘    │  │ OnPush / Defer  │  │
+│  └────────────┘  │  ┌──────────┐    │  └─────────────────┘  │
+│                  │  │Angular 21│    │                       │
+│                  │  │ new feats│    │  AngularJS removed    │
+│                  │  │ downgrade│    │  -100KB bundle        │
+│                  │  └──────────┘    │  -Zone.js removed     │
+│                  │  ngUpgrade       │                       │
+│                  │  bridges both    │                       │
+└──────────────────┴──────────────────┴───────────────────────┘</div>
+
+  <p><strong>Phase 0 — Hybrid Bootstrap:</strong></p>
+  <pre><code>// main.ts — hybrid app bootstrap
+import { setAngularJSGlobal } from '@angular/upgrade/static';
+import * as angular from 'angular';
+import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+import { AppModule } from './app/app.module';
+
+setAngularJSGlobal(angular);
+platformBrowserDynamic()
+  .bootstrapModule(AppModule)
+  .catch((err) =&gt; console.error(err));</code></pre>
+
+  <p><strong>Phase 1 — Downgrade Angular 21 component into AngularJS templates:</strong></p>
+  <pre><code>// New Angular 21 standalone component
+@Component({
+  selector: 'app-account-card',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `&lt;div class="account-card"&gt;{{ account().name }}&lt;/div&gt;`,
+})
+export class AccountCardComponent {
+  readonly account = input.required&lt;Account&gt;();
+}
+
+// Register as AngularJS directive via downgrade
+import { downgradeComponent } from '@angular/upgrade/static';
+angular
+  .module('legacyApp')
+  .directive('appAccountCard', downgradeComponent({ component: AccountCardComponent }));</code></pre>
+
+  <p><strong>Phase 2 — Upgrade AngularJS service for use in Angular 21:</strong></p>
+  <pre><code>export function legacyAuthFactory(i: any) {
+  return i.get('LegacyAuthService');
+}
+
+export const LegacyAuthProvider = {
+  provide: 'LegacyAuthService',
+  useFactory: legacyAuthFactory,
+  deps: ['$injector'],
+};
+
+@Injectable({ providedIn: 'root' })
+export class AuthBridgeService {
+  private legacy = inject('LegacyAuthService' as any);
+  getToken(): string { return this.legacy.getToken(); }
+}</code></pre>
+
+  <!-- Strategy 2 -->
+  <h4>Strategy 2 — Nx Workspace: Shell App + Dual Apps <span class="badge green">Recommended</span></h4>
+  <p>Run AngularJS and Angular 21 as <strong>two separate applications</strong> inside a single Nx monorepo. A thin Angular 21 <strong>shell app</strong> owns navigation and decides which app renders each route — using Module Federation for Angular 21 and an iframe bridge for the legacy AngularJS app.</p>
+
+  <div class="diagram-block">┌─────────────────────────────────────────────────────────────────┐
+│                    NX WORKSPACE STRUCTURE                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  apps/                                                          │
+│  ├── shell/            ← Angular 21 — owns routing + nav       │
+│  │   ├── src/app/                                               │
+│  │   │   ├── shell.routes.ts    ← decides old vs new           │
+│  │   │   ├── legacy-frame/      ← iframe wrapper component     │
+│  │   │   └── nav/               ← toggle nav component         │
+│  │   └── module-federation.config.ts                            │
+│  │                                                              │
+│  ├── banking-legacy/   ← AngularJS 1.8 app (unchanged)         │
+│  │   ├── app/                                                   │
+│  │   └── webpack.config.js  ← builds to /legacy/ subfolder     │
+│  │                                                              │
+│  └── banking-ng21/     ← Angular 21 — new features             │
+│      ├── src/app/                                               │
+│      └── module-federation.config.ts  ← exposes routes         │
+│                                                                 │
+│  libs/                                                          │
+│  ├── shared-ui/        ← design tokens, shared components      │
+│  ├── shared-models/    ← Account, Transaction interfaces       │
+│  └── shared-auth/      ← token service, auth guards            │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘</div>
+
+  <p><strong>Navigation toggle in the shell — old vs new:</strong></p>
+  <div class="diagram-block">┌────────────────────────────────────────────────────────────────┐
+│  SHELL APP — ACCOUNT OPENING ROUTE                             │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  Navigation:   [Dashboard]  [Open Account ▼]  [Payments]      │
+│                               ┌────────────────────┐          │
+│                               │ ○ Legacy (AngularJS)│          │
+│                               │ ● New Experience   │          │
+│                               └────────────────────┘          │
+│                                                                │
+│  ┌── If legacyMode() === true ──────────────────────────────┐  │
+│  │  &lt;iframe src="/legacy/#!/open-account"&gt;                  │  │
+│  │    AngularJS app rendered inside shell                   │  │
+│  │    Same auth token forwarded via postMessage             │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                │
+│  ┌── If legacyMode() === false (default for new users) ─────┐  │
+│  │  &lt;router-outlet&gt;                                         │  │
+│  │    Angular 21 open-account route (Module Federation)     │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘</div>
+
+  <p><strong>Shell — toggle signal drives which app loads:</strong></p>
+  <pre><code>// account-host.component.ts
+@Component({
+  selector: 'app-account-host',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [RouterOutlet, LegacyFrameComponent],
+  template: `
+    &lt;div class="version-toggle" role="group" aria-label="Experience version"&gt;
+      &lt;button
+        [class.active]="!legacyMode()"
+        (click)="legacyMode.set(false)"
+        [attr.aria-pressed]="!legacyMode()"
+      &gt;New Experience&lt;/button&gt;
+      &lt;button
+        [class.active]="legacyMode()"
+        (click)="legacyMode.set(true)"
+        [attr.aria-pressed]="legacyMode()"
+      &gt;Legacy&lt;/button&gt;
+    &lt;/div&gt;
+
+    @if (legacyMode()) {
+      &lt;app-legacy-frame path="#!/open-account" /&gt;
+    } @else {
+      &lt;router-outlet /&gt;
+    }
+  `,
+})
+export class AccountHostComponent {
+  /** Persisted in localStorage so user preference survives page reload */
+  protected readonly legacyMode = signal(
+    localStorage.getItem('preferLegacy') === 'true',
+  );
+  constructor() {
+    effect(() =&gt; localStorage.setItem('preferLegacy', String(this.legacyMode())));
+  }
+}</code></pre>
+
+  <pre><code>// legacy-frame.component.ts — iframe + postMessage auth bridge
+@Component({
+  selector: 'app-legacy-frame',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    &lt;iframe
+      [src]="legacyUrl()"
+      title="Legacy account opening"
+      class="legacy-frame"
+      (load)="onLoad()"
+    &gt;&lt;/iframe&gt;
+  `,
+})
+export class LegacyFrameComponent {
+  readonly path = input.required&lt;string&gt;();
+  private auth = inject(AuthService);
+  protected readonly legacyUrl = computed(() =&gt; `/legacy/index.html${this.path()}`);
+
+  protected onLoad(): void {
+    const frame = document.querySelector('iframe') as HTMLIFrameElement;
+    frame.contentWindow?.postMessage(
+      { type: 'AUTH_TOKEN', token: this.auth.token() },
+      window.location.origin,
+    );
+  }
+}</code></pre>
+
+  <p><strong>Nx CLI setup commands:</strong></p>
+  <pre><code># Create Nx workspace
+npx create-nx-workspace@latest banking-workspace --preset=apps
+
+# Add Angular 21 shell (MFE host) and new banking app (MFE remote)
+nx g @nx/angular:app shell --standalone --routing
+nx g @nx/angular:app banking-ng21 --standalone --routing
+
+# Wire Module Federation
+nx g @nx/angular:setup-mf shell --mfType=host --federationType=dynamic
+nx g @nx/angular:setup-mf banking-ng21 --mfType=remote --port=4201
+
+# Add shared libs
+nx g @nx/angular:lib shared-models
+nx g @nx/angular:lib shared-auth
+nx g @nx/angular:lib shared-ui</code></pre>
+
+  <p><strong>Feature flag rollout — progressively expand the new experience:</strong></p>
+  <div class="diagram-block">User segment           → Feature flag → Which app
+─────────────────────────────────────────────────
+Internal staff         → new (100%)  → Angular 21
+Beta users (opt-in)    → new (100%)  → Angular 21
+New customers          → new         → Angular 21
+Existing customers     → legacy       → AngularJS
+All users (cutover)    → new (100%)  → Angular 21
+AngularJS decommissioned ──────────────────────→</div>
+
+  <!-- Strategy 3 -->
+  <h4>Strategy 3 — AI-Assisted Migration with GitHub Copilot</h4>
+  <p>AI tooling can convert AngularJS controllers, services, and templates to Angular 21 at a speed no manual effort matches. The key is <strong>systematic prompting + automated verification</strong> — not blind code generation.</p>
+
+  <div class="diagram-block">┌─────────────────────────────────────────────────────────────────┐
+│              AI-ASSISTED MIGRATION PIPELINE                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. AUDIT &amp; CATALOGUE (AI reads, you confirm)                  │
+│  ─────────────────────────────────────────────                  │
+│  Copilot scans all .js files → produces migration-backlog.md   │
+│  ┌─────────────────────────────────────────────┐               │
+│  │ Controller: AccountCtrl ($scope, $http)      │ Priority: H  │
+│  │ Service: AuthService ($cookies, $http)       │ Priority: H  │
+│  │ Directive: sortable-table ($compile)         │ Priority: M  │
+│  │ Filter: currencyFormat                       │ Priority: L  │
+│  └─────────────────────────────────────────────┘               │
+│                                                                 │
+│  2. PER-FILE CONVERSION (Copilot generates, dev reviews)       │
+│  ─────────────────────────────────────────────                  │
+│  $scope variables      →  signal() / input()                   │
+│  $http calls           →  inject(HttpClient) + Observable      │
+│  $watch expressions    →  computed() / effect()                │
+│  ng-if / ng-repeat     →  @if / @for                           │
+│  $routeParams          →  ActivatedRoute / routerInput()       │
+│                                                                 │
+│  3. AUTOMATED VERIFICATION                                      │
+│  ─────────────────────────────────────────────                  │
+│  Copilot generates Vitest specs for each migrated file         │
+│  ng build --prod (TypeScript strict mode catches drift)        │
+│  Vitest coverage gate ≥ 80%                                    │
+│                                                                 │
+│  4. CODEMOD LAYER (automated, no AI needed)                    │
+│  ─────────────────────────────────────────────                  │
+│  ng update @angular/core  →  auto-migrates deprecated APIs     │
+│  @angular/codemod          →  *ngIf → @if, *ngFor → @for       │
+│  eslint --fix              →  lint rule auto-fixes             │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘</div>
+
+  <p><strong>Copilot prompt template — converting a controller:</strong></p>
+  <pre><code>You are an Angular 21 expert. Convert the following AngularJS 1.8 controller
+to an Angular 21 standalone component. Apply these rules:
+- Use signal() for all reactive state (replaces $scope variables)
+- Use inject() for all dependencies (no constructor injection)
+- Use input() / output() for component I/O (no @Input/@Output decorators)
+- Use computed() for derived state (replaces $watch with return value)
+- Use effect() for side effects (replaces $watch with no return)
+- Replace $http with inject(HttpClient)
+- Replace ng-if/ng-repeat with @if / @for blocks
+- Use ChangeDetectionStrategy.OnPush
+- Output a fully typed TypeScript file with strict null checks
+
+AngularJS controller to migrate:
+[PASTE CONTROLLER CODE HERE]</code></pre>
+
+  <p><strong>Automated codemod pipeline:</strong></p>
+  <pre><code># Step 1 — update Angular (handles framework deprecations)
+npx ng update @angular/core @angular/cli
+
+# Step 2 — convert structural directives to control flow blocks
+npx @angular/codemod migrate-control-flow ./src
+
+# Step 3 — standalone migration (removes NgModule boilerplate)
+npx ng generate @angular/core:standalone
+
+# Step 4 — inject() migration (replaces constructor injection)
+npx ng generate @angular/core:inject
+
+# Step 5 — ESLint auto-fix
+npx eslint ./src --fix</code></pre>
+
+  <p><strong>AngularJS → Angular 21 concept mapping:</strong></p>
+  <table>
+    <thead><tr><th>AngularJS concept</th><th>Angular 21 equivalent</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>$scope.foo = bar</code></td><td><code>foo = signal(bar)</code></td><td>Reactive, no zone needed</td></tr>
+      <tr><td><code>$watch('foo', fn)</code></td><td><code>effect(() =&gt; { fn(foo()) })</code></td><td>Auto-tracks dependencies</td></tr>
+      <tr><td><code>$http.get(url)</code></td><td><code>inject(HttpClient).get(url)</code></td><td>Returns Observable</td></tr>
+      <tr><td><code>$q.defer()</code></td><td><code>firstValueFrom(observable)</code></td><td>Native async/await</td></tr>
+      <tr><td><code>$routeParams.id</code></td><td><code>inject(ActivatedRoute).snapshot.params['id']</code></td><td>Or routerInput() signal</td></tr>
+      <tr><td><code>$rootScope.$broadcast</code></td><td>Signal in mediator service</td><td>Replace with Mediator pattern</td></tr>
+      <tr><td><code>ng-if</code></td><td><code>@if</code> block</td><td>No directive import needed</td></tr>
+      <tr><td><code>ng-repeat</code></td><td><code>@for</code> block</td><td>Track by built in</td></tr>
+      <tr><td>Controller + <code>$scope</code></td><td>Standalone component + signals</td><td>1-to-1 replacement</td></tr>
+      <tr><td>Factory / Service</td><td><code>@Injectable</code> service</td><td>Same singleton behaviour</td></tr>
+      <tr><td>Attribute directive</td><td>Angular Directive or Pipe</td><td>Depends on purpose</td></tr>
+      <tr><td><code>angular.module</code></td><td><code>bootstrapApplication()</code></td><td>Standalone bootstrap</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Strategy 4 -->
+  <h4>Strategy 4 — Route-by-Route Strangler (No ngUpgrade)</h4>
+  <p>Redirect one Angular Router route at a time to the new Angular 21 app via a reverse proxy. The AngularJS app stays completely unchanged — no hybrid bootstrap, no ngUpgrade dependency.</p>
+
+  <div class="diagram-block">┌─────────────────────────────────────────────────────────────┐
+│            ROUTE-BY-ROUTE STRANGLER (nginx)                 │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Reverse Proxy (nginx / CDN)                                │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  /dashboard        → Angular 21 app  ✅               │  │
+│  │  /open-account     → Angular 21 app  ✅               │  │
+│  │  /payments         → Angular 21 app  ✅               │  │
+│  │  /statements       → AngularJS app   (in progress)   │  │
+│  │  /settings         → AngularJS app   (pending)       │  │
+│  │  /*                → AngularJS app   (catch-all)     │  │
+│  └───────────────────────────────────────────────────────┘  │
+│                                                             │
+│  Shared JWT in localStorage — both apps read the same      │
+│  auth token. No iframe, no ngUpgrade. Clean separation.     │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘</div>
+
+  <pre><code># nginx.conf — route-by-route strangler
+location /dashboard     { proxy_pass http://angular21-app:4200; }
+location /open-account  { proxy_pass http://angular21-app:4200; }
+# All other routes → legacy AngularJS
+location /              { proxy_pass http://angularjs-app:3000; }</code></pre>
+
+  <!-- Angular 21.2 new features post-migration -->
+  <h4>Phase 3 — Angular 21.2 New Features to Adopt Post-Migration</h4>
+  <pre><code>// Signal-based form — replaces AngularJS ngModel + $watch
+@Component({
+  selector: 'app-transfer-form',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    &lt;form (ngSubmit)="submit()"&gt;
+      &lt;label for="from"&gt;From Account&lt;/label&gt;
+      &lt;input id="from" [value]="fromAccount()"
+        (input)="fromAccount.set($any($event.target).value)" /&gt;
+      @if (errors().fromAccount) {
+        &lt;p role="alert"&gt;{{ errors().fromAccount }}&lt;/p&gt;
+      }
+      &lt;label for="amount"&gt;Amount&lt;/label&gt;
+      &lt;input id="amount" type="number" [value]="amount()"
+        (input)="amount.set(+$any($event.target).value)" /&gt;
+      @if (errors().amount) {
+        &lt;p role="alert"&gt;{{ errors().amount }}&lt;/p&gt;
+      }
+      &lt;button type="submit" [disabled]="!isValid()"&gt;Transfer&lt;/button&gt;
+    &lt;/form&gt;
+  `,
+})
+export class TransferFormComponent {
+  protected readonly fromAccount = signal('');
+  protected readonly amount = signal&lt;number | null&gt;(null);
+  protected readonly errors = computed(() =&gt; ({
+    fromAccount: !this.fromAccount().trim() ? 'Please select an account' : null,
+    amount: (this.amount() ?? 0) &lt;= 0 ? 'Amount must be greater than zero' : null,
+  }));
+  protected readonly isValid = computed(() =&gt;
+    Object.values(this.errors()).every((e) =&gt; e === null),
+  );
+  protected submit(): void { if (!this.isValid()) return; }
+}</code></pre>
+
+  <pre><code>// @defer — replaces AngularJS ng-if lazy pattern
+@defer (on viewport) {
+  &lt;app-spending-chart [data]="chartData()" /&gt;
+} @placeholder {
+  &lt;div class="chart-skeleton" aria-busy="true"&gt;Loading chart…&lt;/div&gt;
+} @error {
+  &lt;p&gt;Chart could not load.&lt;/p&gt;
+}</code></pre>
+
+  <!-- Recommended Architecture -->
+  <h4>Recommended Migration Architecture — Best Way</h4>
+  <div class="diagram-block">┌─────────────────────────────────────────────────────────────────────┐
+│         RECOMMENDED: NX + AI-ASSISTED + FEATURE FLAGS               │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  MONTH 1–2: Foundation                                              │
+│  ─────────────────────                                              │
+│  ✓ Create Nx workspace: shell, banking-legacy, banking-ng21         │
+│  ✓ Module Federation wired: shell is host, ng21 is remote           │
+│  ✓ Shared libs: models, auth, UI tokens                             │
+│  ✓ Run automated codemods (ng update, control-flow migration)       │
+│  ✓ Feature flag service in shell                                    │
+│                                                                     │
+│  MONTH 2–4: AI-Powered Feature Migration                            │
+│  ──────────────────────────────────────                             │
+│  ✓ Copilot converts controllers → standalone components             │
+│  ✓ Copilot converts services → @Injectable with signals             │
+│  ✓ Copilot generates Vitest specs for every migrated file           │
+│  ✓ Each migrated feature toggled ON for internal staff first        │
+│  ✓ Shell toggle visible to users who opt in to "New Experience"     │
+│                                                                     │
+│  MONTH 4–6: Cutover                                                 │
+│  ─────────────────────                                              │
+│  ✓ New customers default to Angular 21 experience                   │
+│  ✓ Existing customers opt-in (or auto-migrated in waves)            │
+│  ✓ Monitoring: compare error rates old vs new per feature           │
+│  ✓ Kill switch: one signal flip rolls everyone back to legacy       │
+│                                                                     │
+│  MONTH 6+: Decommission                                             │
+│  ──────────────────────                                             │
+│  ✓ 100% traffic on Angular 21                                       │
+│  ✓ Remove banking-legacy app from Nx workspace                      │
+│  ✓ Remove iframe bridge and legacy-frame component                  │
+│  ✓ Remove AngularJS bundle — save 100–150KB from initial load       │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘</div>
+
+  <!-- Complete Checklist -->
+  <h4>Complete Migration Checklist</h4>
+  <table>
+    <thead><tr><th>Task</th><th>Strategy</th><th>Angular Version</th><th>Done?</th></tr></thead>
+    <tbody>
+      <tr><td colspan="4"><strong>Foundation</strong></td></tr>
+      <tr><td>Create Nx workspace with shell + legacy + ng21 apps</td><td>Nx MFE</td><td>—</td><td>☐</td></tr>
+      <tr><td>Configure Module Federation (host + remote)</td><td>Nx MFE</td><td>17+</td><td>☐</td></tr>
+      <tr><td>Create shared-models, shared-auth, shared-ui libs</td><td>All</td><td>—</td><td>☐</td></tr>
+      <tr><td>Add feature flag service to shell</td><td>Nx MFE</td><td>Any</td><td>☐</td></tr>
+      <tr><td>Run <code>ng update</code> automated codemods</td><td>All</td><td>21</td><td>☐</td></tr>
+      <tr><td>Run <code>@angular/codemod</code> control-flow migration</td><td>All</td><td>17+</td><td>☐</td></tr>
+      <tr><td colspan="4"><strong>AI-Assisted Conversion</strong></td></tr>
+      <tr><td>Catalogue all controllers, services, directives</td><td>AI</td><td>—</td><td>☐</td></tr>
+      <tr><td>Copilot-convert controllers → standalone components</td><td>AI</td><td>21</td><td>☐</td></tr>
+      <tr><td>Copilot-convert services → @Injectable + signals</td><td>AI</td><td>21</td><td>☐</td></tr>
+      <tr><td>Copilot-generate Vitest specs (≥80% coverage gate)</td><td>AI</td><td>—</td><td>☐</td></tr>
+      <tr><td colspan="4"><strong>Modern Angular 21 Patterns</strong></td></tr>
+      <tr><td>Replace <code>$scope</code> → <code>signal()</code></td><td>All</td><td>16+</td><td>☐</td></tr>
+      <tr><td>Replace <code>$watch</code> → <code>computed()</code> / <code>effect()</code></td><td>All</td><td>16+</td><td>☐</td></tr>
+      <tr><td>Replace <code>ngModel</code> → signal forms</td><td>All</td><td>21</td><td>☐</td></tr>
+      <tr><td>Replace <code>*ngIf</code> / <code>*ngFor</code> → <code>@if</code> / <code>@for</code></td><td>All</td><td>17+</td><td>☐</td></tr>
+      <tr><td>Replace <code>@Input()</code> / <code>@Output()</code> → <code>input()</code> / <code>output()</code></td><td>All</td><td>17+</td><td>☐</td></tr>
+      <tr><td>Replace constructor injection → <code>inject()</code></td><td>All</td><td>14+</td><td>☐</td></tr>
+      <tr><td>Add <code>@defer</code> blocks for non-critical UI</td><td>All</td><td>17+</td><td>☐</td></tr>
+      <tr><td>Enable <code>ChangeDetectionStrategy.OnPush</code> on all components</td><td>All</td><td>Any</td><td>☐</td></tr>
+      <tr><td colspan="4"><strong>Cutover &amp; Cleanup</strong></td></tr>
+      <tr><td>Enable feature flags: internal → beta → all users</td><td>Nx MFE</td><td>—</td><td>☐</td></tr>
+      <tr><td>Enable SSR + hydration</td><td>All</td><td>17+</td><td>☐</td></tr>
+      <tr><td>Remove iframe bridge and legacy-frame component</td><td>Nx MFE</td><td>—</td><td>☐</td></tr>
+      <tr><td>Remove banking-legacy app from Nx workspace</td><td>Nx MFE</td><td>—</td><td>☐</td></tr>
+      <tr><td>Remove <code>@angular/upgrade</code> (if used)</td><td>ngUpgrade</td><td>—</td><td>☐</td></tr>
+      <tr><td>Remove AngularJS bundle (saves ~100–150KB)</td><td>All</td><td>—</td><td>☐</td></tr>
+    </tbody>
+  </table>
+
+  <hr />
+
+  <!-- ============================================================ -->
+  <!-- SECTION 7 -->
+  <!-- ============================================================ -->
+  <h2 id="s7">7. Resources</h2>
+  <table>
+    <thead><tr><th>Resource</th><th>URL</th><th>What it covers</th></tr></thead>
+    <tbody>
+      <tr><td>Angular Official Docs</td><td><a href="https://angular.dev">angular.dev</a></td><td>Latest Angular 21 APIs</td></tr>
+      <tr><td>NgRx Docs</td><td><a href="https://ngrx.io">ngrx.io</a></td><td>State management</td></tr>
+      <tr><td>Module Federation</td><td><a href="https://webpack.js.org/concepts/module-federation">webpack.js.org</a></td><td>MFE setup</td></tr>
+      <tr><td>@angular-architects/mf</td><td><a href="https://github.com/angular-architects/module-federation-plugin">github.com/angular-architects</a></td><td>Angular MFE toolkit</td></tr>
+      <tr><td>Atomic Design</td><td><a href="https://atomicdesign.bradfrost.com">atomicdesign.bradfrost.com</a></td><td>Design system structure</td></tr>
+      <tr><td>C4 Model</td><td><a href="https://c4model.com">c4model.com</a></td><td>Architecture diagrams</td></tr>
+      <tr><td>12-Factor App</td><td><a href="https://12factor.net">12factor.net</a></td><td>App methodology</td></tr>
+      <tr><td>Refactoring Guru</td><td><a href="https://refactoring.guru/design-patterns">refactoring.guru</a></td><td>GoF patterns with examples</td></tr>
+      <tr><td>NgRx Signal Store</td><td><a href="https://ngrx.io/guide/signals">ngrx.io/guide/signals</a></td><td>Signal-based state</td></tr>
+      <tr><td>Mermaid Diagrams</td><td><a href="https://mermaid.js.org">mermaid.js.org</a></td><td>Code-based diagramming</td></tr>
+      <tr><td>Strangler Fig Pattern</td><td><a href="https://martinfowler.com/bliki/StranglerFigApplication.html">martinfowler.com</a></td><td>Migration strategy</td></tr>
+    </tbody>
+  </table>
+
+  <footer>
+    Document generated with AI assistance — Sudeep Parchure, May 2026 &nbsp;|&nbsp; Angular Solutions Architect
+  </footer>
+
+</body>
+</html>
