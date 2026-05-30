@@ -1043,6 +1043,7 @@ Output a single bash script I can run end-to-end.
 > Security is not a phase — it is a constraint that runs through every other phase. These questions must be answered in parallel with strategy selection (Section 2), not after it. A migration that improves the UI but degrades security posture is a net negative.
 
 > 🔗 **This section covers security strategy** — the discovery questions you must answer before writing code. Security in this guide spans three sections with different purposes:
+>
 > - **Here (Part 1, Q21–Q27):** Strategy Q&A — What risks do we have? What are our OWASP exposure points? What patterns should we choose?
 > - **[Section 3.7 — Security LLD](#37--security-lld--implementing-the-security-architecture):** Implementation code — the Angular 21 auth service, HTTP interceptors, and route guards that put Q21–Q27 decisions into practice.
 > - **[Section 6.2 — HTTP Token & Cookie Strategy](#62--security-http-token--cookie-strategy):** Architecture Decision Record — token storage options, risk matrix, and the recommended hybrid BFF pattern.
@@ -1509,6 +1510,138 @@ Perform a security review covering:
 
 Rate each risk: Critical / High / Medium / Low / None.
 Provide a fix for every finding rated Medium or above.
+```
+
+---
+
+## Section 7: TypeScript Type System — Extracting Interfaces, Types, Generics & Enums
+
+> **AngularJS is JavaScript** — there are no interfaces, types, generics, or enums. Every data shape is implicit: `$http` responses are `any`, `$scope` properties are typed as "whatever was last assigned to them", and constants are plain objects with string values. Before writing a single line of Angular 21, you must extract these implicit contracts into explicit TypeScript. The questions below drive that extraction process.
+
+> 🔗 **Cross-reference:** These questions identify *what* to extract. The implementation patterns (how to write interfaces, enums, generics, and `Record` types in code) are covered in **[Section 3.12 — TypeScript Type System Migration](#312--typescript-type-system-migration-interfaces-types-generics-records--enums)**.
+
+---
+
+### Q28 — Where are the implicit data shapes hiding in our AngularJS app, and how do we extract them as TypeScript interfaces?
+
+> **Goal:** Produce a `libs/shared-models/` library containing a TypeScript interface for every domain entity (Account, Transaction, UserProfile, Merchant, etc.) before component migration starts. These interfaces type every `httpResource<T>()`, `signal<T>()`, and `inject<T>()` in the migrated app.
+
+```markdown
+# Audit AngularJS Data Shapes for TypeScript Interface Extraction
+
+Analyse the AngularJS 1.8 codebase and extract TypeScript interfaces from every implicit data contract.
+
+**Find implicit shapes in these sources:**
+1. `$http.get('/api/...')` → `.then(function(r) { $scope.data = r.data; })` — what properties does r.data have?
+2. `$scope.*` assignments — what properties are assigned, and what are their inferred types?
+3. `ng-repeat="item in items"` — what is the shape of `item`?
+4. Service return values — what does `ServiceName.getX()` return?
+5. Form models — `$scope.formData = {}` built up with `formData.name`, `formData.email`, etc.
+
+**For each shape found:**
+- Infer a name from context (e.g., Account, Transaction, UserProfile)
+- List every property with its TypeScript type
+- Mark optional fields (conditionally assigned or sometimes absent in API responses) with `?`
+- Mark fields that are explicitly set to null as `T | null`
+- Flag any field where the type cannot be inferred as `unknown` (needs API schema review)
+
+**Output:** TypeScript interfaces ready to place in `libs/shared-models/src/lib/`.
+```
+
+**Where implicit data shapes hide in a 100-screen banking app:**
+
+| AngularJS Source | Where to look | Expected interface |
+|---|---|---|
+| `$http.get('/api/accounts')` | AccountListCtrl, AccountService | `Account` |
+| `ng-repeat="txn in transactions"` | TransactionCtrl, transaction template | `Transaction` |
+| `$scope.formData = {}` on forms | Any form controller | `AccountForm`, `PaymentForm` |
+| `$http.post('/api/payments', data)` | Payment controllers | `PaymentRequest`, `PaymentResponse` |
+| `.constant('CONFIG', {...})` | App module constants | Config type alias |
+| `$scope.user` from AuthService | Auth/session controllers | `UserProfile` |
+| `ng-repeat="permission in permissions"` | RBAC controllers | `Permission` |
+
+---
+
+### Q29 — How do we identify and migrate AngularJS magic strings and constant objects to TypeScript enums or string literal unions?
+
+> **Goal:** Zero magic strings in the migrated codebase. Every status value, role name, permission key, and route constant should be a named TypeScript type that the compiler validates at every point of use.
+
+```markdown
+# Audit AngularJS Constants and Magic Strings for TypeScript Enum Migration
+
+Scan the codebase for patterns that should become TypeScript enums or string literal unions:
+
+1. `.constant('AccountStatus', { ACTIVE: 'active', DORMANT: 'dormant' })` → `enum AccountStatus`
+2. `if ($scope.account.status === 'pending') { ... }` repeated in multiple files → string literal union
+3. `$stateParams.tab` values — one of a fixed set of strings → string literal union `type TabId`
+4. Role checks in templates: `ng-if="user.role === 'admin'"` → `enum UserRole`
+5. HTTP error status branches: `if (error.status === 403)` in multiple places → numeric literal union
+6. Event name strings: `$rootScope.$broadcast('user:logout')` → string constants object
+
+**For each pattern found, recommend the right TypeScript construct:**
+- Fixed, closed set used in runtime switch/if AND iterated with Object.values → `enum`
+- Fixed, closed set serialised over HTTP (JSON) and only used for type checking → string literal `type`
+- Numeric ordinal semantics → numeric `enum`
+- Compile-time constant, never iterated at runtime → `const enum`
+
+**Output:** TypeScript enums and type aliases for `libs/shared-models/src/lib/enums/`.
+```
+
+---
+
+### Q30 — What is the strategy for applying generics to Angular 21 services, signals, and `httpResource` calls?
+
+> **Goal:** Every `httpResource`, `signal`, `computed`, and service method declares an explicit type parameter. No implicit `any`. No `unknown` without justification.
+
+```markdown
+# TypeScript Generics Strategy for Angular 21 Migration
+
+For every service and data-loading pattern being migrated, identify where generics apply:
+
+1. `httpResource<T>()` — what interface T does each HTTP endpoint return?
+2. `signal<T>()` — what is the correct type for each piece of component state?
+3. `computed<T>()` — is the return type correctly inferred, or does it need an explicit generic?
+4. `HttpClient.get<T>()` — if not using httpResource, is the HTTP client call typed?
+5. Generic services — can a service accept a type parameter to serve multiple entity types?
+6. API response wrappers — does every response come wrapped in `{ data: T, meta: Pagination }`?
+
+**For each AngularJS service being migrated:**
+- State the current untyped return value (typically `any` or bare `$http` promise)
+- Provide the Angular 21 typed equivalent with correct generic parameter
+- Flag any remaining `any` or `unknown` and explain why it could not be typed
+
+**Goal:** Zero `any` in `libs/shared-models/` and `libs/shared-auth/`. Allow `any` only in
+migration shims with an eslint-disable comment and a linked TODO tracking ticket.
+```
+
+---
+
+### Q31 — When should we use `interface` vs `type` vs `Record<K,V>` vs `enum` in the migrated codebase?
+
+> **Goal:** A documented, consistent decision framework so every pull request follows the same choices — no repeated `type` vs `interface` debates in code review.
+
+```markdown
+# TypeScript Type Construct Selection Rules for the Migrated Codebase
+
+Apply these rules when choosing a TypeScript construct. Add this to the team's coding standards.
+
+**Decision rules:**
+- `interface` — object shapes that may be extended via `extends` or implemented by classes
+- `type` — unions, intersections, utility types (Partial<T>, Pick<T,K>), and shapes never extended
+- `Record<K, V>` — homogeneous key→value maps; replaces `{ [key: string]: V }` anti-pattern
+- `enum` — named constants with a closed value set; use string values to match API strings
+- String literal union `'a' | 'b' | 'c'` — closed string sets serialised over HTTP (safer than enum with JSON)
+- `const enum` — performance-critical constants inlined at compile time; no runtime object generated
+- `class` — only for Angular services, components, and anything instantiated by the DI container
+
+**Audit for these anti-patterns and list every instance:**
+- `any` → correct interface or generic parameter
+- `{}` used as a map → `Record<string, T>`
+- `Object` type → `Record<string, unknown>` or a named interface
+- Repeated identical inline object shapes → named `interface` in shared-models
+- String compared with `=== 'magic-string'` in 3+ places → enum or string literal union
+
+Output a prioritised list of every anti-pattern instance found, with the recommended fix.
 ```
 
 ---
@@ -3423,6 +3556,7 @@ export class GoodExampleComponent {
 ## 3.7 — Security LLD — Implementing the Security Architecture
 
 > 🔗 **This section covers implementation code** — the Angular 21 patterns that implement the security architecture. Security spans three sections:
+>
 > - **[Part 1, Q21–Q27](#section-6-web-security-authentication--authorisation):** Strategy — OWASP risk questions, XSS/CSRF decision framework, JWT/OAuth2 approach.
 > - **Here (Section 3.7):** Implementation — auth service, HTTP interceptors, route guards in Angular 21 code.
 > - **[Section 6.2 — HTTP Token & Cookie Strategy](#62--security-http-token--cookie-strategy):** ADR — storage options comparison, risk profiles, BFF recommendation.
@@ -4447,7 +4581,7 @@ _**Part 3 complete.** The LLD covers the code-level patterns for every AngularJS
 
 ### 3.11.1 — `httpResource()` and `resource()` — Declarative Reactive HTTP (Angular 21 Stable)
 
-**What is this feature?** `httpResource()` and `resource()` are built-in Angular 21 functions that create a *reactive data object* — a bundle containing the fetched data, a loading state, and an error state, all as separate signals that update automatically.
+**What is this feature?** `httpResource()` and `resource()` are built-in Angular 21 functions that create a _reactive data object_ — a bundle containing the fetched data, a loading state, and an error state, all as separate signals that update automatically.
 
 **What does it do?** Calling `httpResource('/api/accounts')` returns an object with four signals: `value()` (the data), `isLoading()` (boolean), `error()` (any error), and a `reload()` method to manually trigger a refresh. When you pass a signal-based URL or request body, Angular automatically cancels any in-flight request and starts a new one whenever the signal changes. `resource()` is the same concept for any async operation — IndexedDB, Web Workers, custom `Promise` — not just HTTP.
 
@@ -4781,7 +4915,7 @@ isAdminUser = currentUser?.roles?.includes('admin') ?? false; @if (currentUser) 
 
 ### 3.11.4 — `afterRender()` and `afterNextRender()` — Browser-Only Lifecycle Hooks
 
-**What is this feature?** `afterRender()` and `afterNextRender()` are Angular lifecycle hooks that register callback functions to execute *after the browser has finished painting the component*, and that are automatically skipped when running on the server (SSR).
+**What is this feature?** `afterRender()` and `afterNextRender()` are Angular lifecycle hooks that register callback functions to execute _after the browser has finished painting the component_, and that are automatically skipped when running on the server (SSR).
 
 **What does it do?** `afterNextRender(fn)` runs `fn` exactly once — after the very first browser render cycle. Use it for one-time DOM setup (chart initialisation, scroll position reset, measuring layout). `afterRender(fn)` runs `fn` after every subsequent render cycle. Use it to keep third-party DOM libraries in sync with Angular state. Both are called in the constructor (injection context) and neither requires implementing a lifecycle interface. Both are no-ops during server-side rendering, so no `isPlatformBrowser()` guards are needed.
 
@@ -4879,7 +5013,7 @@ constructor() {
 
 **What does it do?** `untracked(() => mySignal())` reads `mySignal`'s current value at that instant and returns it, but the enclosing `computed()` or `effect()` will NOT re-run when `mySignal` changes in the future. It is a one-time snapshot read, not a subscription.
 
-**What problem does it resolve?** In Angular's reactive model, every signal read inside `effect()` or `computed()` automatically subscribes to that signal. This is usually desirable, but creates a dangerous trap: if an effect reads a signal and then *writes to that same signal* (or writes to a signal that feeds back), you get an infinite reactive loop. AngularJS had the same `$watch` trap — watchers that modified watched properties caused `$digest` to loop. `untracked()` is the escape hatch: read a signal's value without joining the reactive graph, breaking the loop.
+**What problem does it resolve?** In Angular's reactive model, every signal read inside `effect()` or `computed()` automatically subscribes to that signal. This is usually desirable, but creates a dangerous trap: if an effect reads a signal and then _writes to that same signal_ (or writes to a signal that feeds back), you get an infinite reactive loop. AngularJS had the same `$watch` trap — watchers that modified watched properties caused `$digest` to loop. `untracked()` is the escape hatch: read a signal's value without joining the reactive graph, breaking the loop.
 
 ```typescript
 import { Component, signal, computed, effect, untracked } from '@angular/core';
@@ -5381,7 +5515,484 @@ _**Section 3.11 complete.** Angular 21.x exclusive APIs: `httpResource()`, `reso
 
 ---
 
-_**Part 3 complete.** The LLD covers the code-level patterns for every AngularJS artefact type: controllers → components, services → injectables, directives → components/directives/pipes, filters → pipes, route guards, Nx library structure, signal pattern mapping, security implementation, global state migration, i18n migration, RxJS migration strategy, and Angular 21.x exclusive modern APIs._
+## 3.12 — TypeScript Type System Migration: Interfaces, Types, Generics, Records & Enums
+
+> **AngularJS runs on plain JavaScript** — there are no interfaces, generics, enums, or `Record` types. Every data contract is implicit: a `$http` response is `any`, a `$scope` property is "whatever was last assigned", and status constants are plain objects with string values. This section is the implementation counterpart to the discovery questions in **[Part 1 Section 7](#section-7-typescript-type-system--extracting-interfaces-types-generics--enums)**. It covers how to extract every implicit contract into TypeScript during migration.
+>
+> Done correctly, this is a one-time investment that pays dividends across all 100+ screens: every `httpResource<Account[]>()`, every `signal<Transaction | null>()`, and every `Record<AccountId, Balance>` becomes self-documenting, catches breaking API changes at compile time, and eliminates entire classes of runtime bugs.
+
+---
+
+### 3.12.1 — Extracting Interfaces from AngularJS Data Shapes
+
+AngularJS stored all data in `$scope` and `$http` responses as untyped JavaScript objects. The migration begins by reading those runtime shapes and converting them to TypeScript interfaces.
+
+**What is this pattern?** The process of reading `$scope` assignments, `$http` response usages, and `ng-repeat` item references to infer the shape of each domain object, then writing an explicit `interface` in `libs/shared-models/`.
+
+**What does it do?** Once an interface exists, it types every `httpResource<T>()`, `signal<T>()`, `computed<T>()`, and template expression that references that entity. TypeScript reports an error immediately when an API change removes or renames a field.
+
+**What problem does it resolve?** In AngularJS, a backend renaming `account.accountNo` to `account.accountNumber` causes a silent runtime bug — the template renders blank and no error is thrown. With TypeScript interfaces, that same change causes a compile error at every reference point across all 100+ screens, in all tests, before a single line reaches production.
+
+```typescript
+// ─── AngularJS (implicit shape — no types anywhere) ───
+.controller('AccountListCtrl', ['$scope', '$http', function ($scope, $http) {
+  $scope.accounts = [];                    // type: any[]
+  $http.get('/api/accounts').then(function (response) {
+    $scope.accounts = response.data;       // response.data: any
+    // Properties used in template: account.id, account.accountNumber,
+    //   account.balance, account.status, account.currency
+    // Shape only known from API docs — or by running the app
+  });
+}]);
+
+// ─── Step 1: Write the interface ─── (libs/shared-models/src/lib/account.interface.ts)
+export interface Account {
+  id: string;
+  accountNumber: string;
+  accountType: AccountType;             // ← string literal union (see 3.12.2)
+  balance: number;
+  currency: string;                     // ISO 4217 code: 'GBP' | 'USD' | 'EUR'
+  status: AccountStatus;                // ← enum (see 3.12.2)
+  ownerId: string;
+  overdraftLimit: number | null;        // null for SAVINGS/ISA — not undefined
+  nickname?: string;                    // optional — server may omit this key
+  createdAt: string;                    // ISO 8601 date string
+  closedAt: string | null;              // null while account is open
+}
+
+// ─── Step 2: Use interface in Angular 21 component ───
+import { httpResource } from '@angular/core';
+import { Account } from '@banking/shared-models';
+
+@Component({ /* ... */ })
+export class AccountListComponent {
+  // T = Account[] — value(), error(), isLoading() all fully typed
+  protected readonly accountsResource = httpResource<Account[]>('/api/accounts');
+}
+```
+
+**Nullable vs optional — the key distinction:**
+
+```typescript
+// null     — the server sends the key with a null value:     { "closedAt": null }
+// optional — the server omits the key entirely:               { "id": "123" }    (no "nickname" key)
+
+export interface Account {
+  closedAt: string | null;    // ✅ Always present in JSON, value is null or an ISO date
+  nickname?: string;          // ✅ Key may not exist at all in the JSON response
+}
+
+// NEVER use undefined for API values — JSON.stringify strips undefined keys.
+// undefined is for function parameters and truly absent values in TypeScript logic.
+```
+
+**Nested interfaces — inline vs named:**
+
+```typescript
+// AngularJS: $scope.transaction.merchant.name, $scope.transaction.merchant.category
+// Choose: inline (tightly coupled, small) vs named (reusable)
+
+// Option A — Inline (acceptable for shapes used only inside one parent)
+export interface Transaction {
+  id: string;
+  amount: number;
+  merchant: { id: string; name: string; category: string; };
+}
+
+// Option B — Named child interface (recommended when shape appears in multiple parents)
+export interface Merchant {
+  id: string;
+  name: string;
+  category: MerchantCategory;    // ← string literal union
+}
+
+export interface Transaction {
+  id: string;
+  amount: number;
+  merchant: Merchant;            // ✅ Reusable — Merchant imported by StandingOrder, etc.
+}
+```
+
+**Generic API response wrappers — one interface for every paginated endpoint:**
+
+```typescript
+// Most banking APIs wrap responses: { data: T, meta: { total, page } }
+// Define once in shared-models and use everywhere:
+
+export interface ApiResponse<T> {
+  data: T;
+  errors: ApiError[];
+}
+
+export interface PagedResponse<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  hasNextPage: boolean;
+}
+
+// Usage:
+protected readonly transactionsResource = httpResource<PagedResponse<Transaction>>(
+  () => `/api/accounts/${this.accountId()}/transactions?page=${this.page()}`
+);
+// ✅ transactionsResource.value()?.items        — inferred as Transaction[]
+// ✅ transactionsResource.value()?.totalCount   — inferred as number
+// ✅ transactionsResource.value()?.hasNextPage  — inferred as boolean
+```
+
+---
+
+### 3.12.2 — Enums and String Literal Unions: Replacing Magic Strings
+
+AngularJS codebases are full of magic strings — status flags, role names, permission keys, event names — scattered across controllers, services, and templates with no compiler enforcement. A typo (`'Frozen'` vs `'frozen'`) compiles fine and only fails at runtime.
+
+**What is this pattern?** The process of finding every repeated string constant in the AngularJS codebase and replacing it with a TypeScript `enum` (runtime object) or string literal union (compile-time only), depending on usage.
+
+**What does it do?** After the migration, every status comparison (`account.status === AccountStatus.Frozen`) is validated by TypeScript. If `AccountStatus.Frozen` doesn't exist, it's a compile error — not a silent runtime bug.
+
+**What problem does it resolve?** AngularJS `.constant()` blocks and inline object literals (`var Status = { ACTIVE: 'active' }`) provide no IDE autocomplete, no compiler validation, and no guarantee the same string is used consistently. In a 100-screen app, the same status string appears in dozens of controllers and templates — any inconsistency is a runtime defect.
+
+```javascript
+// ─── AngularJS magic string patterns to migrate ───
+
+// Pattern 1: .constant() — the intended solution, but no TypeScript awareness
+.constant('AccountStatus', { ACTIVE: 'active', DORMANT: 'dormant', CLOSED: 'closed' });
+
+// Pattern 2: Inline magic strings — the actual pattern in most codebases
+if ($scope.account.status === 'active') { /* ... */ }
+if ($scope.account.status === 'Frozen') { /* TYPO — will never match 'frozen' */ }
+
+// Pattern 3: Role checks in templates (no autocomplete, no compiler check)
+// ng-if="user.role === 'admin'"
+// ng-if="user.role === 'relationship-manger'"  ← typo, silent fail
+```
+
+**Migration: Choose the right TypeScript construct:**
+
+```typescript
+// ─── libs/shared-models/src/lib/enums/account-status.enum.ts ───
+
+// Option A: String enum
+// ✅ Use when: values must match exact API strings AND you need Object.values() at runtime
+export enum AccountStatus {
+  Active  = 'active',
+  Dormant = 'dormant',
+  Closed  = 'closed',
+  Frozen  = 'frozen',
+}
+// AccountStatus.Active  === 'active'  — true (string enum values are the strings themselves)
+// Object.values(AccountStatus)        — ['active', 'dormant', 'closed', 'frozen']
+
+// Option B: String literal union
+// ✅ Use when: values are serialised to/from JSON AND never iterated at runtime
+export type AccountStatusType = 'active' | 'dormant' | 'closed' | 'frozen';
+// Zero runtime output — purely a compile-time constraint
+// Assigned directly from JSON: const status: AccountStatusType = apiResponse.status;
+
+// Option C: const enum
+// ✅ Use when: compile-time constant, never iterated, performance matters
+export const enum AccountTier {
+  Standard = 'STANDARD',
+  Silver   = 'SILVER',
+  Gold     = 'GOLD',
+  Platinum = 'PLATINUM',
+}
+// Compiler inlines the value everywhere — no runtime object generated
+
+// Decision guide:
+// Serialised to/from JSON AND iterated at runtime  → string enum
+// Serialised to/from JSON, NOT iterated            → string literal union (safer)
+// Numeric ordinal (1st, 2nd, 3rd)                  → numeric enum
+// Compile-time constant only                        → const enum
+```
+
+**Using string enums in Angular 21 templates with `@switch`:**
+
+```typescript
+@Component({
+  selector: 'app-account-status-badge',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    @switch (status()) {
+      @case (AccountStatus.Active)  { <span class="text-green-700">Active</span>  }
+      @case (AccountStatus.Frozen)  { <span class="text-red-700">Frozen</span>    }
+      @case (AccountStatus.Dormant) { <span class="text-amber-700">Dormant</span> }
+      @case (AccountStatus.Closed)  { <span class="text-neutral-500">Closed</span> }
+    }
+  `,
+})
+export class AccountStatusBadgeComponent {
+  readonly status = input.required<AccountStatus>();
+  protected readonly AccountStatus = AccountStatus;  // expose enum to template
+}
+```
+
+**Role-based access using enums (replacing ng-if magic strings):**
+
+```typescript
+// libs/shared-auth/src/lib/user-role.enum.ts
+export enum UserRole {
+  Admin               = 'admin',
+  RelationshipManager = 'relationship-manager',
+  CustomerService     = 'customer-service',
+  ReadOnly            = 'read-only',
+}
+
+// Route guard — no magic strings
+export const adminGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  return auth.userRole() === UserRole.Admin
+    ? true
+    : inject(Router).createUrlTree(['/unauthorised']);
+};
+
+// Template — no magic strings
+// @if (auth.userRole() === UserRole.Admin) { <app-admin-panel /> }
+```
+
+---
+
+### 3.12.3 — Generics: Making Signals, Services, and Resources Type-Safe
+
+**What is this pattern?** Adding explicit type parameters (`<T>`) to every Angular 21 reactive API and service method so that the compiler tracks what type of data flows through each signal, resource, and service call.
+
+**What does it do?** `httpResource<Account[]>('/api/accounts')` tells TypeScript that `value()` returns `Account[] | undefined` and `error()` returns `unknown`. Every template expression and computed signal that reads from this resource is then typed — no casting, no `any`.
+
+**What problem does it resolve?** In AngularJS, all data is `any` — the compiler never checks that you are passing the right shape to the right template. When an API adds a field, nothing tells you which components benefit from it. When an API removes a field, nothing tells you which templates will break. Generics make these changes visible at compile time.
+
+```typescript
+// ─── signal<T>() — always specify the type parameter ───
+// AngularJS: $scope.selectedAccount = null;
+const selectedAccount = signal<Account | null>(null);
+//                              ↑ T = Account | null — TypeScript knows the full shape
+
+// ─── computed<T>() — usually inferred; explicit when type is complex ───
+const accountBalance = computed<number>(() => selectedAccount()?.balance ?? 0);
+// ↑ explicit generic not required here (TypeScript infers number) but clarifies intent
+
+const activeAccounts = computed<Account[]>(() =>
+  accountsResource.value()?.filter(a => a.status === AccountStatus.Active) ?? []
+);
+
+// ─── httpResource<T>() — always type the response ───
+protected readonly accountsResource = httpResource<Account[]>('/api/accounts');
+//                                                  ↑ T = Account[]
+// accountsResource.value()       → Account[] | undefined
+// accountsResource.isLoading()   → boolean
+// accountsResource.error()       → unknown
+
+// httpResource with PagedResponse wrapper:
+protected readonly txnResource = httpResource<PagedResponse<Transaction>>(
+  () => `/api/accounts/${this.accountId()}/transactions`
+);
+// txnResource.value()?.items      → Transaction[]
+// txnResource.value()?.totalCount → number
+
+// ─── Generic injectable service — replacing untyped AngularJS factories ───
+@Injectable({ providedIn: 'root' })
+export class EntityCacheService<T extends { id: string }> {
+  private readonly cache = signal<Record<string, T>>({});
+
+  set(entity: T): void {
+    this.cache.update(current => ({ ...current, [entity.id]: entity }));
+  }
+
+  get(id: string): T | undefined {
+    return this.cache()[id];
+  }
+
+  getAll(): T[] {
+    return Object.values(this.cache());
+  }
+}
+
+// Usage — type-safe per entity:
+const accountCache = inject(EntityCacheService<Account>);
+const txnCache     = inject(EntityCacheService<Transaction>);
+// accountCache.get('acc-001')  → Account | undefined  (not any)
+// txnCache.get('txn-001')      → Transaction | undefined
+```
+
+**Generic error handling — typed HTTP errors:**
+
+```typescript
+export interface ApiError {
+  code: string;           // e.g. 'INSUFFICIENT_FUNDS', 'ACCOUNT_FROZEN'
+  message: string;
+  field?: string;         // present for validation errors
+  severity: 'error' | 'warning' | 'info';
+}
+
+// httpResource error is typed via the T-generic on the resource:
+@Component({ /* ... */ })
+export class PaymentComponent {
+  protected readonly paymentResource = httpResource<PaymentResponse>({
+    url: () => '/api/payments',
+    method: 'POST',
+    body: () => this.buildPaymentRequest(),
+  });
+
+  protected get apiErrors(): ApiError[] {
+    const err = this.paymentResource.error();
+    // Cast from unknown — acceptable at API boundary only
+    return (err as { errors?: ApiError[] })?.errors ?? [];
+  }
+}
+```
+
+---
+
+### 3.12.4 — `Record<K, V>`: Replacing Plain Object Maps
+
+AngularJS codebases frequently use plain objects as hash maps — `{}` indexed by a dynamic key with no type safety on either key or value. TypeScript's `Record<K, V>` gives these maps a precise type and validates both key and value at every access.
+
+**What is this pattern?** Replacing every `var map = {}` lookup table, index map, feature flag object, and key→value store with `Record<K, V>` so the compiler knows what types the keys and values must be.
+
+**What does it do?** `Record<string, Account>` tells TypeScript that every value is an `Account`. `Record<ColumnId, boolean>` tells TypeScript that every key must be one of the `ColumnId` string literal values — a typo in a key name is a compile error.
+
+**What problem does it resolve?** In AngularJS, `accountsById['acc-001']` returns `any` — you can call `.balance` or `.balnce` and neither is a compile error. After migration to `Record<string, Account>`, `accountsById['acc-001']?.balnce` is a compile error.
+
+```typescript
+// ─── Account lookup map: id → Account ───
+// AngularJS: var accountsById = {};  // { [id]: account object }
+// Angular 21:
+const accountsById = signal<Record<string, Account>>({});
+
+// Build from array (computed signal — always in sync with source):
+const accountsResource = httpResource<Account[]>('/api/accounts');
+const accountsLookup = computed<Record<string, Account>>(() =>
+  Object.fromEntries(
+    (accountsResource.value() ?? []).map(a => [a.id, a])
+  )
+);
+// ✅ accountsLookup()['acc-001']         — inferred as Account | undefined
+// ✅ accountsLookup()['acc-001']?.balnce — COMPILE ERROR: 'balnce' does not exist
+
+// ─── Feature flags: flag name → boolean ───
+export type FeatureFlags = Record<string, boolean>;
+protected readonly flagsResource = httpResource<FeatureFlags>('/api/feature-flags');
+// flagsResource.value()?.['new-dashboard']  — boolean | undefined
+
+// ─── Constrained key type: only known column IDs are valid keys ───
+export type ColumnId = 'date' | 'description' | 'amount' | 'balance' | 'status';
+export type ColumnVisibility = Record<ColumnId, boolean>;
+
+const columnVisibility = signal<ColumnVisibility>({
+  date: true, description: true, amount: true, balance: true, status: false,
+});
+// columnVisibility().dscription  — COMPILE ERROR: 'dscription' is not a valid key
+// columnVisibility().date        — boolean  ✅
+
+// ─── Form validation errors: field name → error message ───
+export type FormErrors = Partial<Record<keyof AccountForm, string>>;
+//                               ↑ keys are constrained to AccountForm property names
+const errors = signal<FormErrors>({});
+errors.update(e => ({ ...e, accountNumber: 'Account number is required' }));
+// errors().accountNumber  — string | undefined  ✅
+// errors().typoField      — COMPILE ERROR ✅
+```
+
+**`Record<K,V>` vs `Map<K,V>` — when to choose each:**
+
+| Scenario | `Record<K,V>` | `Map<K,V>` |
+|---|---|---|
+| Comes from / goes to a JSON API | ✅ Always | ❌ Map doesn't serialise to JSON |
+| Key is a string literal union (closed set) | ✅ Best choice | Works but less type-safe |
+| Key is a runtime dynamic string | ✅ OK | ✅ Better for large sets |
+| Used in Angular signals (needs immutable update) | ✅ Spread-update works | ✅ But needs `new Map()` to trigger signal |
+| Needs `.forEach()`, `.entries()`, `.size` | ❌ Use `Object.entries()` | ✅ Native iteration |
+| Needs ordered insertion | ❌ | ✅ `Map` preserves insertion order |
+
+---
+
+### 3.12.5 — `interface` vs `type` vs `class` — Decision Guide
+
+AngularJS had no type system, so every TypeScript construct is new to a team coming from AngularJS. This decision guide prevents repeated arguments in code review by documenting the rule for every scenario.
+
+**What is this pattern?** A team-agreed ruleset for which TypeScript construct to use in each situation, applied consistently across all 100+ migrated screens.
+
+**What does it do?** Every piece of code in the migrated app uses the same construct for the same category of data. `interface` for domain entities, `type` for unions and utility types, `Record` for maps, `enum` for status constants, `class` only for DI-managed objects.
+
+**What problem does it resolve?** Teams new to TypeScript frequently use `interface` and `type` interchangeably, leading to inconsistency. In code review, developers waste time debating construct choice rather than business logic. A documented decision guide ends that debate.
+
+```typescript
+// ─── Decision table (add to team's coding-standards.md) ───
+
+// 1. INTERFACE — domain entity shapes that may be extended
+export interface Account { id: string; balance: number; status: AccountStatus; }
+export interface SavingsAccount extends Account { interestRate: number; }  // extends works
+
+// 2. TYPE — unions, intersections, utility types, shapes that will never be extended
+export type AccountStatusType = 'active' | 'dormant' | 'closed';   // union
+export type AccountSummary = Pick<Account, 'id' | 'accountNumber' | 'balance'>;  // utility
+export type AccountOrNull = Account | null;                          // union with null
+
+// 3. RECORD — homogeneous key→value maps (never use { [key: string]: any })
+export type AccountMap = Record<string, Account>;
+export type ColumnVisibility = Record<ColumnId, boolean>;           // constrained keys
+
+// 4. ENUM — named constants with a closed value set (string enum for API values)
+export enum AccountStatus { Active = 'active', Frozen = 'frozen' }
+
+// 5. CONST ENUM — build-time constants (no runtime object, smaller bundle)
+export const enum SortDirection { Asc = 'asc', Desc = 'desc' }
+
+// 6. CLASS — only for DI-managed objects (services, components, guards, interceptors)
+@Injectable({ providedIn: 'root' })
+export class AccountService { /* ... */ }
+
+// Anti-patterns to ban in code review:
+// ❌  any                          → replace with correct interface or generic
+// ❌  {}  (as a type)              → replace with Record<string, unknown> or named interface
+// ❌  Object  (as a type)          → replace with Record<string, unknown>
+// ❌  interface for a union        → type is the correct construct
+// ❌  class for a data-only shape  → interface is the correct construct
+```
+
+**Shared-models barrel export — the single import path for all domain types:**
+
+```typescript
+// libs/shared-models/src/lib/index.ts
+export type { Account }              from './account.interface';
+export type { Transaction }          from './transaction.interface';
+export type { UserProfile }          from './user-profile.interface';
+export type { Merchant }             from './merchant.interface';
+export type { PaymentRequest,
+              PaymentResponse }      from './payment.interface';
+export type { ApiResponse,
+              PagedResponse }        from './api-response.interface';
+export type { FormErrors,
+              ColumnVisibility }     from './ui-state.types';
+export      { AccountStatus }        from './enums/account-status.enum';
+export      { UserRole }             from './enums/user-role.enum';
+export type { AccountStatusType,
+              ColumnId }             from './enums/string-unions';
+
+// Usage in any library or app:
+// import { Account, AccountStatus, PagedResponse } from '@banking/shared-models';
+```
+
+**Tracking `any` elimination as a migration metric:**
+
+```bash
+# Count remaining implicit 'any' types — track this number sprint by sprint
+npx tsc --noEmit 2>&1 | grep "implicitly has an 'any' type" | wc -l
+
+# Target milestones:
+# Sprint 1 (baseline):  ~500 implicit any (all AngularJS interop layer)
+# Sprint 5:             <200 (core domain models typed)
+# Sprint 10:            <50  (services and guards typed)
+# Go-live:              0    (zero any in production code)
+```
+
+---
+
+_**Section 3.12 complete.** TypeScript type system migration: interface extraction from `$scope` and `$http` shapes (3.12.1), enum and string literal union migration from magic strings (3.12.2), generics applied to signals, `httpResource`, and services (3.12.3), `Record<K,V>` replacing plain object maps (3.12.4), and the `interface`/`type`/`class` decision guide (3.12.5)._
+
+---
+
+_**Part 3 complete.** The LLD covers the code-level patterns for every AngularJS artefact type: controllers → components, services → injectables, directives → components/directives/pipes, filters → pipes, route guards, Nx library structure, signal pattern mapping, security implementation, global state migration, i18n migration, RxJS migration strategy, Angular 21.x exclusive modern APIs, and TypeScript type system extraction (interfaces, types, generics, Records, enums)._
 
 ---
 
@@ -7491,6 +8102,7 @@ FINAL SPLIT FOR 120 SCREENS:
 ## 6.2 — Security: HTTP Token & Cookie Strategy
 
 > 🔗 **This section covers the token strategy ADR** — the architectural decision record for how tokens are stored and transmitted. Security spans three sections:
+>
 > - **[Part 1, Q21–Q27](#section-6-web-security-authentication--authorisation):** Strategy — OWASP risk questions, XSS/CSRF/CSRF decision framework.
 > - **[Section 3.7 — Security LLD](#37--security-lld--implementing-the-security-architecture):** Implementation — Angular 21 auth service, interceptors, route guards.
 > - **Here (Section 6.2):** ADR — token storage options, risk matrix, and the recommended BFF hybrid approach.
