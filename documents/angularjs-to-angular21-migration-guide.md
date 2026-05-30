@@ -1042,6 +1042,11 @@ Output a single bash script I can run end-to-end.
 
 > Security is not a phase — it is a constraint that runs through every other phase. These questions must be answered in parallel with strategy selection (Section 2), not after it. A migration that improves the UI but degrades security posture is a net negative.
 
+> 🔗 **This section covers security strategy** — the discovery questions you must answer before writing code. Security in this guide spans three sections with different purposes:
+> - **Here (Part 1, Q21–Q27):** Strategy Q&A — What risks do we have? What are our OWASP exposure points? What patterns should we choose?
+> - **[Section 3.7 — Security LLD](#37--security-lld--implementing-the-security-architecture):** Implementation code — the Angular 21 auth service, HTTP interceptors, and route guards that put Q21–Q27 decisions into practice.
+> - **[Section 6.2 — HTTP Token & Cookie Strategy](#62--security-http-token--cookie-strategy):** Architecture Decision Record — token storage options, risk matrix, and the recommended hybrid BFF pattern.
+
 ---
 
 ### Q21 — What OWASP Top 10 risks are present in our AngularJS app today, and how does migration change the risk surface?
@@ -3417,6 +3422,11 @@ export class GoodExampleComponent {
 
 ## 3.7 — Security LLD — Implementing the Security Architecture
 
+> 🔗 **This section covers implementation code** — the Angular 21 patterns that implement the security architecture. Security spans three sections:
+> - **[Part 1, Q21–Q27](#section-6-web-security-authentication--authorisation):** Strategy — OWASP risk questions, XSS/CSRF decision framework, JWT/OAuth2 approach.
+> - **Here (Section 3.7):** Implementation — auth service, HTTP interceptors, route guards in Angular 21 code.
+> - **[Section 6.2 — HTTP Token & Cookie Strategy](#62--security-http-token--cookie-strategy):** ADR — storage options comparison, risk profiles, BFF recommendation.
+
 This translates the security decisions from Part 1 Section 6 into concrete Angular 21 code patterns.
 
 ### Auth service — memory token storage (most secure SPA pattern)
@@ -4437,7 +4447,11 @@ _**Part 3 complete.** The LLD covers the code-level patterns for every AngularJS
 
 ### 3.11.1 — `httpResource()` and `resource()` — Declarative Reactive HTTP (Angular 21 Stable)
 
-**Why this matters:** Every AngularJS guide shows `$http.get()` converted to `toSignal(this.http.get(...))`. Angular 21 ships `httpResource()` — a first-class reactive HTTP primitive that gives you `value()`, `isLoading()`, `error()`, and `reload()` as signals out of the box. This eliminates the `toSignal + catchError + initialValue` boilerplate that appears 50+ times in a typical migration.
+**What is this feature?** `httpResource()` and `resource()` are built-in Angular 21 functions that create a *reactive data object* — a bundle containing the fetched data, a loading state, and an error state, all as separate signals that update automatically.
+
+**What does it do?** Calling `httpResource('/api/accounts')` returns an object with four signals: `value()` (the data), `isLoading()` (boolean), `error()` (any error), and a `reload()` method to manually trigger a refresh. When you pass a signal-based URL or request body, Angular automatically cancels any in-flight request and starts a new one whenever the signal changes. `resource()` is the same concept for any async operation — IndexedDB, Web Workers, custom `Promise` — not just HTTP.
+
+**What problem does it resolve?** In AngularJS, every `$http.get()` required manually managing `$scope.loading = true/false`, `$scope.error`, and `$scope.data` in separate lines. Angular 21.0 improved this with `toSignal(this.http.get(...).pipe(catchError(), startWith([])))` — but still had no loading signal or error signal without 20+ additional lines of boilerplate. `httpResource()` solves all of that in a single declaration and makes the loading/error/reload lifecycle first-class reactive signals.
 
 **The progression: AngularJS → Angular 21.0 → Angular 21.1+**
 
@@ -4598,7 +4612,11 @@ export class ReportComponent {
 
 ### 3.11.2 — Signal-Based DOM Queries: `viewChild()`, `contentChild()`, `viewChildren()`, `contentChildren()`
 
-**Why this matters:** AngularJS used `angular.element('[selector]')` for DOM access. Angular 14/15 guides show `@ViewChild` decorator. Angular 21 uses function-based signal queries — they return `Signal<T>` and work in templates, `computed()`, and `effect()` natively.
+**What is this feature?** `viewChild()`, `contentChild()`, `viewChildren()`, and `contentChildren()` are function-based Angular 21 query APIs that find DOM elements or child components within a parent, returning the result as a `Signal` instead of a plain class property.
+
+**What does it do?** Each function returns a `Signal<T>` — the queried element or component wrapped in a signal that automatically updates when the queried element enters or leaves the view. `viewChild.required()` returns `Signal<T>` (guaranteed non-null); plain `viewChild()` returns `Signal<T | undefined>`. These signals can be read inside `computed()`, `effect()`, and templates exactly like any other signal — no lifecycle wiring needed.
+
+**What problem does it resolve?** AngularJS used `angular.element()` or jQuery for DOM access — brittle and SSR-incompatible. Angular 14–20 improved this with `@ViewChild` decorators, but those decorators are **not reactive** — you cannot use a `@ViewChild` reference inside `computed()` because it returns `undefined` until `ngAfterViewInit` fires. Signal-based queries are reactive from the first render cycle, eliminate the need for `ngAfterViewInit` in most cases, and work naturally with `effect()` for third-party library initialisation.
 
 > ⚠️ **Guide Correction:** The two `@ViewChild` examples in this guide (chart integration, plugin host) reflect third-party library compatibility patterns. For all first-party Angular code, use signal-based queries.
 
@@ -4705,7 +4723,11 @@ export class NavComponent {
 
 ### 3.11.3 — `@let` — Template Variable Declarations (Angular 18+, Improved in 21.1)
 
-**Why this matters:** AngularJS used `ng-init` to declare template variables (a common pattern). Angular 21 has `@let` as the modern, type-safe equivalent — and it's far more useful than `*ngLet` structural directives from community libraries.
+**What is this feature?** `@let` is Angular's built-in template variable declaration syntax that lets you define a named local variable inside a template, available for reuse within that template block.
+
+**What does it do?** `@let account = accountsResource.value();` evaluates the expression once per render cycle and assigns the result to `account`. The variable is block-scoped (only visible within the enclosing `@if`, `@for`, or component root), read-only (like `const`), and TypeScript-typed — so if you assign an `Account | undefined` value inside an `@if (account)` block, TypeScript narrows the type to `Account` automatically.
+
+**What problem does it resolve?** AngularJS used `ng-init` to declare template variables — an acknowledged anti-pattern that polluted `$scope`. Angular 14–20 had no native template variable syntax at all: developers had to repeat signal calls multiple times (e.g., `accountsResource.value()` written five times in one template), use the verbose `async | as` pipe syntax, or split a template into a sub-component just to avoid repetition. `@let` eliminates all of these workarounds cleanly.
 
 ```html
 <!-- AngularJS: ng-init for template variables (unreliable, anti-pattern) -->
@@ -4759,7 +4781,11 @@ isAdminUser = currentUser?.roles?.includes('admin') ?? false; @if (currentUser) 
 
 ### 3.11.4 — `afterRender()` and `afterNextRender()` — Browser-Only Lifecycle Hooks
 
-**Why this matters:** AngularJS directives ran `link` functions that directly touched the DOM — this caused SSR incompatibilities. Angular 21 provides `afterRender()` and `afterNextRender()` as the safe, SSR-aware replacements for DOM operations that must run in the browser.
+**What is this feature?** `afterRender()` and `afterNextRender()` are Angular lifecycle hooks that register callback functions to execute *after the browser has finished painting the component*, and that are automatically skipped when running on the server (SSR).
+
+**What does it do?** `afterNextRender(fn)` runs `fn` exactly once — after the very first browser render cycle. Use it for one-time DOM setup (chart initialisation, scroll position reset, measuring layout). `afterRender(fn)` runs `fn` after every subsequent render cycle. Use it to keep third-party DOM libraries in sync with Angular state. Both are called in the constructor (injection context) and neither requires implementing a lifecycle interface. Both are no-ops during server-side rendering, so no `isPlatformBrowser()` guards are needed.
+
+**What problem does it resolve?** AngularJS `link()` functions ran DOM operations unconditionally — fine for browser-only apps but fatal for any SSR setup. Angular's `ngAfterViewInit()` improved this but still executes on the server, causing crashes unless you wrap every DOM call in `if (isPlatformBrowser(this.platformId))`. That guard pattern is verbose, easy to forget, and scattered across hundreds of components in a 100-screen migration. `afterRender`/`afterNextRender` are SSR-safe by design — the guard is built in.
 
 ```typescript
 // ─── AngularJS (Direct DOM manipulation in link function) ───
@@ -4849,7 +4875,11 @@ constructor() {
 
 ### 3.11.5 — `untracked()` — Breaking Signal Dependency Chains
 
-**Why this matters:** AngularJS `$watch` ran on every `$digest` cycle — there was no concept of reading a value without subscribing to it. Angular 21 `untracked()` solves a real problem: reading a signal inside `computed()` or `effect()` without adding it to the reactive dependency graph.
+**What is this feature?** `untracked()` is a signal utility function that executes a function reading one or more signals, but deliberately prevents those signals from being registered as reactive dependencies of the surrounding `computed()` or `effect()`.
+
+**What does it do?** `untracked(() => mySignal())` reads `mySignal`'s current value at that instant and returns it, but the enclosing `computed()` or `effect()` will NOT re-run when `mySignal` changes in the future. It is a one-time snapshot read, not a subscription.
+
+**What problem does it resolve?** In Angular's reactive model, every signal read inside `effect()` or `computed()` automatically subscribes to that signal. This is usually desirable, but creates a dangerous trap: if an effect reads a signal and then *writes to that same signal* (or writes to a signal that feeds back), you get an infinite reactive loop. AngularJS had the same `$watch` trap — watchers that modified watched properties caused `$digest` to loop. `untracked()` is the escape hatch: read a signal's value without joining the reactive graph, breaking the loop.
 
 ```typescript
 import { Component, signal, computed, effect, untracked } from '@angular/core';
@@ -4905,7 +4935,11 @@ export class DashboardComponent {
 
 ### 3.11.6 — `DestroyRef` — Explicit Lifecycle Cleanup Beyond `takeUntilDestroyed()`
 
-**Why this matters:** AngularJS had `$scope.$on('$destroy', cleanupFn)` for cleanup. Angular 21 has `DestroyRef` — a service injected per-component that provides a `onDestroy()` callback for non-RxJS resources (timers, WebSocket connections, third-party library instances).
+**What is this feature?** `DestroyRef` is an Angular injectable token that represents the destruction lifecycle of the current injection context — a component, directive, service with limited scope, or route. It provides a registration mechanism for cleanup functions that need to run when that context is destroyed.
+
+**What does it do?** `inject(DestroyRef).onDestroy(cleanupFn)` registers `cleanupFn` to execute when the component or service is destroyed. Multiple calls register multiple cleanup functions, all run in registration order. It works anywhere `inject()` works — in constructors, factory functions called during construction, and composable utility functions.
+
+**What problem does it resolve?** AngularJS cleanup was `$scope.$on('$destroy', fn)` — clean concept but tied entirely to `$scope`. Angular's original replacement was implementing the `OnDestroy` interface with `ngOnDestroy()` — which requires the class to implement an interface, adding interface boilerplate to every component or service needing cleanup. `DestroyRef` decouples cleanup registration from class structure: a composable utility function can register its own cleanup without requiring the hosting component to implement any interface. This is critical for third-party library teardown (Chart.js, WebSocket connections, timers) that occurs in many migrated components.
 
 ```typescript
 // ─── AngularJS (destroy hook) ───
@@ -4987,7 +5021,11 @@ export class LiveFeedService {
 
 ### 3.11.7 — Input Transforms: `booleanAttribute`, `numberAttribute`
 
-**Why this matters:** AngularJS accepted `ng-disabled="true"` as a string. Angular 21 input transforms handle the boolean/number coercion that every developer wrote manually.
+**What is this feature?** Input transforms are optional configuration functions on Angular 21 signal inputs (`input(defaultValue, { transform: fn })`) that automatically coerce incoming attribute or binding values into the correct type before they are stored in the signal.
+
+**What does it do?** Angular ships two built-in transform functions. `booleanAttribute` converts HTML attribute presence patterns (`""`, `"true"`, `true`) to `true`, and `"false"`, `false`, `undefined`, `null` to `false` — matching the behaviour of native HTML boolean attributes like `disabled`. `numberAttribute` converts a string `"42"` to the number `42`. You can also supply any custom `(value: unknown) => T` function as a transform.
+
+**What problem does it resolve?** HTML attributes are always strings. `<app-button disabled>` passes `""` as the value, not `false`. AngularJS handled this automatically for its own directives (`ng-disabled`, `ng-required`). When migrating controllers to Angular 21 components with custom boolean inputs, every input previously required a verbose getter/setter: `@Input() set disabled(v: string | boolean) { this._disabled = v === '' || v === true || v === 'true'; }`. Input transforms replace this entire repeated pattern with a single `{ transform: booleanAttribute }` configuration.
 
 ```typescript
 // ─── Angular 14-20 (manual coercion — common pattern) ───
@@ -5015,7 +5053,11 @@ export class ButtonComponent {
 
 ### 3.11.8 — `outputFromObservable()` and `outputToObservable()` — RxJS Output Bridge
 
-**Why this matters:** When migrating services that emit events as Observables (Subjects), `outputFromObservable()` creates an Angular 21 signal output from an existing Observable without manual `EventEmitter` wiring.
+**What is this feature?** `outputFromObservable()` and `outputToObservable()` are Angular 21 bridge utilities (from `@angular/core/rxjs-interop`) that convert between Angular's signal-based `output()` API and RxJS Observables, enabling both paradigms to interoperate during migration.
+
+**What does it do?** `outputFromObservable(observable$)` wraps an existing RxJS Observable and exposes it as an Angular output — parent components can bind to it with `(eventName)="handler($event)"`. `outputToObservable(outputRef)` does the reverse: takes an Angular `output()` reference and returns an Observable for any code that still consumes event streams via RxJS. The conversion is bidirectional and does not modify the underlying Observable.
+
+**What problem does it resolve?** During a migration, many existing services still emit events as RxJS `Subject`s: notification services, legacy event buses, WebSocket wrappers. Rewriting every event-emitting service to use signal outputs is high-risk mid-migration. `outputFromObservable()` lets you expose the existing Observable as a modern Angular output immediately, without touching the service — enabling incremental migration where the component looks fully Angular 21 while the underlying service still operates on RxJS.
 
 ```typescript
 // ─── AngularJS (event broadcast) ───
@@ -5064,7 +5106,11 @@ class ConsumerComponent {
 
 ### 3.11.9 — `withEventReplay()` — SSR Event Capture Before Hydration
 
-**Why this matters:** Without `withEventReplay()`, if a user clicks a button before Angular's hydration completes, the event is lost. For banking apps with impatient users, this means lost form submissions or navigation clicks. `withEventReplay()` captures these events and replays them once hydration is complete.
+**What is this feature?** `withEventReplay()` is an Angular SSR hydration option that records user interactions — clicks, keypresses, form inputs — that fire during the interval between the server-rendered HTML appearing on screen and Angular's JavaScript completing its hydration process.
+
+**What does it do?** It installs a lightweight event capture layer during the hydration window. Every qualifying user interaction is queued rather than discarded. Once Angular finishes hydrating and all event handlers are registered, the queued events are replayed in the order they occurred, exactly as if the user had performed them on a fully hydrated page.
+
+**What problem does it resolve?** SSR renders HTML on the server for fast first paint, but Angular hydration takes additional time (typically 200–800ms). Without `withEventReplay()`, any user interaction in that window is silently lost. A banking user who clicks "Submit" on a login form immediately after page load has their submission dropped with no error message. AngularJS had no SSR at all, so this is a new class of problem introduced when adding SSR to a migrated application — and it is easy to miss in testing because developers rarely click in that precise millisecond window.
 
 ```typescript
 // ─── Without withEventReplay (Angular 21 default without this option) ───
@@ -5106,7 +5152,11 @@ export const appConfig: ApplicationConfig = {
 
 ### 3.11.10 — Route-Level SSR Rendering Modes (Angular 19+ — Critical for Enterprise SSR)
 
-**Why this matters:** AngularJS had no SSR. The Angular 21 SSR migration guide shows `provideServerRendering()` but Angular 19+ added fine-grained per-route rendering mode control — critical for enterprise apps where some screens are static (Prerender), some are dynamic SSR (Server), and some are client-only (Client).
+**What is this feature?** Route-level rendering modes are a per-route SSR configuration API (Angular 19+, stable in Angular 21) that assigns each application route one of three rendering strategies: `RenderMode.Prerender` (static HTML generated at build time), `RenderMode.Server` (fresh HTML rendered on every request), or `RenderMode.Client` (browser-only, no server rendering).
+
+**What does it do?** You define a `ServerRoute[]` array in `app.routes.server.ts` with a `renderMode` property for each route pattern and register it with `provideServerRoutesConfig()`. The Angular SSR engine reads these rules at build time or request time and renders each route accordingly. Routes without an explicit entry fall back to the global default.
+
+**What problem does it resolve?** AngularJS had no SSR concept at all. When adding SSR during migration, the naive approach renders every route on the server — correct for account pages (needs fresh data per user) but wasteful for the marketing homepage (identical content for all users, perfect for CDN caching) and wrong for admin report builders (too dynamic and JS-heavy for SSR to add any value). Without route-level control you must choose one rendering strategy for the whole app, forcing an unacceptable trade-off. For a bank, this means either stale account balances (bad) or a non-CDN-cacheable homepage (also bad).
 
 ```typescript
 // app.routes.server.ts — Server-side rendering configuration per route
@@ -5192,6 +5242,12 @@ export const config = mergeApplicationConfig(appConfig, serverConfig);
 
 ### 3.11.11 — `provideZonelessChangeDetection()` — Stable in Angular 21
 
+**What is this feature?** `provideZonelessChangeDetection()` is an Angular provider that configures the application to run without Zone.js — the library Angular historically relied on to monkey-patch browser APIs (`setTimeout`, `fetch`, `addEventListener`) and trigger change detection after any async event.
+
+**What does it do?** When this provider is active, Angular no longer polls after async events. Instead it relies entirely on signals to know what changed. Only components whose signal dependencies actually changed are re-rendered. Everything else is untouched, making change detection O(changed signals) instead of O(all components).
+
+**What problem does it resolve?** AngularJS's `$digest` cycle was famously slow with 2000+ watchers because it re-checked every watcher on every browser event. Angular with Zone.js was faster but still triggered change detection on every click, HTTP response, and timer tick across the entire app tree. With signals and `provideZonelessChangeDetection()`, Angular knows exactly what changed and updates only those nodes. It also removes ~15KB from the production bundle and eliminates Zone.js monkey-patching conflicts with third-party libraries such as Chart.js and ag-Grid.
+
 > **Breaking API Name Change:** In Angular 21, `provideExperimentalZonelessChangeDetection()` was graduated to `provideZonelessChangeDetection()`. The experimental prefix has been removed. Update all references before upgrading.
 
 **The migration path for AngularJS → Angular 21 full zoneless:**
@@ -5260,7 +5316,11 @@ export const appConfig: ApplicationConfig = {
 
 ### 3.11.12 — `provideAppInitializer()` — Modern Bootstrap Initialization (Angular 19+)
 
-**Why this matters:** `APP_INITIALIZER` with `multi: true` is verbose and error-prone. Angular 19+ introduced `provideAppInitializer()` as a cleaner, type-safe alternative for loading feature flags, auth state, and configuration before the app renders.
+**What is this feature?** `provideAppInitializer()` is an Angular 19+ provider function that registers an async initialization callback to execute before the application bootstraps — before any route renders or any component becomes visible to the user.
+
+**What does it do?** You pass an arrow function that uses `inject()` to access services and returns a `Promise<void>` or `Observable<void>`. Angular waits for all registered initializers to complete before rendering the root component. Multiple `provideAppInitializer()` calls all run in parallel — each is independent and does not need to declare dependencies on others.
+
+**What problem does it resolve?** AngularJS used `angular.run()` blocks to load initial data (user session, feature flags, configuration) before the UI painted — a clean pattern. The Angular replacement was `APP_INITIALIZER` which required verbose factory configuration: `{ provide: APP_INITIALIZER, useFactory: (svc: MyService) => () => svc.load(), deps: [MyService], multi: true }`. The `deps` array doesn't support `inject()`. Missing `multi: true` silently overwrites any previously registered initializer. `provideAppInitializer()` uses `inject()` directly, is strongly typed, and multiple calls are independent by design — restoring the simplicity of `angular.run()` with modern Angular idioms.
 
 ```typescript
 // ─── Legacy pattern (still works but verbose) ───
@@ -6927,7 +6987,7 @@ You are an expert AngularJS-to-Angular-21 migration engineer for a 100-screen en
 ## Your Identity
 
 - You know every AngularJS 1.8 API: $scope, $rootScope, $http, $q, $watch, ng-model, ui-router, ng-repeat, ng-if
-- You know every Angular 21 API: signals, computed, effect, inject(), input(), output(), @if, @for, @defer, HttpClient, HttpInterceptorFn, CanActivateFn, CanMatchFn
+- You know every Angular 21 API: signals, computed, effect, inject(), input(), output(), @if, @for, @defer, HttpClient, HttpInterceptorFn, CanActivateFn, CanMatchFn, httpResource(), resource(), viewChild(), contentChild(), viewChildren(), contentChildren(), @let, afterRender(), afterNextRender(), untracked(), DestroyRef, booleanAttribute, numberAttribute, outputFromObservable(), outputToObservable(), withEventReplay(), RenderMode, provideZonelessChangeDetection(), provideAppInitializer() — see Section 3.11 for full details on all Angular 21.x-exclusive APIs
 - You enforce Nx module boundaries: apps/ never import from each other; libs/ are the only shared code
 - You never use constructor injection — always inject()
 - You never use @Input()/@Output() — always input()/output()
@@ -7429,6 +7489,11 @@ FINAL SPLIT FOR 120 SCREENS:
 ---
 
 ## 6.2 — Security: HTTP Token & Cookie Strategy
+
+> 🔗 **This section covers the token strategy ADR** — the architectural decision record for how tokens are stored and transmitted. Security spans three sections:
+> - **[Part 1, Q21–Q27](#section-6-web-security-authentication--authorisation):** Strategy — OWASP risk questions, XSS/CSRF/CSRF decision framework.
+> - **[Section 3.7 — Security LLD](#37--security-lld--implementing-the-security-architecture):** Implementation — Angular 21 auth service, interceptors, route guards.
+> - **Here (Section 6.2):** ADR — token storage options, risk matrix, and the recommended BFF hybrid approach.
 
 This section defines the definitive token strategy for a migrated enterprise banking application, covering all storage options, their risk profiles, and the recommended hybrid approach.
 
@@ -11559,6 +11624,11 @@ For a 100-screen AngularJS enterprise app, generate a realistic 12-month migrati
 ✅ Use @if/@for/@switch in template (NO *ngIf/*ngFor)
 ✅ Use input()/output() functions (NO @Input/@Output decorators)
 ✅ Follow Nx import rules: @banking/shared-auth, @banking/shared-models
+✅ For HTTP data loading, prefer httpResource() over toSignal(http.get(...)) — see Section 3.11.1
+✅ For DOM queries, use viewChild()/viewChildren() over @ViewChild — see Section 3.11.2
+✅ For template variables, use @let to avoid repeating signal calls — see Section 3.11.3
+✅ For browser-only DOM work (charts, scroll), use afterNextRender() — see Section 3.11.4
+✅ For boolean/number inputs, use booleanAttribute/numberAttribute transforms — see Section 3.11.7
 
 **AngularJS Controller (BEFORE):**
 
