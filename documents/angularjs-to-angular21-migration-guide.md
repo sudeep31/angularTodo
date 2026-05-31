@@ -6014,7 +6014,406 @@ npx tsc --noEmit 2>&1 | grep "implicitly has an 'any' type" | wc -l
 
 ---
 
-_**Section 3.12 complete.** TypeScript type system migration: interface extraction from `$scope` and `$http` shapes (3.12.1), enum and string literal union migration from magic strings (3.12.2), generics applied to signals, `httpResource`, and services (3.12.3), `Record<K,V>` replacing plain object maps (3.12.4), and the `interface`/`type`/`class` decision guide (3.12.5)._
+### 3.12.6 — Backend-Driven Interface Generation: Eliminating Manual Type Extraction
+
+Section 3.12.1 describes how to *manually* read `$scope` assignments and infer interfaces by inspection — this is the fallback for brownfield AngularJS apps with no formal API contracts. However, as an enterprise architect the **first question you should ask is: does the backend already define these contracts in a machine-readable format?** If it does, you can auto-generate TypeScript interfaces from the backend source of truth and eliminate both the manual work and the risk of drift.
+
+> **Architect's rule:** A TypeScript interface that was hand-written by a frontend developer is a *copy* of the API contract. A copy can become wrong the moment the backend changes and no one tells the frontend team. A *generated* interface is always correct because it is derived from the same source that the backend enforces.
+
+**Strategy selection matrix:**
+
+| Backend technology | API contract format | Recommended tool | Result |
+|---|---|---|---|
+| Any backend with OpenAPI 3.x / Swagger | `.yaml` / `.json` spec | `openapi-typescript` | TypeScript interfaces + path types |
+| Any backend with OpenAPI 3.x | `.yaml` / `.json` spec | `@openapitools/openapi-generator-cli` | Full Angular HttpClient service + models |
+| GraphQL API | `.graphql` schema | `graphql-code-generator` | Types + typed Angular Apollo/urql hooks |
+| NestJS in same Nx monorepo | TypeScript DTOs | Direct Nx library sharing | Zero-copy — import DTO class directly |
+| Java / Spring Boot | Java DTO classes | `typescript-generator` (Maven plugin) | TypeScript interfaces from Java classes |
+| .NET / ASP.NET Core | C# controller/DTO | `NSwag` | TypeScript interfaces + Angular services |
+| gRPC / Protocol Buffers | `.proto` files | `protoc-gen-ts` | TypeScript interfaces + gRPC-Web client |
+| No formal spec (brownfield) | Live HTTP responses | `quicktype` | Inferred interfaces from real JSON |
+| Node.js backend — validation-first | Zod schemas | `z.infer<T>` + shared Nx lib | Type and runtime validation from one schema |
+
+---
+
+#### Strategy 1 — OpenAPI / Swagger → `openapi-typescript` (Most Common for Banking APIs)
+
+The OpenAPI specification is the industry standard for REST API contracts. Most enterprise API gateways (AWS API Gateway, Azure API Management, Kong, Apigee) can export an OpenAPI spec automatically. If your backend doesn't publish one yet, this is the first thing to request from the backend team.
+
+**What `openapi-typescript` generates:**
+- One TypeScript `interface` per schema component in the spec
+- Path types (`paths['/api/accounts']['get']['responses']['200']['content']['application/json']`)
+- Request body types, query parameter types, and header types — all in one generated file
+
+```bash
+# Install
+npm install -D openapi-typescript
+
+# Generate interfaces from a local spec file
+npx openapi-typescript ./api-specs/banking-api.yaml --output src/types/api.generated.ts
+
+# Generate from a live URL (useful when API gateway publishes the spec)
+npx openapi-typescript https://api.bank.internal/openapi.json --output src/types/api.generated.ts
+
+# Add to package.json for repeatable generation
+```
+
+```json
+// package.json
+{
+  "scripts": {
+    "generate:api-types": "openapi-typescript ./api-specs/banking-api.yaml --output libs/shared-models/src/lib/api.generated.ts",
+    "prebuild": "npm run generate:api-types"
+  }
+}
+```
+
+```typescript
+// ─── What openapi-typescript generates (api.generated.ts — DO NOT EDIT MANUALLY) ───
+export interface components {
+  schemas: {
+    Account: {
+      id: string;
+      accountNumber: string;
+      accountType: 'CURRENT' | 'SAVINGS' | 'ISA';
+      balance: number;
+      currency: string;
+      status: 'active' | 'dormant' | 'closed' | 'frozen';
+      overdraftLimit: number | null;
+      createdAt: string;
+    };
+    Transaction: {
+      id: string;
+      accountId: string;
+      amount: number;
+      direction: 'CREDIT' | 'DEBIT';
+      description: string;
+      postedAt: string;
+    };
+    PagedResponse: {
+      items: components['schemas']['Account'][];  // ← typed by spec
+      totalCount: number;
+      hasNextPage: boolean;
+    };
+  };
+}
+
+// Path types — know exactly what each endpoint returns:
+export interface paths {
+  '/api/accounts': {
+    get: {
+      responses: {
+        200: { content: { 'application/json': components['schemas']['Account'][] } };
+        401: { content: { 'application/json': components['schemas']['ErrorResponse'] } };
+      };
+    };
+  };
+  '/api/accounts/{id}': {
+    get: {
+      parameters: { path: { id: string } };
+      responses: {
+        200: { content: { 'application/json': components['schemas']['Account'] } };
+        404: { content: { 'application/json': components['schemas']['ErrorResponse'] } };
+      };
+    };
+  };
+}
+
+// ─── Using generated types in Angular 21 components ───
+import type { components } from '@banking/shared-models';
+
+type Account     = components['schemas']['Account'];
+type Transaction = components['schemas']['Transaction'];
+
+// httpResource now typed from generated spec — guaranteed accurate:
+protected readonly accountsResource = httpResource<Account[]>('/api/accounts');
+```
+
+**CI enforcement — fail the build if interfaces drift from the spec:**
+
+```bash
+# In CI pipeline (GitHub Actions / Azure DevOps):
+# 1. Regenerate types from the latest spec
+npm run generate:api-types
+
+# 2. If the generated file changed, the API spec has changed without a frontend update
+git diff --exit-code libs/shared-models/src/lib/api.generated.ts
+# Exits non-zero if file changed → pipeline fails → team notified
+```
+
+---
+
+#### Strategy 2 — GraphQL Schema → `graphql-code-generator`
+
+If any of the backend services expose a GraphQL API (common in banking microservices for BFF patterns), `graphql-code-generator` generates TypeScript types and typed Angular service operations from the schema.
+
+```bash
+npm install -D @graphql-codegen/cli @graphql-codegen/typescript @graphql-codegen/typescript-operations
+```
+
+```yaml
+# codegen.yml
+schema: 'https://api.bank.internal/graphql'
+documents: 'src/**/*.graphql'
+generates:
+  libs/shared-models/src/lib/graphql.generated.ts:
+    plugins:
+      - typescript
+      - typescript-operations
+```
+
+```typescript
+// After running: npx graphql-codegen
+
+// Generated types (graphql.generated.ts — DO NOT EDIT):
+export type Account = {
+  __typename?: 'Account';
+  id: Scalars['ID'];
+  accountNumber: Scalars['String'];
+  balance: Scalars['Float'];
+  status: AccountStatus;
+};
+
+export enum AccountStatus { Active = 'ACTIVE', Dormant = 'DORMANT', Frozen = 'FROZEN' }
+
+// Generated typed Angular service operation:
+export const GetAccountsDocument = gql`query GetAccounts { accounts { id accountNumber balance status } }`;
+
+// Usage in Angular 21 component — fully typed:
+protected readonly accountsQuery = inject(GetAccountsGQL);
+```
+
+---
+
+#### Strategy 3 — NestJS DTOs in the Same Nx Monorepo (Zero-Copy Sharing)
+
+This is the **most powerful pattern for new development alongside migration**: the backend and frontend share TypeScript types directly through an Nx library. There is no copy, no generation step, no drift — both sides import from the same `@banking/api-contracts` library.
+
+```
+apps/
+  banking-api/          ← NestJS backend
+  banking-ui/           ← Angular 21 frontend
+libs/
+  api-contracts/        ← Shared library — imported by BOTH apps
+    src/lib/
+      account.dto.ts    ← One interface, used by both NestJS validation and Angular httpResource
+      transaction.dto.ts
+      payment.dto.ts
+```
+
+```typescript
+// libs/api-contracts/src/lib/account.dto.ts
+// Used by NestJS for validation AND by Angular for typing httpResource
+
+import { IsString, IsNumber, IsEnum, IsOptional } from 'class-validator';
+
+export enum AccountStatus { Active = 'active', Dormant = 'dormant', Frozen = 'frozen' }
+
+export class AccountDto {
+  @IsString()   id!: string;
+  @IsString()   accountNumber!: string;
+  @IsNumber()   balance!: number;
+  @IsEnum(AccountStatus) status!: AccountStatus;
+  @IsOptional() @IsString() nickname?: string;
+}
+
+// ─── NestJS controller uses AccountDto for validation ───
+// @Get('/accounts/:id') async getAccount(): Promise<AccountDto> { ... }
+
+// ─── Angular 21 component imports the SAME class as a type ───
+import type { AccountDto as Account } from '@banking/api-contracts';
+//            ↑ import type — class used as interface, no runtime cost on frontend
+
+protected readonly accountResource = httpResource<Account>(
+  () => `/api/accounts/${this.accountId()}`
+);
+// ✅ NestJS returns AccountDto → Angular receives Account (same class) → perfect type alignment
+```
+
+**Nx boundary enforcement — prevent runtime import of class-validator in the browser:**
+
+```json
+// .eslintrc.json — Nx module boundary rule
+{
+  "rules": {
+    "@nx/enforce-module-boundaries": ["error", {
+      "depConstraints": [
+        {
+          "sourceTag": "scope:web",
+          "onlyDependOnLibsWithTags": ["scope:shared", "scope:web"],
+          "notDependOnLibsWithTags": ["scope:api"]
+        }
+      ]
+    }]
+  }
+}
+// This prevents the Angular app from accidentally importing NestJS-only code
+// while still allowing shared DTOs in api-contracts
+```
+
+---
+
+#### Strategy 4 — Java Spring Boot → `typescript-generator` Maven Plugin
+
+Many enterprise banking backends are Java Spring Boot services. The `typescript-generator` Maven plugin reads your Spring Boot `@RestController` and DTO classes and outputs TypeScript interfaces.
+
+```xml
+<!-- pom.xml — add to your Spring Boot backend build -->
+<plugin>
+  <groupId>cz.habarta.typescript-generator</groupId>
+  <artifactId>typescript-generator-maven-plugin</artifactId>
+  <version>3.2.1263</version>
+  <executions>
+    <execution>
+      <id>generate</id>
+      <goals><goal>generate</goal></goals>
+      <phase>process-classes</phase>
+    </execution>
+  </executions>
+  <configuration>
+    <jsonLibrary>jackson2</jsonLibrary>
+    <classes>
+      <class>com.bank.api.dto.AccountDto</class>
+      <class>com.bank.api.dto.TransactionDto</class>
+      <class>com.bank.api.dto.PaymentRequestDto</class>
+    </classes>
+    <outputFile>../frontend/libs/shared-models/src/lib/java-api.generated.ts</outputFile>
+    <outputKind>module</outputKind>
+    <generateEnums>true</generateEnums>
+  </configuration>
+</plugin>
+```
+
+```typescript
+// Generated output (java-api.generated.ts — DO NOT EDIT):
+export interface AccountDto {
+  id: string;
+  accountNumber: string;
+  balance: number;
+  status: AccountStatus;           // ← Java enum → TypeScript enum
+  overdraftLimit: number | null;   // ← Java Optional<BigDecimal> → T | null
+}
+
+export enum AccountStatus {
+  ACTIVE = 'ACTIVE',
+  DORMANT = 'DORMANT',
+  CLOSED = 'CLOSED',
+}
+```
+
+---
+
+#### Strategy 5 — Brownfield API with No Spec → `quicktype` (Inference from Live Responses)
+
+When the backend is a legacy system with no OpenAPI spec, no GraphQL schema, and no shared DTO classes (common in the AngularJS migration scenario), `quicktype` infers TypeScript interfaces by analysing actual HTTP response payloads.
+
+```bash
+# Install
+npm install -D quicktype
+
+# Generate interfaces from a live API endpoint
+npx quicktype --src-lang json --lang typescript \
+  --top-level Account \
+  --out libs/shared-models/src/lib/account.inferred.ts \
+  $(curl -s https://api.bank.internal/api/accounts | head -c 50000)
+
+# Generate from a saved JSON sample file (safer for production APIs)
+curl -s https://api.bank.internal/api/accounts > samples/accounts.json
+npx quicktype --src-lang json --lang typescript \
+  --top-level Account \
+  --out libs/shared-models/src/lib/account.inferred.ts \
+  samples/accounts.json
+```
+
+```typescript
+// Generated output — review and refine before committing:
+// quicktype infers from samples so optional/nullable fields may need manual correction
+export interface Account {
+  id:            string;
+  accountNumber: string;
+  balance:       number;
+  status:        string;           // ← quicktype infers string; manually change to AccountStatus enum
+  overdraftLimit: number | null;   // ← inferred correctly if null appears in the sample
+  nickname?:     string;           // ← inferred if some records had the field, some didn't
+}
+// ⚠️  Always review quicktype output:
+// - status: string → AccountStatus enum
+// - Date strings may be typed as string — add JSDoc or change to branded type
+// - Run against multiple response samples to catch all nullable/optional fields
+```
+
+---
+
+#### Strategy 6 — Zod Schemas Shared from Backend (Validation + Type in One)
+
+For Node.js backends, Zod is increasingly used as the single source of both runtime validation and TypeScript types. Defining Zod schemas in a shared Nx library means the frontend gets both runtime validation (useful for `httpResource` response guards) and the TypeScript type simultaneously — with zero duplication.
+
+```typescript
+// libs/api-contracts/src/lib/account.schema.ts — shared by backend AND frontend
+
+import { z } from 'zod';
+
+export const AccountStatusSchema = z.enum(['active', 'dormant', 'closed', 'frozen']);
+export const AccountSchema = z.object({
+  id:             z.string().uuid(),
+  accountNumber:  z.string().regex(/^\d{8}$/),
+  balance:        z.number(),
+  currency:       z.string().length(3),             // ISO 4217
+  status:         AccountStatusSchema,
+  overdraftLimit: z.number().nullable(),
+  nickname:       z.string().optional(),
+  createdAt:      z.string().datetime(),
+});
+
+export const AccountsResponseSchema = z.array(AccountSchema);
+
+// ─── TypeScript types derived automatically ───
+export type Account        = z.infer<typeof AccountSchema>;
+export type AccountStatus  = z.infer<typeof AccountStatusSchema>;
+// 'active' | 'dormant' | 'closed' | 'frozen'  — no separate enum definition needed
+
+// ─── Backend (NestJS / Express): use schema for request validation ───
+// const account = AccountSchema.parse(requestBody);  // throws ZodError if invalid
+
+// ─── Frontend (Angular 21): use schema to validate httpResource responses ───
+import { httpResource } from '@angular/core';
+import { AccountSchema, Account } from '@banking/api-contracts';
+
+@Component({ /* ... */ })
+export class AccountListComponent {
+  // Validate the API response at runtime — catches backend contract breaks immediately
+  protected readonly accountsResource = httpResource<Account[]>({
+    url: '/api/accounts',
+    // ⚠️  httpResource does not validate by default — add a transform to validate:
+    // This pattern requires a custom resource wrapper; shown here conceptually
+  });
+
+  private parseAccounts(raw: unknown): Account[] {
+    return AccountsResponseSchema.parse(raw);  // throws if API response doesn't match schema
+  }
+}
+```
+
+---
+
+#### Architect's Recommendation for the Banking Migration
+
+In a typical enterprise banking migration where AngularJS talks to a mix of legacy Java services and newer Node.js microservices, use a **layered approach**:
+
+| API Layer | Backend Tech | Recommended Strategy | Priority |
+|---|---|---|---|
+| Core banking APIs (accounts, transactions) | Java Spring Boot | `typescript-generator` Maven plugin | Sprint 1 |
+| New microservices | NestJS in Nx monorepo | Shared Nx `api-contracts` library | Sprint 1 |
+| API Gateway (Kong/Apigee/AWS) | OpenAPI 3.x spec published | `openapi-typescript` + CI drift check | Sprint 2 |
+| Legacy internal services (no spec) | Any — no formal contract | `quicktype` from response samples, then manually maintain | Sprint 3 |
+| Third-party / partner APIs | OpenAPI spec (usually available) | `openapi-typescript` | Sprint 3 |
+| Future new endpoints | Design-first | Write OpenAPI spec first, generate both backend validation and frontend types | Ongoing |
+
+**The overarching principle:** treat the OpenAPI spec (or shared DTO library) as the **contract between backend and frontend teams**. Any interface file in `libs/shared-models/` that was written by hand and is not generated or imported from a backend source should be considered technical debt — scheduled for replacement in a future sprint once the backend publishes its contract.
+
+---
+
+_**Section 3.12 complete.** TypeScript type system migration: interface extraction from `$scope` and `$http` shapes (3.12.1), enum and string literal union migration from magic strings (3.12.2), generics applied to signals, `httpResource`, and services (3.12.3), `Record<K,V>` replacing plain object maps (3.12.4), the `interface`/`type`/`class` decision guide (3.12.5), and backend-driven interface generation strategies (3.12.6)._
 
 ---
 
