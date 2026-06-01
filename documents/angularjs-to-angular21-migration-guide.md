@@ -6307,43 +6307,381 @@ export enum AccountStatus {
 
 ---
 
-#### Strategy 5 — Brownfield API with No Spec → `quicktype` (Inference from Live Responses)
+#### Java — Swagger Not Written: Auto-Generate OpenAPI from Existing Spring Annotations
 
-When the backend is a legacy system with no OpenAPI spec, no GraphQL schema, and no shared DTO classes (common in the AngularJS migration scenario), `quicktype` infers TypeScript interfaces by analysing actual HTTP response payloads.
+This is the most common enterprise scenario: the Java backend works and has `@RestController`, `@GetMapping`, `@PostMapping` annotations — but no Swagger YAML was ever written and Swagger UI was never set up. **You do not need to write a single line of YAML.** `springdoc-openapi` scans Spring's own annotations at startup and produces a complete OpenAPI 3.x spec automatically. It is a single dependency addition — no code modifications.
 
-```bash
-# Install
-npm install -D quicktype
+**Path A — Backend team adds springdoc-openapi (one dependency, zero code changes):**
 
-# Generate interfaces from a live API endpoint
-npx quicktype --src-lang json --lang typescript \
-  --top-level Account \
-  --out libs/shared-models/src/lib/account.inferred.ts \
-  $(curl -s https://api.bank.internal/api/accounts | head -c 50000)
-
-# Generate from a saved JSON sample file (safer for production APIs)
-curl -s https://api.bank.internal/api/accounts > samples/accounts.json
-npx quicktype --src-lang json --lang typescript \
-  --top-level Account \
-  --out libs/shared-models/src/lib/account.inferred.ts \
-  samples/accounts.json
+```xml
+<!-- Ask the Java backend team to add this to pom.xml -->
+<!-- springdoc scans @RestController, @GetMapping, @PostMapping etc. automatically -->
+<dependency>
+  <groupId>org.springdoc</groupId>
+  <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+  <version>2.5.0</version>
+</dependency>
 ```
 
+```yaml
+# application.yml — optional: expose spec at a stable predictable URL
+springdoc:
+  api-docs:
+    path: /v3/api-docs          # JSON spec available at this URL after restart
+  swagger-ui:
+    path: /swagger-ui.html      # Human-readable UI
+  packages-to-scan: com.bank.api.controllers
+```
+
+```bash
+# Once the Java app restarts, download the generated spec:
+curl http://localhost:8080/v3/api-docs -o api-specs/banking-api.json
+
+# Then generate TypeScript on the Angular frontend (Strategy 1 flow):
+npx openapi-typescript api-specs/banking-api.json \
+  --output libs/shared-models/src/lib/api.generated.ts
+```
+
+**What springdoc auto-detects — no annotations needed beyond what Spring already requires:**
+
+| Java annotation | Generated OpenAPI element |
+|---|---|
+| `@RestController` + `@RequestMapping("/api/accounts")` | Path group |
+| `@GetMapping("/{id}")` | `GET /api/accounts/{id}` operation |
+| `@PostMapping` + `@RequestBody AccountDto dto` | Request body schema |
+| `ResponseEntity<AccountDto>` return type | Response schema |
+| `@PathVariable String id` | Path parameter |
+| `@RequestParam(required=false) String filter` | Optional query parameter |
+| Java `enum AccountStatus` | OpenAPI enum values |
+| `@JsonProperty("accountNumber")` | Correct JSON field name |
+| `@Nullable` / `Optional<T>` | Nullable field |
+
+**Path B — Cannot modify the backend build at all:**
+
+```bash
+# 1. Check Spring Boot Actuator (running in most enterprise apps by default):
+curl http://api-server/actuator/mappings | python -m json.tool
+# Returns every @RequestMapping URL and HTTP method — gives you the complete endpoint list
+
+# 2. Check if an API gateway (Kong, Apigee, AWS API GW) already publishes a spec
+#    independently of the backend:
+curl https://api-gateway.bank.internal/openapi.json
+
+# 3. Look for existing Postman/Insomnia collections — most teams have these
+#    even when they say 'we have no spec':
+# Import collection → Postman → Collection → Export as OpenAPI 3.0 → save yaml
+```
+
+**Path C — You have Java source access but no build access:**
+
+```bash
+# java-to-typescript: parses .java source files, no Maven/Gradle required
+npm install -g java-to-typescript
+
+java-to-typescript \
+  --src ./backend/src/main/java/com/bank/api/dto \
+  --out ./frontend/libs/shared-models/src/lib/java-dtos.ts \
+  --enums               # Convert Java enums to TypeScript enums
+```
+
+**Java → TypeScript type mapping reference:**
+
+| Java type | TypeScript type | Notes |
+|---|---|---|
+| `String` | `string` | |
+| `Integer`, `int`, `Long`, `long` | `number` | No integer type in JS |
+| `Double`, `BigDecimal` | `number` | `BigDecimal` precision lost in JSON |
+| `Boolean`, `boolean` | `boolean` | |
+| `LocalDate`, `LocalDateTime`, `ZonedDateTime` | `string` | ISO 8601 in JSON |
+| `List<T>`, `Set<T>` | `T[]` | |
+| `Map<String, V>` | `Record<string, V>` | |
+| `Optional<T>` | `T \| null` | Jackson serialises absent Optional as null |
+| `@Nullable T` | `T \| null` | |
+| Java `enum` | `enum` or string literal union | |
+
+---
+
+#### Strategy 4b — .NET / ASP.NET Core Backend (Swagger Not Written)
+
+For .NET backends the situation is identical to Java: controllers exist, DTOs exist, but no Swagger documentation was set up. Three options, ordered by how much backend cooperation is required.
+
+**Option A — Swashbuckle.AspNetCore (3 lines in Program.cs — the .NET standard):**
+
+`Swashbuckle.AspNetCore` is the official Microsoft-recommended Swagger library. It scans `[ApiController]` and `[HttpGet]` / `[HttpPost]` attributes exactly like springdoc does for Java. This is the recommended option because virtually every .NET developer already knows Swashbuckle.
+
+```bash
+# Ask the .NET team to add the NuGet package:
+dotnet add package Swashbuckle.AspNetCore
+```
+
+```csharp
+// Program.cs — add exactly 3 lines, zero other code changes
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+app.UseSwagger();    // exposes /swagger/v1/swagger.json
+app.UseSwaggerUI();  // exposes /swagger/index.html
+```
+
+```bash
+# Download the generated spec from the running app:
+curl http://localhost:5000/swagger/v1/swagger.json -o api-specs/dotnet-api.json
+
+# Generate TypeScript interfaces on the Angular frontend:
+npx openapi-typescript api-specs/dotnet-api.json \
+  --output libs/shared-models/src/lib/dotnet-api.generated.ts
+```
+
+**What Swashbuckle auto-detects from .NET attributes:**
+
+| C# attribute / type | Generated OpenAPI element |
+|---|---|
+| `[ApiController]` + `[Route("api/[controller]")]` | Path group |
+| `[HttpGet("{id}")]` | `GET /api/accounts/{id}` operation |
+| `[HttpPost]` + `AccountDto dto` parameter | Request body schema |
+| `ActionResult<AccountDto>` return type | Response schema |
+| `[FromRoute] string id` | Path parameter |
+| `[FromQuery][Required] string filter` | Required query parameter |
+| C# `enum AccountStatus` | OpenAPI enum values |
+| `[JsonPropertyName("accountNumber")]` | Correct JSON field name |
+| Nullable `AccountDto?` | Nullable response |
+| `[ProducesResponseType(typeof(AccountDto), 200)]` | Typed 200 response |
+
+**Option B — NSwag Studio: Generate TypeScript from a .NET DLL with zero code changes:**
+
+NSwag Studio reads a compiled `.dll` by reflection — **no changes to the .NET source or project files at all**. The Angular team can run it entirely independently.
+
+```bash
+# Install NSwag CLI (cross-platform, no Visual Studio required):
+npm install -g nswag
+
+# Generate TypeScript from a compiled .NET DLL directly:
+nswag aspnetcore2openapi \
+  /assembly:./backend/bin/Release/BankingApi.dll \
+  /output:api-specs/dotnet-from-dll.json
+
+# Then generate TypeScript interfaces:
+npx openapi-typescript api-specs/dotnet-from-dll.json \
+  --output libs/shared-models/src/lib/dotnet-api.generated.ts
+
+# OR: NSwag can generate a complete Angular HttpClient service in one step:
+nswag openapi2tsclient \
+  /input:api-specs/dotnet-from-dll.json \
+  /output:libs/shared-models/src/lib/banking-api.client.ts \
+  /template:Angular \
+  /generateAngularCode:true \
+  /httpClass:HttpClient
+```
+
+**.NET → TypeScript type mapping reference:**
+
+| C# type | TypeScript type | Notes |
+|---|---|---|
+| `string` | `string` | |
+| `int`, `long`, `short` | `number` | |
+| `decimal`, `double` | `number` | `decimal` precision not preserved in JSON |
+| `bool` | `boolean` | |
+| `DateTime`, `DateTimeOffset` | `string` | ISO 8601 with `System.Text.Json` |
+| `DateOnly` | `string` | `"2024-01-15"` format |
+| `Guid` | `string` | UUID string |
+| `List<T>`, `IEnumerable<T>` | `T[]` | |
+| `Dictionary<string, V>` | `Record<string, V>` | |
+| `T?` (nullable reference type) | `T \| null` | With `#nullable enable` in C# 8+ |
+| `Task<T>` return type | `T` | Async unwrapped in generated type |
+| C# `enum` | TypeScript `enum` or string union | Depends on `[JsonConverter]` config |
+
+---
+
+#### Strategy 5 — No Spec, No Source Access: Multiple Extraction Paths
+
+When the backend is a completely opaque legacy system — no OpenAPI spec, no shared DTOs, no source code access, backend team unavailable — you can still extract accurate TypeScript interfaces. This is the real brownfield situation that happens in most AngularJS migrations.
+
+> **Architect's note:** The correct first step is always to find the data the API *actually returns at runtime*, not to guess from the AngularJS controller code. Infer from real responses, not assumptions.
+
+---
+
+**Path A — HAR File Capture (Browser DevTools — zero dependencies, works everywhere):**
+
+A HAR (HTTP Archive) file records every network request the browser made, including the full JSON response bodies. You capture it by using the legacy AngularJS application normally while DevTools is recording.
+
+```bash
+# Step 1: Open the AngularJS app in Chrome / Edge
+# Step 2: DevTools → Network tab → check 'Preserve log'
+# Step 3: Log in, navigate through every screen you need to type
+# Step 4: Right-click the Network panel → 'Save all as HAR with content'
+# Step 5: You now have a .har file containing every API response as JSON
+
+# Extract JSON response bodies from the HAR file using har-extractor:
+npm install -D har-extractor
+
+npx har-extractor \
+  --input session-capture.har \
+  --output-dir samples/ \
+  --filter-url 'api.bank.internal/api/'
+# Outputs: samples/api-accounts-response.json, samples/api-transactions-response.json, etc.
+
+# Generate interfaces from each extracted response:
+npm install -D quicktype
+
+npx quicktype --src-lang json --lang typescript \
+  --top-level Account \
+  --out libs/shared-models/src/lib/account.inferred.ts \
+  samples/api-accounts-response.json
+
+npx quicktype --src-lang json --lang typescript \
+  --top-level Transaction \
+  --out libs/shared-models/src/lib/transaction.inferred.ts \
+  samples/api-transactions-response.json
+```
+
+**HAR capture checklist — maximise coverage:**
+- Navigate every screen that loads data (account list, account detail, transaction history, payments)
+- Test edge cases: accounts with overdraft, closed accounts, accounts with no transactions — these reveal nullable/optional fields that don't appear in the happy path
+- Log in as multiple user roles (admin, read-only, relationship manager) — different roles may receive different response shapes
+- Trigger validation errors on forms — captures error response shapes
+
+---
+
+**Path B — Postman Proxy Recording (captures all traffic including background polling):**
+
+Postman's built-in proxy intercepts all HTTP/HTTPS traffic from any application, including the AngularJS app running in a browser. Unlike DevTools HAR, it captures background requests the user never directly triggers.
+
+```bash
+# Step 1: In Postman → Collections → New Collection → Start Proxy
+#   Set proxy port: 5555
+#   Start recording filter: api.bank.internal
+
+# Step 2: Configure browser to use Postman as proxy:
+#   Chrome: Settings → System → Open proxy settings → Manual: localhost:5555
+#   OR: Launch Chrome with flag:
+chrome.exe --proxy-server="http://localhost:5555"
+
+# Step 3: Use the AngularJS app — every API call is captured in the Postman collection
+
+# Step 4: Export the collection → Postman → Collection → Export → v2.1 format
+# Step 5: Convert Postman collection to OpenAPI 3.0 spec:
+npm install -D postman-to-openapi
+npx p2o ./banking-api-collection.json -f ./api-specs/banking-api.yaml
+
+# Step 6: Generate TypeScript from the OpenAPI spec:
+npx openapi-typescript ./api-specs/banking-api.yaml \
+  --output libs/shared-models/src/lib/api.generated.ts
+```
+
+**For HTTPS APIs (most banking APIs):** Install the Postman CA certificate as a trusted root in the browser to decrypt HTTPS traffic during recording. Remove it after the session.
+
+---
+
+**Path C — AngularJS Source Analysis (find every API call from the code you already have):**
+
+The AngularJS source code you are migrating contains every `$http.get()`, `$http.post()`, and `$resource()` call — this is a complete index of all endpoints. Grep them, then fetch each one.
+
+```bash
+# Find every $http call and $resource URL in the codebase:
+grep -rE '\$http\.(get|post|put|patch|delete)\s*\(' src/ --include='*.js' -h \
+  | grep -oE "['\"](/api/[^'\"]+)['\"]" \
+  | sort -u > api-endpoints.txt
+
+# Also find $resource patterns:
+grep -rE '\$resource\s*\(' src/ --include='*.js' -h \
+  | grep -oE "['\"](/api/[^'\"]+)['\"]" \
+  | sort -u >> api-endpoints.txt
+
+cat api-endpoints.txt
+# Output:
+# /api/accounts
+# /api/accounts/:id
+# /api/accounts/:id/transactions
+# /api/payments
+# /api/users/profile
+# ...
+
+# Fetch a sample response for each static (non-parameterised) endpoint:
+for endpoint in $(grep -v '/:' api-endpoints.txt); do
+  filename=$(echo $endpoint | tr '/' '-' | sed 's/^-//')
+  curl -s -H "Authorization: Bearer $DEV_TOKEN" \
+    "https://api.bank.internal$endpoint" \
+    > samples/${filename}.json
+  echo "Captured: $endpoint → samples/${filename}.json"
+done
+
+# Batch-generate interfaces from all captured samples:
+for jsonfile in samples/*.json; do
+  name=$(basename $jsonfile .json | sed 's/-api-//;s/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2)); print}' | tr -d ' ')
+  outfile="libs/shared-models/src/lib/${name,,}.inferred.ts"
+  npx quicktype --src-lang json --lang typescript \
+    --top-level "$name" \
+    --out "$outfile" \
+    "$jsonfile"
+  echo "Generated: $outfile"
+done
+```
+
+**Using the AngularJS `$resource` URL as parameter documentation:**
+
+```javascript
+// AngularJS source:
+.factory('AccountService', function ($resource) {
+  return $resource('/api/accounts/:id/transactions', { id: '@id' }, {
+    query:  { method: 'GET',  isArray: true },
+    create: { method: 'POST' }
+  });
+});
+// This tells you:
+// GET  /api/accounts/:id/transactions → returns array → interface Transaction[]
+// POST /api/accounts/:id/transactions → request body → interface TransactionRequest
+```
+
+---
+
+**Path D — `quicktype` directly from live endpoints (fastest for single endpoints):**
+
+```bash
+npm install -D quicktype
+
+# Fetch and generate in one command:
+npx quicktype --src-lang json --lang typescript \
+  --top-level Account \
+  --out libs/shared-models/src/lib/account.inferred.ts \
+  <(curl -s -H "Authorization: Bearer $DEV_TOKEN" \
+    https://api.bank.internal/api/accounts)
+
+# Batch across multiple endpoints:
+declare -A ENDPOINTS=(
+  [Account]="/api/accounts"
+  [Transaction]="/api/accounts/ACC001/transactions"
+  [UserProfile]="/api/users/profile"
+  [Payment]="/api/payments"
+)
+
+for name in "${!ENDPOINTS[@]}"; do
+  npx quicktype --src-lang json --lang typescript \
+    --top-level "$name" \
+    --out "libs/shared-models/src/lib/${name,,}.inferred.ts" \
+    <(curl -s -H "Authorization: Bearer $DEV_TOKEN" \
+      "https://api.bank.internal${ENDPOINTS[$name]}")
+done
+```
+
+**Reviewing all inferred output — the mandatory checklist:**
+
 ```typescript
-// Generated output — review and refine before committing:
-// quicktype infers from samples so optional/nullable fields may need manual correction
+// quicktype infers from what it saw — always review before committing:
 export interface Account {
-  id: string;
-  accountNumber: string;
-  balance: number;
-  status: string; // ← quicktype infers string; manually change to AccountStatus enum
-  overdraftLimit: number | null; // ← inferred correctly if null appears in the sample
-  nickname?: string; // ← inferred if some records had the field, some didn't
+  id: string;                      // ✅ Correct
+  accountNumber: string;           // ✅ Correct
+  balance: number;                 // ✅ Correct
+  status: string;                  // ⚠️  Change to AccountStatus enum
+  overdraftLimit: number | null;   // ✅ Correct if null appeared in sample
+  nickname?: string;               // ✅ Correct if some records had it
+  createdAt: string;               // ⚠️  Consider branded type: type ISODateString = string
 }
-// ⚠️  Always review quicktype output:
-// - status: string → AccountStatus enum
-// - Date strings may be typed as string — add JSDoc or change to branded type
-// - Run against multiple response samples to catch all nullable/optional fields
+
+// Common corrections after quicktype inference:
+// 1. status: string  →  status: AccountStatus  (add enum)
+// 2. Date strings    →  string (leave as string — ISO 8601 is not native Date in JSON)
+// 3. All fields non-optional  →  review: any field that was null in one sample is T | null
+// 4. Run quicktype against 5+ response samples — more samples → more accurate optionals
 ```
 
 ---
@@ -6406,14 +6744,19 @@ export class AccountListComponent {
 
 In a typical enterprise banking migration where AngularJS talks to a mix of legacy Java services and newer Node.js microservices, use a **layered approach**:
 
-| API Layer                                  | Backend Tech                     | Recommended Strategy                                                          | Priority |
-| ------------------------------------------ | -------------------------------- | ----------------------------------------------------------------------------- | -------- |
-| Core banking APIs (accounts, transactions) | Java Spring Boot                 | `typescript-generator` Maven plugin                                           | Sprint 1 |
-| New microservices                          | NestJS in Nx monorepo            | Shared Nx `api-contracts` library                                             | Sprint 1 |
-| API Gateway (Kong/Apigee/AWS)              | OpenAPI 3.x spec published       | `openapi-typescript` + CI drift check                                         | Sprint 2 |
-| Legacy internal services (no spec)         | Any — no formal contract         | `quicktype` from response samples, then manually maintain                     | Sprint 3 |
-| Third-party / partner APIs                 | OpenAPI spec (usually available) | `openapi-typescript`                                                          | Sprint 3 |
-| Future new endpoints                       | Design-first                     | Write OpenAPI spec first, generate both backend validation and frontend types | Ongoing  |
+| API Layer | Backend Tech | Recommended Strategy | Priority |
+|---|---|---|---|
+| Core banking APIs (accounts, transactions) | Java Spring Boot — has Swagger | `openapi-typescript` from `/v3/api-docs` | Sprint 1 |
+| Core banking APIs (accounts, transactions) | Java Spring Boot — **no Swagger** | Add `springdoc-openapi` dependency → then `openapi-typescript` | Sprint 1 |
+| Core banking APIs (accounts, transactions) | Java Spring Boot — no build access | `typescript-generator` Maven plugin (if source access) or `quicktype` HAR capture | Sprint 1 |
+| .NET / ASP.NET Core — has Swagger | OpenAPI spec from `/swagger/v1/swagger.json` | `openapi-typescript` | Sprint 1 |
+| .NET / ASP.NET Core — **no Swagger** | C# controllers + DTOs, team available | Swashbuckle.AspNetCore (3 lines in Program.cs) → then `openapi-typescript` | Sprint 1 |
+| .NET / ASP.NET Core — **no Swagger, no code change** | Compiled `.dll` available | NSwag CLI → reads DLL by reflection → `openapi-typescript` | Sprint 1 |
+| New microservices | NestJS in Nx monorepo | Shared Nx `api-contracts` library | Sprint 1 |
+| API Gateway (Kong / Apigee / AWS API GW) | OpenAPI 3.x spec published by gateway | `openapi-typescript` + CI drift check | Sprint 2 |
+| Legacy services — no spec, no source, team unavailable | Any opaque backend | HAR capture → quicktype; or Postman proxy → p2o → openapi-typescript | Sprint 2 |
+| Third-party / partner APIs | OpenAPI spec usually available | `openapi-typescript` | Sprint 3 |
+| Future new endpoints (greenfield) | Design-first | Write OpenAPI spec first → generate backend validation + frontend types | Ongoing |
 
 **The overarching principle:** treat the OpenAPI spec (or shared DTO library) as the **contract between backend and frontend teams**. Any interface file in `libs/shared-models/` that was written by hand and is not generated or imported from a backend source should be considered technical debt — scheduled for replacement in a future sprint once the backend publishes its contract.
 
