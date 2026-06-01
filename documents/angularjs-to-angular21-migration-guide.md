@@ -6327,9 +6327,9 @@ This is the most common enterprise scenario: the Java backend works and has `@Re
 # application.yml — optional: expose spec at a stable predictable URL
 springdoc:
   api-docs:
-    path: /v3/api-docs          # JSON spec available at this URL after restart
+    path: /v3/api-docs # JSON spec available at this URL after restart
   swagger-ui:
-    path: /swagger-ui.html      # Human-readable UI
+    path: /swagger-ui.html # Human-readable UI
   packages-to-scan: com.bank.api.controllers
 ```
 
@@ -6344,17 +6344,17 @@ npx openapi-typescript api-specs/banking-api.json \
 
 **What springdoc auto-detects — no annotations needed beyond what Spring already requires:**
 
-| Java annotation | Generated OpenAPI element |
-|---|---|
-| `@RestController` + `@RequestMapping("/api/accounts")` | Path group |
-| `@GetMapping("/{id}")` | `GET /api/accounts/{id}` operation |
-| `@PostMapping` + `@RequestBody AccountDto dto` | Request body schema |
-| `ResponseEntity<AccountDto>` return type | Response schema |
-| `@PathVariable String id` | Path parameter |
-| `@RequestParam(required=false) String filter` | Optional query parameter |
-| Java `enum AccountStatus` | OpenAPI enum values |
-| `@JsonProperty("accountNumber")` | Correct JSON field name |
-| `@Nullable` / `Optional<T>` | Nullable field |
+| Java annotation                                        | Generated OpenAPI element          |
+| ------------------------------------------------------ | ---------------------------------- |
+| `@RestController` + `@RequestMapping("/api/accounts")` | Path group                         |
+| `@GetMapping("/{id}")`                                 | `GET /api/accounts/{id}` operation |
+| `@PostMapping` + `@RequestBody AccountDto dto`         | Request body schema                |
+| `ResponseEntity<AccountDto>` return type               | Response schema                    |
+| `@PathVariable String id`                              | Path parameter                     |
+| `@RequestParam(required=false) String filter`          | Optional query parameter           |
+| Java `enum AccountStatus`                              | OpenAPI enum values                |
+| `@JsonProperty("accountNumber")`                       | Correct JSON field name            |
+| `@Nullable` / `Optional<T>`                            | Nullable field                     |
 
 **Path B — Cannot modify the backend build at all:**
 
@@ -6386,18 +6386,18 @@ java-to-typescript \
 
 **Java → TypeScript type mapping reference:**
 
-| Java type | TypeScript type | Notes |
-|---|---|---|
-| `String` | `string` | |
-| `Integer`, `int`, `Long`, `long` | `number` | No integer type in JS |
-| `Double`, `BigDecimal` | `number` | `BigDecimal` precision lost in JSON |
-| `Boolean`, `boolean` | `boolean` | |
-| `LocalDate`, `LocalDateTime`, `ZonedDateTime` | `string` | ISO 8601 in JSON |
-| `List<T>`, `Set<T>` | `T[]` | |
-| `Map<String, V>` | `Record<string, V>` | |
-| `Optional<T>` | `T \| null` | Jackson serialises absent Optional as null |
-| `@Nullable T` | `T \| null` | |
-| Java `enum` | `enum` or string literal union | |
+| Java type                                     | TypeScript type                | Notes                                      |
+| --------------------------------------------- | ------------------------------ | ------------------------------------------ |
+| `String`                                      | `string`                       |                                            |
+| `Integer`, `int`, `Long`, `long`              | `number`                       | No integer type in JS                      |
+| `Double`, `BigDecimal`                        | `number`                       | `BigDecimal` precision lost in JSON        |
+| `Boolean`, `boolean`                          | `boolean`                      |                                            |
+| `LocalDate`, `LocalDateTime`, `ZonedDateTime` | `string`                       | ISO 8601 in JSON                           |
+| `List<T>`, `Set<T>`                           | `T[]`                          |                                            |
+| `Map<String, V>`                              | `Record<string, V>`            |                                            |
+| `Optional<T>`                                 | `T \| null`                    | Jackson serialises absent Optional as null |
+| `@Nullable T`                                 | `T \| null`                    |                                            |
+| Java `enum`                                   | `enum` or string literal union |                                            |
 
 ---
 
@@ -6434,18 +6434,18 @@ npx openapi-typescript api-specs/dotnet-api.json \
 
 **What Swashbuckle auto-detects from .NET attributes:**
 
-| C# attribute / type | Generated OpenAPI element |
-|---|---|
-| `[ApiController]` + `[Route("api/[controller]")]` | Path group |
-| `[HttpGet("{id}")]` | `GET /api/accounts/{id}` operation |
-| `[HttpPost]` + `AccountDto dto` parameter | Request body schema |
-| `ActionResult<AccountDto>` return type | Response schema |
-| `[FromRoute] string id` | Path parameter |
-| `[FromQuery][Required] string filter` | Required query parameter |
-| C# `enum AccountStatus` | OpenAPI enum values |
-| `[JsonPropertyName("accountNumber")]` | Correct JSON field name |
-| Nullable `AccountDto?` | Nullable response |
-| `[ProducesResponseType(typeof(AccountDto), 200)]` | Typed 200 response |
+| C# attribute / type                               | Generated OpenAPI element          |
+| ------------------------------------------------- | ---------------------------------- |
+| `[ApiController]` + `[Route("api/[controller]")]` | Path group                         |
+| `[HttpGet("{id}")]`                               | `GET /api/accounts/{id}` operation |
+| `[HttpPost]` + `AccountDto dto` parameter         | Request body schema                |
+| `ActionResult<AccountDto>` return type            | Response schema                    |
+| `[FromRoute] string id`                           | Path parameter                     |
+| `[FromQuery][Required] string filter`             | Required query parameter           |
+| C# `enum AccountStatus`                           | OpenAPI enum values                |
+| `[JsonPropertyName("accountNumber")]`             | Correct JSON field name            |
+| Nullable `AccountDto?`                            | Nullable response                  |
+| `[ProducesResponseType(typeof(AccountDto), 200)]` | Typed 200 response                 |
 
 **Option B — NSwag Studio: Generate TypeScript from a .NET DLL with zero code changes:**
 
@@ -6475,20 +6475,20 @@ nswag openapi2tsclient \
 
 **.NET → TypeScript type mapping reference:**
 
-| C# type | TypeScript type | Notes |
-|---|---|---|
-| `string` | `string` | |
-| `int`, `long`, `short` | `number` | |
-| `decimal`, `double` | `number` | `decimal` precision not preserved in JSON |
-| `bool` | `boolean` | |
-| `DateTime`, `DateTimeOffset` | `string` | ISO 8601 with `System.Text.Json` |
-| `DateOnly` | `string` | `"2024-01-15"` format |
-| `Guid` | `string` | UUID string |
-| `List<T>`, `IEnumerable<T>` | `T[]` | |
-| `Dictionary<string, V>` | `Record<string, V>` | |
-| `T?` (nullable reference type) | `T \| null` | With `#nullable enable` in C# 8+ |
-| `Task<T>` return type | `T` | Async unwrapped in generated type |
-| C# `enum` | TypeScript `enum` or string union | Depends on `[JsonConverter]` config |
+| C# type                        | TypeScript type                   | Notes                                     |
+| ------------------------------ | --------------------------------- | ----------------------------------------- |
+| `string`                       | `string`                          |                                           |
+| `int`, `long`, `short`         | `number`                          |                                           |
+| `decimal`, `double`            | `number`                          | `decimal` precision not preserved in JSON |
+| `bool`                         | `boolean`                         |                                           |
+| `DateTime`, `DateTimeOffset`   | `string`                          | ISO 8601 with `System.Text.Json`          |
+| `DateOnly`                     | `string`                          | `"2024-01-15"` format                     |
+| `Guid`                         | `string`                          | UUID string                               |
+| `List<T>`, `IEnumerable<T>`    | `T[]`                             |                                           |
+| `Dictionary<string, V>`        | `Record<string, V>`               |                                           |
+| `T?` (nullable reference type) | `T \| null`                       | With `#nullable enable` in C# 8+          |
+| `Task<T>` return type          | `T`                               | Async unwrapped in generated type         |
+| C# `enum`                      | TypeScript `enum` or string union | Depends on `[JsonConverter]` config       |
 
 ---
 
@@ -6496,7 +6496,7 @@ nswag openapi2tsclient \
 
 When the backend is a completely opaque legacy system — no OpenAPI spec, no shared DTOs, no source code access, backend team unavailable — you can still extract accurate TypeScript interfaces. This is the real brownfield situation that happens in most AngularJS migrations.
 
-> **Architect's note:** The correct first step is always to find the data the API *actually returns at runtime*, not to guess from the AngularJS controller code. Infer from real responses, not assumptions.
+> **Architect's note:** The correct first step is always to find the data the API _actually returns at runtime_, not to guess from the AngularJS controller code. Infer from real responses, not assumptions.
 
 ---
 
@@ -6535,6 +6535,7 @@ npx quicktype --src-lang json --lang typescript \
 ```
 
 **HAR capture checklist — maximise coverage:**
+
 - Navigate every screen that loads data (account list, account detail, transaction history, payments)
 - Test edge cases: accounts with overdraft, closed accounts, accounts with no transactions — these reveal nullable/optional fields that don't appear in the happy path
 - Log in as multiple user roles (admin, read-only, relationship manager) — different roles may receive different response shapes
@@ -6668,13 +6669,13 @@ done
 ```typescript
 // quicktype infers from what it saw — always review before committing:
 export interface Account {
-  id: string;                      // ✅ Correct
-  accountNumber: string;           // ✅ Correct
-  balance: number;                 // ✅ Correct
-  status: string;                  // ⚠️  Change to AccountStatus enum
-  overdraftLimit: number | null;   // ✅ Correct if null appeared in sample
-  nickname?: string;               // ✅ Correct if some records had it
-  createdAt: string;               // ⚠️  Consider branded type: type ISODateString = string
+  id: string; // ✅ Correct
+  accountNumber: string; // ✅ Correct
+  balance: number; // ✅ Correct
+  status: string; // ⚠️  Change to AccountStatus enum
+  overdraftLimit: number | null; // ✅ Correct if null appeared in sample
+  nickname?: string; // ✅ Correct if some records had it
+  createdAt: string; // ⚠️  Consider branded type: type ISODateString = string
 }
 
 // Common corrections after quicktype inference:
@@ -6744,19 +6745,19 @@ export class AccountListComponent {
 
 In a typical enterprise banking migration where AngularJS talks to a mix of legacy Java services and newer Node.js microservices, use a **layered approach**:
 
-| API Layer | Backend Tech | Recommended Strategy | Priority |
-|---|---|---|---|
-| Core banking APIs (accounts, transactions) | Java Spring Boot — has Swagger | `openapi-typescript` from `/v3/api-docs` | Sprint 1 |
-| Core banking APIs (accounts, transactions) | Java Spring Boot — **no Swagger** | Add `springdoc-openapi` dependency → then `openapi-typescript` | Sprint 1 |
-| Core banking APIs (accounts, transactions) | Java Spring Boot — no build access | `typescript-generator` Maven plugin (if source access) or `quicktype` HAR capture | Sprint 1 |
-| .NET / ASP.NET Core — has Swagger | OpenAPI spec from `/swagger/v1/swagger.json` | `openapi-typescript` | Sprint 1 |
-| .NET / ASP.NET Core — **no Swagger** | C# controllers + DTOs, team available | Swashbuckle.AspNetCore (3 lines in Program.cs) → then `openapi-typescript` | Sprint 1 |
-| .NET / ASP.NET Core — **no Swagger, no code change** | Compiled `.dll` available | NSwag CLI → reads DLL by reflection → `openapi-typescript` | Sprint 1 |
-| New microservices | NestJS in Nx monorepo | Shared Nx `api-contracts` library | Sprint 1 |
-| API Gateway (Kong / Apigee / AWS API GW) | OpenAPI 3.x spec published by gateway | `openapi-typescript` + CI drift check | Sprint 2 |
-| Legacy services — no spec, no source, team unavailable | Any opaque backend | HAR capture → quicktype; or Postman proxy → p2o → openapi-typescript | Sprint 2 |
-| Third-party / partner APIs | OpenAPI spec usually available | `openapi-typescript` | Sprint 3 |
-| Future new endpoints (greenfield) | Design-first | Write OpenAPI spec first → generate backend validation + frontend types | Ongoing |
+| API Layer                                              | Backend Tech                                 | Recommended Strategy                                                              | Priority |
+| ------------------------------------------------------ | -------------------------------------------- | --------------------------------------------------------------------------------- | -------- |
+| Core banking APIs (accounts, transactions)             | Java Spring Boot — has Swagger               | `openapi-typescript` from `/v3/api-docs`                                          | Sprint 1 |
+| Core banking APIs (accounts, transactions)             | Java Spring Boot — **no Swagger**            | Add `springdoc-openapi` dependency → then `openapi-typescript`                    | Sprint 1 |
+| Core banking APIs (accounts, transactions)             | Java Spring Boot — no build access           | `typescript-generator` Maven plugin (if source access) or `quicktype` HAR capture | Sprint 1 |
+| .NET / ASP.NET Core — has Swagger                      | OpenAPI spec from `/swagger/v1/swagger.json` | `openapi-typescript`                                                              | Sprint 1 |
+| .NET / ASP.NET Core — **no Swagger**                   | C# controllers + DTOs, team available        | Swashbuckle.AspNetCore (3 lines in Program.cs) → then `openapi-typescript`        | Sprint 1 |
+| .NET / ASP.NET Core — **no Swagger, no code change**   | Compiled `.dll` available                    | NSwag CLI → reads DLL by reflection → `openapi-typescript`                        | Sprint 1 |
+| New microservices                                      | NestJS in Nx monorepo                        | Shared Nx `api-contracts` library                                                 | Sprint 1 |
+| API Gateway (Kong / Apigee / AWS API GW)               | OpenAPI 3.x spec published by gateway        | `openapi-typescript` + CI drift check                                             | Sprint 2 |
+| Legacy services — no spec, no source, team unavailable | Any opaque backend                           | HAR capture → quicktype; or Postman proxy → p2o → openapi-typescript              | Sprint 2 |
+| Third-party / partner APIs                             | OpenAPI spec usually available               | `openapi-typescript`                                                              | Sprint 3 |
+| Future new endpoints (greenfield)                      | Design-first                                 | Write OpenAPI spec first → generate backend validation + frontend types           | Ongoing  |
 
 **The overarching principle:** treat the OpenAPI spec (or shared DTO library) as the **contract between backend and frontend teams**. Any interface file in `libs/shared-models/` that was written by hand and is not generated or imported from a backend source should be considered technical debt — scheduled for replacement in a future sprint once the backend publishes its contract.
 
